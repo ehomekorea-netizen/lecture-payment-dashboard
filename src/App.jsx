@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Plus, Calendar, MapPin, TrendingUp, AlertCircle, 
+  Search, Plus, Calendar, TrendingUp, AlertCircle, 
   CheckCircle2, X, Download, Upload, Trash2, Edit3, Check, Info,
   Settings, Sparkles, Database, RefreshCw, Home, BarChart, 
    BookOpen, Copy, Cloud
@@ -298,19 +298,12 @@ export default function App() {
       const transport = name === 'transportFee' ? Number(value) : updated.transportFee;
       
       if (name === 'institution') {
-        const matchedPreset = INSTITUTION_COORDINATES.find(c => c.name === value);
-        if (matchedPreset) {
-          updated.rate = matchedPreset.defaultRate;
-          updated.transportFee = matchedPreset.defaultTransport;
-          updated.taxRate = matchedPreset.defaultTax;
-        } else {
-          const prevLecture = lectures.find(l => l.institution === value);
-          if (prevLecture) {
-            updated.rate = prevLecture.rate;
-            updated.transportFee = prevLecture.transportFee;
-            updated.taxRate = prevLecture.taxRate;
-            updated.taxBase = prevLecture.taxBase || 'LectureOnly';
-          }
+        const prevLecture = lectures.find(l => l.institution === value);
+        if (prevLecture) {
+          updated.rate = prevLecture.rate;
+          updated.transportFee = prevLecture.transportFee;
+          updated.taxRate = prevLecture.taxRate;
+          updated.taxBase = prevLecture.taxBase || 'LectureOnly';
         }
       }
 
@@ -318,59 +311,7 @@ export default function App() {
     });
   };
 
-  // GPS 기준 매핑
-  const handleGetLocation = () => {
-    setGpsLoading(true);
-    setGpsMessage(null);
 
-    if (!navigator.geolocation) {
-      setGpsMessage({ type: 'error', text: '브라우저 GPS 미지원' });
-      setGpsLoading(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        let closest = null;
-        let minDistance = Infinity;
-
-        INSTITUTION_COORDINATES.forEach(inst => {
-          const dist = getDistance(latitude, longitude, inst.lat, inst.lng);
-          if (dist < minDistance) {
-            minDistance = dist;
-            closest = inst;
-          }
-        });
-
-        if (closest && minDistance < 800) {
-          setFormData(prev => ({
-            ...prev,
-            institution: closest.name,
-            rate: closest.defaultRate,
-            transportFee: closest.defaultTransport,
-            taxRate: closest.defaultTax
-          }));
-          setGpsMessage({
-            type: 'success',
-            text: `[감지] '${closest.name}' 근처(${Math.round(minDistance)}m)에 있어 자동 완성되었습니다.`
-          });
-        } else {
-          setGpsMessage({
-            type: 'warning',
-            text: `주변 800m 이내에 지정된 기관이 없습니다. (가장 가까운 곳: ${closest ? closest.name : '없음'})`
-          });
-        }
-        setGpsLoading(false);
-      },
-      (error) => {
-        console.error(error);
-        setGpsMessage({ type: 'error', text: '위치 정보 획득 실패 (GPS 권한을 허용해 주세요)' });
-        setGpsLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  };
 
   // 설정 저장
   const handleSaveSettings = (geminiKey, sheetApiUrl) => {
@@ -735,7 +676,7 @@ ${aiText}
     setLectures(updatedList);
     setIsAddModalOpen(false);
     setEditingLecture(null);
-    setGpsMessage(null);
+
     setFormData({
       institution: '',
       role: 'Main',
@@ -822,7 +763,7 @@ ${aiText}
       taxBase: lecture.taxBase || 'LectureOnly',
       customTax: lecture.customTax || 0
     });
-    setGpsMessage(null);
+
     setIsAddModalOpen(true);
   };
 
@@ -1090,7 +1031,6 @@ function doPost(e) {
                     taxBase: 'LectureOnly',
                     customTax: 0
                   });
-                  setGpsMessage(null);
                   setIsAddModalOpen(true);
                 }}
                 className="px-3 py-1.5 rounded-xl font-bold bg-[#2563EB] hover:bg-[#1D4ED8] text-white flex items-center gap-1 shadow-sm transition-all text-[11px]"
@@ -1104,7 +1044,7 @@ function doPost(e) {
         </div>
 
         {/* Dynamic Tab Body — motion: slide direction from prevTab */}
-        <div className="p-4 flex-1 flex flex-col gap-4 overflow-y-auto">
+        <div className="p-4 flex-1 flex flex-col gap-4 overflow-y-auto pb-24">
           {/* invisible motion key — forces re-mount on tab change for animation */}
           
           {/* TAB 1: HOME (Lectures Card List) */}
@@ -1246,7 +1186,7 @@ function doPost(e) {
                               setSwipeActiveId(null);
                             }
                           }}
-                          className="card-stagger card-hover bg-white flex flex-col gap-2.5 z-10 relative transition-transform duration-150 ease-out"
+                          className="card-hover bg-white flex flex-col gap-2.5 z-10 relative transition-transform duration-150 ease-out"
                           style={{
                             transform: `translateX(${offset}px)`,
                             animationDelay: (idx * 55) + 'ms',
@@ -1791,12 +1731,11 @@ function doPost(e) {
                     taxBase: 'LectureOnly',
                     customTax: 0
                   });
-                  setGpsMessage(null);
                   setIsAddModalOpen(true);
                 }}
                 className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl transition text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm"
               >
-                <Plus size={14} /> 새 강의 기록
+                <Plus size={14} /> 기록
               </button>
             </div>
           </div>
@@ -1904,7 +1843,7 @@ function doPost(e) {
                   return (
                     <div key={idx} className="flex flex-col items-center flex-1 group relative">
                       <div className="w-6 flex flex-col justify-end items-center rounded-t overflow-hidden" style={{ height: `${Math.max(totalHeightPercent, 4)}px` }}>
-                        {d.unpaid > 0 && <div className="w-full chart-unpaid-pattern" style={{ height: `${unpaidHeight}px` }} />}
+                        {d.unpaid > 0 && <div className="w-full" style={{ height: `${unpaidHeight}px`, background: 'rgba(37,99,235,0.15)' }} />}
                         {d.paid > 0 && <div className="w-full bg-[#1F2E5B]" style={{ height: `${paidHeight}px` }} />}
                       </div>
                       <span className="text-[10px] font-bold text-toss-textSub mt-2">{d.month}</span>
@@ -1982,7 +1921,6 @@ function doPost(e) {
                     onClick={() => {
                       setEditingLecture(null);
                       setFormData({ institution: '', role: 'Main', rate: 100000, classes: 2, transportFee: 0, month: '', date: '', registrationDate: new Date().toISOString().slice(0, 10), isPaid: false, taxRate: '8.8%', taxBase: 'LectureOnly', customTax: 0 });
-                      setGpsMessage(null);
                       setIsAddModalOpen(true);
                     }}
                     className="px-4 py-2 text-xs font-bold rounded-xl transition text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm"
@@ -2811,7 +2749,7 @@ function doPost(e) {
             
             <div className="p-6 flex flex-col gap-4 text-xs font-mono text-slate-800">
               <div className="text-center pb-2 border-b border-dashed border-slate-300">
-                <span className="text-[10px] text-toss-textSub font-bold tracking-wider">LECTOSS BILLING SERVICE</span>
+                <span className="text-[10px] text-toss-textSub font-bold tracking-wider">강의정산 BILLING SERVICE</span>
                 <h3 className="text-base font-black text-slate-900 mt-0.5">{receiptItem.institution}</h3>
                 <span className="text-[9px] text-slate-400 block mt-1">{receiptItem.month} · {receiptItem.date} 출강건</span>
               </div>
@@ -2868,7 +2806,7 @@ function doPost(e) {
                 <div className="h-8 w-44 bg-slate-800" style={{
                   backgroundImage: 'repeating-linear-gradient(90deg, #1e293b, #1e293b 2px, transparent 2px, transparent 6px, #1e293b 6px, #1e293b 7px, transparent 7px, transparent 10px)'
                 }} />
-                <span className="text-[8px] text-slate-400">LECTOSS-VERIFIED-TAX-RECEIPT</span>
+                <span className="text-[8px] text-slate-400">강의정산-VERIFIED-TAX-RECEIPT</span>
               </div>
             </div>
             
