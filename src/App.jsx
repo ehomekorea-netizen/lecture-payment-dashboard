@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { AlertCircle, BarChart, BookOpen, Calendar, Check, CheckCircle2, ChevronDown, ClipboardList, Clock, Cloud, Copy, Database, Download, Edit3, Home, Info, Plus, RefreshCw, Search, Settings, Sparkles, Trash2, TrendingUp, Upload, X } from 'lucide-react';
 import { INITIAL_LECTURES } from './initialData';
 import StableLottie from './components/StableLottie';
