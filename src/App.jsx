@@ -292,6 +292,37 @@ export default function App() {
   const [editingNetValue, setEditingNetValue] = useState('');
   const [isNetEditModalOpen, setIsNetEditModalOpen] = useState(false);
 
+  // 삭제 취소(Undo) 기능용 상태
+  const [deletedLecture, setDeletedLecture] = useState(null);
+  const [undoCountdown, setUndoCountdown] = useState(0);
+
+  useEffect(() => {
+    if (undoCountdown <= 0) {
+      if (undoCountdown === 0) {
+        setDeletedLecture(null);
+      }
+      return;
+    }
+    const interval = setInterval(() => {
+      setUndoCountdown(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [undoCountdown]);
+
+  const handleUndoDelete = () => {
+    if (deletedLecture) {
+      setLectures(prev => {
+        if (prev.some(l => l.id === deletedLecture.id)) return prev;
+        return [deletedLecture, ...prev].sort((a, b) => {
+          if (a.isPaid !== b.isPaid) return a.isPaid ? 1 : -1;
+          return b.id.localeCompare(a.id);
+        });
+      });
+      setDeletedLecture(null);
+      setUndoCountdown(0);
+    }
+  };
+
   // Lottie 애니메이션 타임아웃 참조
   const moneyLottieTimeoutRef = useRef(null);
   const moneyLottieFadeTimeoutRef = useRef(null);
@@ -590,59 +621,75 @@ export default function App() {
 
   // 목업 분석 실행
   const handleMockParse = () => {
-    setAiText(`[출강 공지]
+    const fullText = `[출강 공지]
 디지털새싹 정보화교육 안내
-1. 11/19(화) 09:00~12:00 (3차시) - 광주사회복지회관 (한국사회복지협의회 DX 교육)
+1. 11/19(화) 09:00~12:00 (3차시) - 광주사회복지회관 (DX 교육)
 - 단가: 100,000원, 교통비: 20,000원
 
 2. 11/24(일) 14:00~16:00 (2차시) - 해남종합사회복지관
-- 단가: 100,000원 (교통비 없음)`);
-    
+- 단가: 100,000원 (교통비 없음)`;
+
+    setAiText('');
     setAiLoading(true);
     setAiError(null);
+    setIsMockParseResult(true);
 
-    setTimeout(() => {
-      const mockParsed = [
-        {
-          id: `mock-${Date.now()}-1`,
-          institution: '사회복지협의회/광주사회복지회관',
-          rate: 100000,
-          classes: 3,
-          transportFee: 20000,
-          expectedAmount: 320000,
-          deduction: -26400,
-          netAmount: 293600,
-          month: '11월',
-          date: '11월 19일',
-          registrationDate: new Date().toISOString().slice(0, 10),
-          isPaid: false,
-          taxRate: '3.3%',
-          taxBase: 'LectureOnly',
-          customTax: 0
-        },
-        {
-          id: `mock-${Date.now()}-2`,
-          institution: '해남종합사회복지관',
-          rate: 100000,
-          classes: 2,
-          transportFee: 0,
-          expectedAmount: 200000,
-          deduction: -17600,
-          netAmount: 182400,
-          month: '11월',
-          date: '11월 24일',
-          registrationDate: new Date().toISOString().slice(0, 10),
-          isPaid: false,
-          taxRate: '3.3%',
-          taxBase: 'LectureOnly',
-          customTax: 0
-        }
-      ];
-      setParsedLectures(mockParsed);
-      setIsAiVerifying(true);
-      setIsMockParseResult(true);
-      setAiLoading(false);
-    }, 1000);
+    let currentLength = 0;
+    const intervalTime = 12; // ms per step
+    const stepSize = 4; // type 4 characters at a time for smooth speed
+    
+    const timer = setInterval(() => {
+      currentLength += stepSize;
+      if (currentLength >= fullText.length) {
+        setAiText(fullText);
+        clearInterval(timer);
+        
+        // After typing animation completes, transition to verification card list
+        setTimeout(() => {
+          const mockParsed = [
+            {
+              id: `mock-${Date.now()}-1`,
+              institution: '사회복지협의회/광주사회복지회관',
+              rate: 100000,
+              classes: 3,
+              transportFee: 20000,
+              expectedAmount: 320000,
+              deduction: -10560,
+              netAmount: 309440,
+              month: '11월',
+              date: '11월 19일',
+              registrationDate: new Date().toISOString().slice(0, 10),
+              isPaid: false,
+              taxRate: '3.3%',
+              taxBase: 'LectureOnly',
+              customTax: 0
+            },
+            {
+              id: `mock-${Date.now()}-2`,
+              institution: '해남종합사회복지관',
+              rate: 100000,
+              classes: 2,
+              transportFee: 0,
+              expectedAmount: 200000,
+              deduction: -6600,
+              netAmount: 193400,
+              month: '11월',
+              date: '11월 24일',
+              registrationDate: new Date().toISOString().slice(0, 10),
+              isPaid: false,
+              taxRate: '3.3%',
+              taxBase: 'LectureOnly',
+              customTax: 0
+            }
+          ];
+          setParsedLectures(mockParsed);
+          setIsAiVerifying(true);
+          setAiLoading(false);
+        }, 500);
+      } else {
+        setAiText(fullText.slice(0, currentLength));
+      }
+    }, intervalTime);
   };
 
   // AI 실제 분석
@@ -717,7 +764,7 @@ ${aiText}
             item.rate || 100000,
             item.classes || 2,
             item.transportFee || 0,
-            item.taxRate || '8.8%',
+            item.taxRate || '3.3%',
             item.taxBase || 'LectureOnly',
             0,
             item.isPaid || false
@@ -735,7 +782,7 @@ ${aiText}
             date: item.date || '6월 29일',
             registrationDate: item.registrationDate || new Date().toISOString().slice(0, 10),
             isPaid: item.isPaid || false,
-            taxRate: item.taxRate || '8.8%',
+            taxRate: item.taxRate || '3.3%',
             taxBase: item.taxBase || 'LectureOnly',
             customTax: 0
           };
@@ -1013,9 +1060,11 @@ ${aiText}
 
   // 삭제
   const handleDelete = (id) => {
-    if (window.confirm('정말 이 기록을 삭제하시겠습니까?')) {
-      const updatedList = lectures.filter(l => l.id !== id);
-      setLectures(updatedList);
+    const target = lectures.find(l => l.id === id);
+    if (target) {
+      setDeletedLecture(target);
+      setLectures(prev => prev.filter(l => l.id !== id));
+      setUndoCountdown(5);
     }
   };
 
@@ -1263,6 +1312,35 @@ function doPost(e) {
 
       {/* Main centered mobile-frame container on desktop, full screen on mobile */}
       <div className="w-full max-w-md bg-[#F8FAF8] min-h-screen md:min-h-[88vh] md:max-h-[94vh] md:rounded-[36px] shadow-2xl relative overflow-hidden flex flex-col pb-0 md:border md:border-slate-800/10">
+        
+        {/* Undo Toast Notification */}
+        {deletedLecture && (
+          <div className="absolute top-[60px] left-3.5 right-3.5 z-50 bg-white/95 backdrop-blur border border-red-200/80 rounded-2xl p-3.5 shadow-xl flex items-center justify-between animate-fade-in" style={{ boxShadow: '0 8px 30px rgba(239, 68, 68, 0.08)' }}>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="text-[12px] font-black text-red-600 flex items-center gap-1">
+                🗑️ 출강 기록이 삭제되었습니다
+              </span>
+              <span className="text-[10px] text-slate-500 font-extrabold truncate block">{deletedLecture.institution} · {formatWon(deletedLecture.expectedAmount)}원</span>
+            </div>
+            <button 
+              onClick={handleUndoDelete}
+              className="px-3.5 py-2 bg-[#2563EB] hover:bg-blue-700 text-white font-black text-[11px] rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5 flex-shrink-0"
+            >
+              <span>되돌리기</span>
+              <span className="inline-block bg-white/20 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold">{undoCountdown}초</span>
+            </button>
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-red-100 rounded-b-2xl overflow-hidden">
+              <div 
+                className="h-full bg-red-500 transition-all ease-linear"
+                style={{ 
+                  width: `${(undoCountdown / 5) * 100}%`,
+                  transitionDuration: '1000ms'
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 flex flex-col min-h-0">
         {/* App Title Header — Clean White Theme */}
         <div className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
@@ -1300,7 +1378,7 @@ function doPost(e) {
                   </defs>
                   <path d="M12 2C12 2 12.3 8.5 4 12C12.3 12 12 22 12 22C12 22 11.7 12 20 12C11.7 8.5 12 2 12 2Z" fill="url(#gemini-logo-grad)" />
                 </svg>
-                <span className="text-[11.5px] font-black text-slate-700 tracking-tight">Gemini AI</span>
+                <span className="text-[11.5px] font-black text-indigo-955 tracking-tight">AI 일정 등록</span>
               </button>
             </div>
           </div>
@@ -2525,28 +2603,35 @@ function doPost(e) {
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
 
 
-            <div className="p-5 border-b border-toss-border flex items-center justify-between bg-slate-50/50">
-              <h3 className="text-sm font-extrabold text-toss-textDark flex items-center gap-1.5">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-indigo-600 animate-pulse">
-                  <path d="M12.0001 2.5293C11.9682 7.64332 7.84279 11.7779 2.70898 11.8398C7.84279 11.9017 11.9682 16.0363 12.0001 21.1503C12.032 16.0363 16.1574 11.9017 21.2912 11.8398C16.1574 11.7779 12.032 7.64332 12.0001 2.5293Z" fill="currentColor"/>
+            <div className="p-5 border-b border-indigo-100 flex items-center justify-between bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white">
+              <h3 className="text-[16px] font-black text-white flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-blue-400 animate-pulse animate-duration-1000">
+                  <defs>
+                    <linearGradient id="gemini-logo-grad-modal" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#93C5FD" />
+                      <stop offset="50%" stopColor="#3B82F6" />
+                      <stop offset="100%" stopColor="#8B5CF6" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M12 2C12 2 12.3 8.5 4 12C12.3 12 12 22 12 22C12 22 11.7 12 20 12C11.7 8.5 12 2 12 2Z" fill="url(#gemini-logo-grad-modal)" />
                 </svg>
-                {isAiVerifying ? 'AI 파싱 결과 검토' : 'AI 카톡 일정 등록'}
+                {isAiVerifying ? 'AI 분석 결과 검토' : 'AI 일정 등록'}
               </h3>
               <button 
                 onClick={() => {
                   setIsAiModalOpen(false);
                   setIsAiVerifying(false);
                 }} 
-                className="p-1 text-toss-textSub hover:bg-slate-100 rounded-lg"
+                className="p-1.5 text-indigo-200 hover:text-white hover:bg-white/10 rounded-lg transition"
               >
                 <X size={18} />
               </button>
             </div>
 
             {!isAiVerifying ? (
-              <div className="p-5 flex flex-col gap-4 text-xs">
-                <p className="text-toss-textMuted leading-relaxed">
-                  카톡으로 전달받은 안내 공지 메시지를 복사해 붙여넣으면 AI가 핵심 필드(일정, 장소, 금액 등)를 분석합니다.
+              <div className="p-6 flex flex-col gap-5 text-sm bg-gradient-to-b from-indigo-50/20 to-white">
+                <p className="text-slate-500 font-semibold leading-relaxed text-[13px]">
+                  전달받은 안내 공지 메시지를 아래에 붙여넣으시면, AI가 일련번호, 장소, 시간, 강사료 등을 정확하게 추출하여 기록해 드립니다.
                 </p>
 
                 {!apiKey && (
@@ -2556,15 +2641,29 @@ function doPost(e) {
                 )}
 
                 <textarea
-                  rows="8"
+                  rows="7"
                   value={aiText}
                   onChange={(e) => setAiText(e.target.value)}
-                  placeholder={`[여기에 메시지 붙여넣기]
-안녕하세요 강사님 다음 주 일정입니다.
-10/22(수) 09:00~12:00 (3차시) - 광주사회복지회관
-단가 100,000원, 교통비 20,000원`}
-                  className="w-full px-3 py-2 border border-toss-border rounded-xl focus:outline-none focus:border-toss-blue bg-[#F8FAF8] resize-none"
+                  disabled={aiLoading}
+                  placeholder={`[메시지 본문을 이곳에 입력해주세요]
+예시:
+2026 디지털 정보화 교육 안내
+- 11/19(화) 09:00~12:00 (3차시) 광주사회복지회관
+- 강사료: 시간당 10만원 (교통비 2만원 별도)`}
+                  className="w-full px-4 py-3 border border-indigo-150 rounded-2xl focus:outline-none focus:border-indigo-500 bg-white/70 backdrop-blur shadow-inner resize-none text-[13.5px] font-medium text-slate-800 transition-all placeholder-slate-400"
                 />
+
+                {aiLoading && (
+                  <div className="p-4 bg-indigo-50/80 border border-indigo-100/60 rounded-2xl flex flex-col items-center justify-center gap-2 animate-pulse">
+                    <div className="flex items-center gap-2 text-indigo-700 font-extrabold text-[12.5px]">
+                      <svg className="animate-spin h-4 w-4 text-indigo-650" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {isMockParseResult ? 'AI가 예시 일정 텍스트를 입력하는 중...' : 'AI가 핵심 정보를 추출하고 있습니다...'}
+                    </div>
+                  </div>
+                )}
 
                 {aiError && (
                   <div className="p-2.5 bg-red-50 border border-red-200 text-toss-red rounded-lg">
@@ -2572,20 +2671,21 @@ function doPost(e) {
                   </div>
                 )}
 
-                <div className="flex flex-col gap-2 mt-2">
+                <div className="flex flex-col gap-3 mt-1">
                   <button
                     type="button"
                     onClick={handleMockParse}
                     disabled={aiLoading}
-                    className="w-full py-2 bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100 transition"
+                    className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black rounded-xl hover:from-indigo-600 hover:to-purple-700 transition shadow-md shadow-indigo-200 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
                   >
-                    🚀 [체험용 목업 테스트] 키 없이 파싱 흐름 시뮬레이션
+                    <span>🚀 [체험하기] AI 가상 타핑 & 분석 시뮬레이션</span>
                   </button>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2.5">
                     <button
                       type="button"
                       onClick={() => setIsAiModalOpen(false)}
+                      disabled={aiLoading}
                       className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-toss-textMuted font-bold rounded-xl"
                     >
                       취소
@@ -2594,7 +2694,7 @@ function doPost(e) {
                       type="button"
                       onClick={handleAiParse}
                       disabled={aiLoading || !aiText.trim() || !apiKey}
-                      className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl disabled:bg-indigo-300 shadow-md flex items-center justify-center gap-1.5"
+                      className="flex-1 py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white font-bold rounded-xl disabled:bg-blue-300 shadow-md flex items-center justify-center gap-1.5"
                     >
                       {aiLoading ? <RefreshCw size={14} className="animate-spin" /> : 'AI 분석 시작'}
                     </button>
