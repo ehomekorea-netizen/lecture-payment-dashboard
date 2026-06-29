@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Lottie from 'lottie-react';
 
-const StableLottie = React.memo(({ path, className, speed = 1, loop = true, autoplay = true }) => {
+const StableLottie = React.memo(({ path, className, speed = 1, loop = true, autoplay = true, onComplete }) => {
   const [animationData, setAnimationData] = useState(null);
   const [loading, setLoading] = useState(true);
   const lottieRef = useRef(null);
@@ -55,6 +55,7 @@ const StableLottie = React.memo(({ path, className, speed = 1, loop = true, auto
       loop={loop}
       autoplay={autoplay}
       onDOMLoaded={handleLoaded}
+      onComplete={onComplete}
     />
   );
 }, (prevProps, nextProps) => {

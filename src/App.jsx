@@ -136,6 +136,11 @@ export default function App() {
 
   // 모바일 앱용 탭 상태 ('home', 'stats', 'sync', 'settings')
   const [activeTab, setActiveTab] = useState('home');
+
+  // Scroll to top on tab change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [activeTab]);
   const [prevTab, setPrevTab] = useState(null); // for slide direction
 
   // 자주 쓰는 프리셋 데이터 상태 (이모지 제거, 역할[role] 필드 보강)
@@ -232,7 +237,7 @@ export default function App() {
 
 
   // Tab order for slide direction
-  const TAB_ORDER = ['home', 'calendar', 'stats', 'sync', 'settings'];
+  const TAB_ORDER = ['calendar', 'stats', 'home', 'sync', 'settings'];
   const getSlideClass = () => {
     if (!prevTab) return 'tab-enter-up';
     const prevIdx = TAB_ORDER.indexOf(prevTab);
@@ -302,6 +307,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isMockParseResult, setIsMockParseResult] = useState(false);
+  const [globalLottie, setGlobalLottie] = useState(null);
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
   const [activeMenuCardId, setActiveMenuCardId] = useState(null);
 
@@ -1247,19 +1253,38 @@ function doPost(e) {
                 <div className="flex gap-1.5 overflow-x-auto py-1 scrollbar-none">
                   <button 
                     onClick={() => setSelectedMonth('All')}
-                    className={`text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                    className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
                   >
-                    전체 월
+                    #전체월
                   </button>
                   {uniqueMonths.map((m, idx) => (
                     <button 
                       key={idx}
                       onClick={() => setSelectedMonth(m)}
-                      className={`text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === m ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                      className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === m ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
                     >
-                      {m}
+                      #{m}
                     </button>
                   ))}
+                  <div className="w-[1px] bg-slate-200 mx-1 flex-shrink-0" />
+                  <button 
+                    onClick={() => setSelectedStatus('All')}
+                    className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'All' ? 'bg-[#10B981] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                  >
+                    #전체상태
+                  </button>
+                  <button 
+                    onClick={() => setSelectedStatus('Paid')}
+                    className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'Paid' ? 'bg-[#10B981] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                  >
+                    #완료
+                  </button>
+                  <button 
+                    onClick={() => setSelectedStatus('Pending')}
+                    className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'Pending' ? 'bg-[#F59E0B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                  >
+                    #대기
+                  </button>
                 </div>
               </div>
 
@@ -1280,11 +1305,6 @@ function doPost(e) {
                         style={{border:'1px solid rgba(31,46,91,0.10)',boxShadow:'0 2px 12px rgba(31,46,91,0.06)'}}
                       >
                         <div className="card-hover bg-white flex flex-col relative" style={{animationDelay:(idx*55)+'ms',padding:'18px'}}>
-                          {l.isPaid && (
-                            <div className="absolute -bottom-2 -right-4 opacity-40 pointer-events-none" style={{width: '90px', height: '90px'}}>
-                              <StableLottie path="/lottie/Money stack.json" speed={1.2} />
-                            </div>
-                          )}
                           <div className="flex items-start justify-between mb-2">
                             <div>
                               <div className="flex items-center gap-1.5 mb-1.5">
@@ -1302,22 +1322,32 @@ function doPost(e) {
                                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
                                 </button>
                                 {activeMenuCardId === l.id && (
-                                  <div className="absolute right-0 top-10 bg-white border border-slate-200 shadow-xl rounded-xl z-20 py-1.5 px-1.5 flex flex-col gap-1 w-24">
-                                    <button onClick={(e) => {e.stopPropagation();handleEditClick(l);setActiveMenuCardId(null);}} className="w-full text-left py-1.5 px-2 text-[11px] font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-1.5"><Edit3 size={11} className="text-slate-400" />수정하기</button>
-                                    <button onClick={(e) => {e.stopPropagation();if(confirm('이 강의 기록을 정말 삭제하시겠습니까?')){handleDelete(l.id);}setActiveMenuCardId(null);}} className="w-full text-left py-1.5 px-2 text-[11px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1.5"><Trash2 size={11} className="text-red-400" />삭제하기</button>
+                                  <div className="absolute right-0 bottom-full mb-2 bg-white border border-slate-200 shadow-xl rounded-xl z-20 py-1.5 px-1.5 flex flex-col gap-1 w-32">
+                                    <button onClick={(e) => {e.stopPropagation();handleEditClick(l);setActiveMenuCardId(null);}} className="w-full text-left py-2.5 px-3 text-[13px] font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2"><Edit3 size={14} className="text-slate-400" />수정하기</button>
+                                    <button onClick={(e) => {e.stopPropagation();if(confirm('이 강의 기록을 정말 삭제하시겠습니까?')){handleDelete(l.id);}setActiveMenuCardId(null);}} className="w-full text-left py-2.5 px-3 text-[13px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"><Trash2 size={14} className="text-red-400" />삭제하기</button>
                                   </div>
                                 )}
                               </div>
                             </div>
                           </div>
                           
-                          <div className="grid grid-cols-[60%_40%] gap-y-1.5 text-[14px] text-slate-500 py-3 border-t border-dashed border-slate-200 relative z-10">
-                            <div className="flex items-center">
-                              <span className="font-bold mr-1">단가:</span>
-                              <span className="font-extrabold text-slate-800 text-[13px]">₩{formatWon(l.rate)}×{l.classes}h</span>
-                            </div>
-                            <div className="flex flex-col items-end justify-center pl-2 border-l border-slate-200">
-                              {l.isPaid ? (
+                          {l.isPaid && (
+                            <div className="grid grid-cols-[60%_40%] gap-y-1.5 text-[14px] text-slate-500 py-3 border-t border-dashed border-slate-200 relative z-10 animate-fade-in">
+                              <div className="flex flex-col justify-center gap-1.5 text-[12.5px]">
+                                <div className="flex items-center">
+                                  <span className="font-bold w-12 text-slate-400">단가</span>
+                                  <span className="font-extrabold text-slate-800">₩{formatWon(l.rate)}</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <span className="font-bold w-12 text-slate-400">시간</span>
+                                  <span className="font-extrabold text-slate-800">{l.classes}h</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <span className="font-bold w-12 text-slate-400">교통비</span>
+                                  <span className="font-extrabold text-slate-800">₩{formatWon(l.transportFee)}</span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end justify-center pl-2 border-l border-slate-200">
                                 <button 
                                   onClick={() => setToggledCardIds(prev => { const n = new Set(prev); if(n.has(l.id)) n.delete(l.id); else n.add(l.id); return n; })}
                                   className="flex flex-col items-end text-right transition-transform active:scale-95"
@@ -1325,23 +1355,18 @@ function doPost(e) {
                                   {toggledCardIds.has(l.id) ? (
                                     <>
                                       <span className="text-[11px] font-extrabold text-slate-400 mb-0.5">실정산액</span>
-                                      <span className="font-black text-[#10B981] text-[15px] leading-tight">₩{formatWon(l.netAmount)}</span>
+                                      <span className="font-black text-[#10B981] text-[16px] leading-tight">₩{formatWon(l.netAmount)}</span>
                                     </>
                                   ) : (
                                     <>
                                       <span className="text-[11px] font-extrabold text-slate-400 mb-0.5">총액 보기 (클릭)</span>
-                                      <span className="font-black text-[#1E3A8A] text-[15px] leading-tight">₩{formatWon(l.expectedAmount)}</span>
+                                      <span className="font-black text-[#1E3A8A] text-[16px] leading-tight">₩{formatWon(l.expectedAmount)}</span>
                                     </>
                                   )}
                                 </button>
-                              ) : (
-                                <div className="flex flex-col items-end text-right">
-                                  <span className="text-[11px] font-extrabold text-slate-400 mb-0.5">총액</span>
-                                  <span className="font-black text-slate-400 text-[15px] leading-tight">₩{formatWon(l.expectedAmount)}</span>
-                                </div>
-                              )}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
                       </div>
                     );
