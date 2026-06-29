@@ -296,6 +296,32 @@ export default function App() {
   const [deletedLecture, setDeletedLecture] = useState(null);
   const [undoCountdown, setUndoCountdown] = useState(0);
 
+  // 데이터 불러올 시 달력 자동 동기화 (최근 출강 날짜의 년/월로 달력 이동)
+  useEffect(() => {
+    if (lectures.length > 0) {
+      const sorted = [...lectures].sort((a, b) => {
+        const da = a.registrationDate ? new Date(a.registrationDate).getTime() : 0;
+        const db = b.registrationDate ? new Date(b.registrationDate).getTime() : 0;
+        return db - da;
+      });
+      const latest = sorted[0];
+      const targetDateStr = latest.registrationDate || latest.date || '';
+      if (targetDateStr) {
+        let yr = new Date().getFullYear();
+        let mo = new Date().getMonth();
+        if (targetDateStr.includes('-')) {
+          const d = new Date(targetDateStr);
+          if (!isNaN(d.getTime())) { yr = d.getFullYear(); mo = d.getMonth(); }
+        } else {
+          const match = targetDateStr.match(/(\d+)월/);
+          if (match) mo = parseInt(match[1], 10) - 1;
+        }
+        setCurrentYear(yr);
+        setCurrentMonth(mo);
+      }
+    }
+  }, [lectures]);
+
   useEffect(() => {
     if (undoCountdown <= 0) {
       if (undoCountdown === 0) {
@@ -1261,15 +1287,25 @@ ${aiText}
   };
 
 
+  // statsYear 기준으로 lectures 필터링 (홈 탭 및 통계용)
+  const homeYearLectures = useMemo(() => {
+    return lectures.filter(l => {
+      if (!l) return false;
+      const regDate = l.registrationDate || '';
+      const yr = regDate ? new Date(regDate).getFullYear() : new Date().getFullYear();
+      return yr === statsYear;
+    });
+  }, [lectures, statsYear]);
+
   // 통계 계산
-  const totalExpected = lectures.reduce((acc, curr) => acc + curr.expectedAmount, 0);
-  const totalNet = lectures.reduce((acc, curr) => acc + curr.netAmount, 0);
-  const totalUnpaid = lectures.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
-  const unpaidCount = lectures.filter(l => !l.isPaid).length;
+  const totalExpected = homeYearLectures.reduce((acc, curr) => acc + curr.expectedAmount, 0);
+  const totalNet = homeYearLectures.reduce((acc, curr) => acc + curr.netAmount, 0);
+  const totalUnpaid = homeYearLectures.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
+  const unpaidCount = homeYearLectures.filter(l => !l.isPaid).length;
 
   // 차트 집계
   const chartData = uniqueMonths.map(m => {
-    const monthItems = lectures.filter(l => extractMonth(l.date) === m);
+    const monthItems = homeYearLectures.filter(l => extractMonth(l.date) === m);
     const paidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? curr.netAmount : 0), 0);
     const unpaidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
     const hoursTotal = monthItems.reduce((acc, curr) => acc + (Number(curr.classes) || 0), 0);
@@ -1284,7 +1320,7 @@ ${aiText}
 
   const maxChartValue = Math.max(...chartData.map(d => d.total), 100000);
 
-  const filteredLectures = lectures.filter(l => {
+  const filteredLectures = homeYearLectures.filter(l => {
     if (!l) return false;
     const matchesInst = selectedInstitution === 'All' || l.institution === selectedInstitution;
     const matchesMonth = selectedMonth === 'All' || extractMonth(l.date) === selectedMonth;
@@ -1441,9 +1477,33 @@ function doPost(e) {
           {/* invisible motion key — forces re-mount on tab change for animation */}
           
           {/* TAB 1: HOME (Lectures Card List) */}
-          {activeTab === 'home' && (
-            <div key="tab-home" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
-              
+          {activeTab === 'home' && (() => {
+            const thisYear = new Date().getFullYear();
+            const minYear = thisYear - 3;
+            const canGoPrev = statsYear > minYear;
+            const canGoNext = statsYear < thisYear;
+            return (
+              <div key="tab-home" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
+                
+                {/* 연도 조작 셀렉터 - 심플 가로 중앙 정렬 */}
+                <div className="flex items-center justify-center gap-4 py-1.5 animate-fade-in">
+                  {canGoPrev ? (
+                    <button onClick={() => setStatsYear(y => y - 1)}
+                      className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                      aria-label="이전 연도">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  ) : <span className="w-8 h-8"/>}
+                  <span className="text-[15.5px] font-black text-slate-800 tracking-tight">{statsYear}년</span>
+                  {canGoNext ? (
+                    <button onClick={() => setStatsYear(y => y + 1)}
+                      className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                      aria-label="다음 연도">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  ) : <span className="w-8 h-8"/>}
+                </div>
+
               {/* 모바일 2분할 슬림 요약 위젯 */}
               <div className="grid grid-cols-2 gap-3 animate-fade-in">
                 {/* 대기 위젯 */}
@@ -1566,16 +1626,16 @@ function doPost(e) {
                         }}
                       >
                         <div className="card-hover bg-white flex flex-col relative rounded-[22px]" style={{animationDelay:(idx*55)+'ms',padding:'18px'}}>
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
+                          <div className="flex items-start justify-between mb-2 gap-3">
+                            <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 mb-1.5">
-                                <span className="text-[13px] font-black px-3 py-1 rounded-lg inline-block" style={{background:'rgba(30,58,138,0.07)',color:'#1E3A8A'}}>{l.date || '날짜 미지정'}</span>
-                                {l.role === 'Assistant' && <span className="text-[11px] font-black text-slate-400 border border-slate-200 px-1.5 rounded">보조</span>}
+                                <span className="text-[13px] font-black px-3 py-1 rounded-lg inline-block flex-shrink-0" style={{background:'rgba(30,58,138,0.07)',color:'#1E3A8A'}}>{l.date || '날짜 미지정'}</span>
+                                {l.role === 'Assistant' && <span className="text-[11px] font-black text-slate-400 border border-slate-200 px-1.5 rounded flex-shrink-0">보조</span>}
                               </div>
-                              <h3 className="text-[17.5px] font-black text-[#0F172A] leading-tight tracking-tight relative z-10">{l.institution}</h3>
+                              <h3 className="text-[17.5px] font-black text-[#0F172A] leading-tight tracking-tight relative z-10 break-all">{l.institution}</h3>
                             </div>
-                            <div className="flex items-center gap-2 relative z-10">
-                              <button onClick={() => handleTogglePaid(l)} className="btn-press text-[13px] font-black px-3.5 py-1.5 rounded-xl transition" style={l.isPaid?{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.25)',color:'#10B981'}:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',color:'#F59E0B'}}>
+                            <div className="flex items-center gap-2 relative z-10 flex-shrink-0">
+                              <button onClick={() => handleTogglePaid(l)} className="btn-press text-[13px] font-black px-3.5 py-1.5 rounded-xl transition flex-shrink-0 whitespace-nowrap" style={l.isPaid?{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.25)',color:'#10B981'}:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',color:'#F59E0B'}}>
                                 {l.isPaid ? '✓ 완료' : '대기'}
                               </button>
                               <div className="relative">
@@ -1642,7 +1702,8 @@ function doPost(e) {
                 </div>
               )}
             </div>
-          )}
+          );
+        })()}
           {/* TAB 1.5: CALENDAR */}
           {activeTab === 'calendar' && (
             <div 
@@ -1799,33 +1860,23 @@ function doPost(e) {
 
             return (
               <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
-                {/* 연도 조작 셀렉터 - 최상위 배치 */}
-                <div className="flex items-center justify-between bg-white border border-slate-200/60 p-3.5 rounded-[24px] shadow-sm animate-fade-in">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[10px] text-slate-400 font-extrabold tracking-wider uppercase">조회 연도 설정</span>
-                    <span className="text-[14px] font-black text-slate-800">{statsYear}년 출강 리포트</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {canGoPrev ? (
-                      <button
-                        onClick={() => setStatsYear(y => y - 1)}
-                        className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/65 flex items-center justify-center text-slate-650 hover:bg-slate-100 transition-colors"
-                        aria-label="이전 연도"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </button>
-                    ) : <span className="w-8 h-8"/>}
-                    <span className="text-[14.5px] font-black text-indigo-700 min-w-[48px] text-center tracking-tight">{statsYear}년</span>
-                    {canGoNext ? (
-                      <button
-                        onClick={() => setStatsYear(y => y + 1)}
-                        className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/65 flex items-center justify-center text-slate-650 hover:bg-slate-100 transition-colors"
-                        aria-label="다음 연도"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                      </button>
-                    ) : <span className="w-8 h-8"/>}
-                  </div>
+                {/* 연도 조작 셀렉터 - 심플 가로 중앙 정렬 */}
+                <div className="flex items-center justify-center gap-4 py-1.5 animate-fade-in">
+                  {canGoPrev ? (
+                    <button onClick={() => setStatsYear(y => y - 1)}
+                      className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                      aria-label="이전 연도">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  ) : <span className="w-8 h-8"/>}
+                  <span className="text-[15.5px] font-black text-slate-800 tracking-tight">{statsYear}년</span>
+                  {canGoNext ? (
+                    <button onClick={() => setStatsYear(y => y + 1)}
+                      className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                      aria-label="다음 연도">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </button>
+                  ) : <span className="w-8 h-8"/>}
                 </div>
 
                 {/* 출강 성과 요약 */}
@@ -1893,6 +1944,7 @@ function doPost(e) {
                         <h4 className="text-[15px] font-black text-slate-800">월별 정산 추이</h4>
                         <span className="text-[11px] font-bold text-slate-400 ml-0.5">밀어서 보기</span>
                       </div>
+                      <span className="text-[10px] text-slate-400 font-extrabold">(단위: 만원)</span>
                     </div>
 
                     {yearLectures.length === 0 ? (
@@ -1982,7 +2034,7 @@ function doPost(e) {
                                     <text x={p.x} y={Math.max(p.y - 10, 12)}
                                       fill="#4F46E5"
                                       fontSize="9" fontWeight="900" textAnchor="middle">
-                                      {formatWon(d.total)}
+                                      {d.total >= 10000 ? (d.total / 10000).toFixed(1).replace('.0', '') : d.total}
                                     </text>
                                   )}
                                 </g>
@@ -2194,16 +2246,19 @@ function doPost(e) {
                   />
                 </button>
                 {isLocalBackupOpen && (
-                  <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
-                    <div className="flex flex-col gap-3.5">
-                      
-                      {/* Priority 1: AI Prompt Guide Card */}
-                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-col gap-2">
-                        <span className="text-[12.5px] font-black text-slate-800 flex items-center gap-1.5">
-                          🤖 AI 활용 기존 기록 변환 가이드
+                  <div className="p-5 flex flex-col gap-5 border-t border-slate-200/60 bg-white">
+
+                    {/* Section A: 처음 오신 분 – AI 변환 & 샘플 */}
+                    <div className="flex flex-col gap-3">
+                      <span className="text-[11.5px] font-black text-indigo-600 uppercase tracking-wide">💡 처음이신가요? 기존 데이터 변환 &amp; 예시</span>
+
+                      {/* AI 프롬프트 카드 */}
+                      <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
+                        <span className="text-[12.5px] font-extrabold text-slate-800">
+                          🤖 AI 활용 기존 기록 변환기
                         </span>
                         <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
-                          기존에 엑셀로 기록해오던 강의 목록이 있으시다면, 아래의 <b>변환 프롬프트</b>를 복사해 ChatGPT나 Claude 등에 복사해 넣으시면 대시보드 규격에 맞는 완벽한 CSV 파일 구조로 즉시 자동 제작해 드립니다.
+                          선생님이 관리 중이시던 기존 엑셀 목록을 복사해 ChatGPT/Claude에 본 프롬프트와 함께 입력하시면 완벽한 대시보드 파일로 즉시 가공해 줍니다.
                         </p>
                         <button
                           type="button"
@@ -2229,57 +2284,71 @@ function doPost(e) {
                             navigator.clipboard.writeText(promptText);
                             alert('AI 변환 프롬프트가 복사되었습니다!\n\nChatGPT 또는 Claude 창을 열고 붙여넣기(Ctrl+V) 한 뒤, 변환할 데이터를 입력창 맨 아래에 덧붙여 요청하세요.');
                           }}
-                          className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200 text-indigo-700 text-[11px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 text-center"
+                          className="w-full py-2.5 bg-indigo-100 hover:bg-indigo-200/70 border border-indigo-200 text-indigo-700 text-[11px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 text-center"
                         >
                           📋 AI 변환 프롬프트 복사하기
                         </button>
                       </div>
 
-                      {/* Priority 2: Downloader CTA (Green styling) */}
-                      <button onClick={handleDownloadSampleCSV} className="w-full py-3.5 bg-emerald-650 hover:bg-emerald-750 text-white text-[13px] font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 border-none">
-                        <Download size={14} className="text-white" />
-                        출강기록 양식 예시 CSV 받기 (2025-2026 예제)
-                      </button>
-
-                      {/* Formatting explanation */}
-                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col gap-1.5">
-                        <span className="text-[12px] font-extrabold text-slate-800 flex items-center gap-1">📊 중요 양식 규격</span>
-                        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
-                          - <b>날짜</b>: <code>M월 D일</code> 형식 (예: 12월 10일)<br/>
-                          - <b>등록일</b>: <code>YYYY-MM-DD</code> 형식 (예: 2025-12-10). 연도별 리포트 분류는 이 등록일의 연도를 기준으로 작동하므로 규격을 정확히 맞추어 입력해 주세요.
+                      {/* 예제 파일 다운로드 */}
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
+                        <span className="text-[12.5px] font-extrabold text-emerald-800">📄 작성 표준 양식 CSV 다운로드</span>
+                        <p className="text-[11px] text-emerald-700 font-semibold leading-relaxed">
+                          연도(2025/2026) 필터링 및 날짜 서식이 올바르게 적용된 예제 파일을 내 컴퓨터로 다운로드합니다.
                         </p>
+                        <button onClick={handleDownloadSampleCSV}
+                          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-[12.5px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 border-none">
+                          <Download size={13} className="text-white" />
+                          출강기록 양식 예시 CSV 받기 (2025-2026 예제)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="h-px bg-slate-100" />
+
+                    {/* Section B: 내 데이터 백업 & 복원 */}
+                    <div className="flex flex-col gap-3">
+                      <span className="text-[11.5px] font-black text-slate-600 uppercase tracking-wide">📦 내 데이터 백업 및 복원</span>
+
+                      {/* 📤 내보내기 */}
+                      <div className="border border-slate-200 rounded-2xl p-4 flex flex-col gap-2.5 bg-white shadow-sm">
+                        <span className="text-[12.5px] font-extrabold text-slate-800">📤 [보내기] 내 기록 파일로 백업</span>
+                        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                          현재 대시보드에 입력된 모든 출강 기록을 기기에 파일로 내려받아 보관합니다.
+                        </p>
+                        <button onClick={handleExportCSV}
+                          className="w-full py-3 bg-[#1F2E5B] hover:bg-[#172346] text-white text-[12.5px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 border-none">
+                          <Upload size={13} className="text-white" />
+                          현재 내 모든 기록 내보내기 (백업 파일 내려받기)
+                        </button>
                       </div>
 
-                      <div className="h-px bg-slate-100 my-1" />
-
-                      {/* Priority 3: Export/Import Buttons */}
-                      <button onClick={handleExportCSV} className="w-full py-3.5 bg-[#F8FAF8] border border-slate-200 hover:border-[#2563EB] text-slate-800 text-[13px] font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-sm">
-                        <Download size={14} className="text-[#2563EB]" />
-                        현재 출강 이력 CSV로 내려받기
-                      </button>
-
-                      <div className="relative border-2 border-dashed border-slate-200 rounded-2xl p-6 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
-                        <input type="file" accept=".csv" onChange={handleAnimatedUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" disabled={isUploading} />
-                        <div className={`p-3 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 ${isUploading ? 'upload-pulse' : 'cloud-float'}`}>
-                          <Cloud size={28} className="text-[#2563EB]" />
-                        </div>
-                        {isUploading ? (
-                          <div className="w-full max-w-[180px] flex flex-col items-center gap-2">
-                            <span className="text-[10px] font-bold text-[#2563EB]">파일을 파싱하는 중...</span>
-                            <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#2563EB] transition-all duration-75" style={{width: `${uploadProgress}%`}} />
-                            </div>
-                            <span className="text-[9px] text-slate-400 font-extrabold">{uploadProgress}%</span>
+                      {/* 📥 가져오기 */}
+                      <div className="border border-slate-200 rounded-2xl p-4 flex flex-col gap-2.5 bg-white shadow-sm">
+                        <span className="text-[12.5px] font-extrabold text-slate-800">📥 [가져오기] 백업 파일 불러오기</span>
+                        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                          이전에 백업해둔 CSV 파일을 불러와 현재 강의 리스트 뒤에 추가 및 병합합니다.
+                        </p>
+                        <div className="relative border-2 border-dashed border-slate-200 rounded-xl p-5 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
+                          <input type="file" accept=".csv" onChange={handleAnimatedUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" disabled={isUploading} />
+                          <div className={`p-2.5 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-2 ${isUploading ? 'upload-pulse' : 'cloud-float'}`}>
+                            <Cloud size={24} className="text-[#2563EB]" />
                           </div>
-                        ) : (
-                          <>
-                            <span className="text-[13px] font-black text-slate-800">CSV 백업 파일 가져오기</span>
-                            <p className="text-[11px] text-slate-400 mt-1.5 leading-normal font-semibold">
-                              이곳을 탭하거나 CSV 파일을 끌어놓으세요.<br/>
-                              (이전 백업본이 현재 리스트와 병합됩니다.)
-                            </p>
-                          </>
-                        )}
+                          {isUploading ? (
+                            <div className="w-full max-w-[180px] flex flex-col items-center gap-1">
+                              <span className="text-[10px] font-bold text-[#2563EB]">파일을 파싱하는 중...</span>
+                              <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-[#2563EB] transition-all duration-75" style={{width: `${uploadProgress}%`}} />
+                              </div>
+                              <span className="text-[9px] text-slate-400 font-extrabold">{uploadProgress}%</span>
+                            </div>
+                          ) : (
+                            <>
+                              <span className="text-[12.5px] font-black text-slate-800">CSV 백업 파일 선택 / 드래그</span>
+                              <p className="text-[10px] text-slate-400 mt-1 font-semibold">이곳을 누르거나 백업된 CSV 파일을 끌어오세요.</p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
