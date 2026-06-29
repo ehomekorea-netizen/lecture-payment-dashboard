@@ -1391,7 +1391,118 @@ function doPost(e) {
 
             {/* Desktop Table body */}
             {filteredLectures.length === 0 ? (
-              <div className="py-20 text-center text-xs text-toss-textSub">검색 결과가 없습니다.</div>
+              <div className="py-16 px-6 text-center flex flex-col items-center justify-center gap-4 bg-slate-50/30 rounded-[20px] border border-dashed border-toss-border w-full">
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
+                  <Database size={24} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-toss-textDark">출강 기록이 없습니다</h4>
+                  <p className="text-[11px] text-toss-textSub mt-1">강의 일정을 직접 등록하거나, 구글 시트 연동 또는 아래 샘플 데이터를 입력해 체험해 보세요.</p>
+                </div>
+                <div className="flex justify-center gap-2">
+                  <button
+                    onClick={() => {
+                      const sampleLectures = [
+                        {
+                          id: "sample-1",
+                          institution: "사회복지협의회/목포경애원",
+                          rate: 100000,
+                          classes: 3,
+                          expectedAmount: 300000,
+                          transportFee: 0,
+                          deduction: -26400,
+                          netAmount: 273600,
+                          month: "6월",
+                          date: "6월 15일",
+                          registrationDate: "2026-06-15",
+                          isPaid: true,
+                          taxRate: "8.8%",
+                          taxBase: "LectureOnly",
+                          customTax: 0
+                        },
+                        {
+                          id: "sample-2",
+                          institution: "전남공업고등학교",
+                          rate: 100000,
+                          classes: 2,
+                          expectedAmount: 250000,
+                          transportFee: 50000,
+                          deduction: 0,
+                          netAmount: 0,
+                          month: "6월",
+                          date: "6월 20일",
+                          registrationDate: "2026-06-20",
+                          isPaid: false,
+                          taxRate: "3.3%",
+                          taxBase: "LectureOnly",
+                          customTax: 0
+                        },
+                        {
+                          id: "sample-3",
+                          institution: "혜림종합복지관",
+                          rate: 100000,
+                          classes: 4,
+                          expectedAmount: 400000,
+                          transportFee: 0,
+                          deduction: -35200,
+                          netAmount: 364800,
+                          month: "6월",
+                          date: "6월 22일",
+                          registrationDate: "2026-06-22",
+                          isPaid: true,
+                          taxRate: "8.8%",
+                          taxBase: "LectureOnly",
+                          customTax: 0
+                        },
+                        {
+                          id: "sample-4",
+                          institution: "TMD교육/벌교 보성중",
+                          rate: 50000,
+                          classes: 6,
+                          expectedAmount: 384000,
+                          transportFee: 84000,
+                          deduction: -9900,
+                          netAmount: 374100,
+                          month: "7월",
+                          date: "7월 05일",
+                          registrationDate: "2026-06-29",
+                          isPaid: true,
+                          taxRate: "3.3%",
+                          taxBase: "LectureOnly",
+                          customTax: 0
+                        }
+                      ];
+                      setLectures(sampleLectures);
+                    }}
+                    className="px-4 py-2 bg-[#00BCD4] hover:bg-[#009BB0] text-white text-xs font-bold rounded-xl transition"
+                  >
+                    샘플 데이터 채우기
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingLecture(null);
+                      setFormData({
+                        institution: '',
+                        rate: 100000,
+                        classes: 2,
+                        transportFee: 0,
+                        month: '',
+                        date: '',
+                        registrationDate: new Date().toISOString().slice(0, 10),
+                        isPaid: false,
+                        taxRate: '8.8%',
+                        taxBase: 'LectureOnly',
+                        customTax: 0
+                      });
+                      setGpsMessage(null);
+                      setIsAddModalOpen(true);
+                    }}
+                    className="px-4 py-2 bg-[#1F2E5B] hover:bg-[#172346] text-white text-xs font-bold rounded-xl transition"
+                  >
+                    직접 등록하기
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="overflow-x-auto max-h-[350px] overflow-y-auto">
                 <table className="w-full text-left text-xs border-collapse border border-[#1F2E5B]/10">
