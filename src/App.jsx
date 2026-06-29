@@ -1563,46 +1563,86 @@ function doPost(e) {
 
           {/* TAB 4: SETTINGS */}
           {activeTab === 'settings' && (<div key="tab-settings" className={getSlideClass()}>
-            <div className="flex flex-col gap-4">
-              <div className="bg-white p-4 rounded-[20px] border border-toss-border shadow-sm flex flex-col gap-3">
-                <div>
-                  <label className="text-[10px] font-bold text-toss-textSub block mb-1">Gemini AI API Key</label>
-                  <input 
-                    type="password"
-                    id="settings-api-key-mobile"
-                    defaultValue={apiKey}
-                    className="w-full px-3 py-2 border border-toss-border rounded-xl text-xs bg-[#F8FAF8]"
-                  />
+            <div className="flex flex-col gap-5">
+
+              {/* API 연동 섹션 (Stylish Contrast Card) */}
+              <div className="rounded-[24px] overflow-hidden" style={{background: 'linear-gradient(145deg, #1E293B 0%, #0F172A 100%)', boxShadow: '0 4px 24px rgba(15,23,42,0.25)'}}>
+                <div className="p-5 flex flex-col gap-5">
+                  <div className="flex items-center gap-2">
+                    <Database size={16} className="text-sky-400" />
+                    <h3 className="text-[13px] font-black text-white tracking-tight">API 연동 설정</h3>
+                  </div>
+
+                  {/* Gemini API Key */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-[11px] font-bold text-slate-300">Gemini AI API Key</label>
+                      <button
+                        type="button"
+                        onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 API Key를 발급받을 수 있습니다.\n\n1. aistudio.google.com 접속\n2. 좌측 메뉴에서 "Get API Key" 클릭\n3. "Create API Key" 버튼 클릭\n4. 생성된 키를 복사하여 이곳에 붙여넣기\n\n이 키는 출강 공지 텍스트를 AI로 자동 분석할 때 사용됩니다.')}
+                        className="w-5 h-5 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                      >
+                        <span className="text-[10px] font-black text-sky-400">?</span>
+                      </button>
+                    </div>
+                    <input 
+                      type="password"
+                      id="settings-api-key-mobile"
+                      defaultValue={apiKey}
+                      placeholder="AIzaSy..."
+                      className="w-full px-4 py-3.5 rounded-xl text-[12px] font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+                      style={{background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', color: '#E2E8F0'}}
+                    />
+                  </div>
+
+                  {/* Google Sheet URL */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <label className="text-[11px] font-bold text-slate-300">구글 시트 웹 앱 URL</label>
+                      <button
+                        type="button"
+                        onClick={() => alert('구글 스프레드시트를 백업 DB로 사용하려면 다음 절차를 따르세요:\n\n1. Google 스프레드시트를 하나 새로 생성\n2. 상단 메뉴 → 확장 프로그램 → Apps Script\n3. 이 앱의 [백업 탭 → Apps Script 코드] 영역에 있는 코드를 복사하여 Apps Script 편집기에 붙여넣기\n4. 저장 후 [배포 → 새 배포] 클릭\n5. 유형: "웹 앱" 선택\n6. 액세스: "모든 사용자" 선택\n7. 배포 후 생성된 URL을 복사하여 이곳에 붙여넣기\n\n이 URL을 통해 출강 데이터를 구글 시트로 자동 백업/복원할 수 있습니다.')}
+                        className="w-5 h-5 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                      >
+                        <span className="text-[10px] font-black text-sky-400">?</span>
+                      </button>
+                    </div>
+                    <input 
+                      type="text"
+                      id="settings-sheet-url-mobile"
+                      defaultValue={sheetUrl}
+                      placeholder="https://script.google.com/macros/s/..."
+                      className="w-full px-4 py-3.5 rounded-xl text-[12px] font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-sky-500/40"
+                      style={{background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', color: '#E2E8F0'}}
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      const geminiKey = document.getElementById('settings-api-key-mobile').value;
+                      const sheetApiUrl = document.getElementById('settings-sheet-url-mobile').value;
+                      handleSaveSettings(geminiKey, sheetApiUrl);
+                    }}
+                    className="w-full py-3.5 text-[12px] font-black text-white rounded-xl transition-all"
+                    style={{background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)', boxShadow: '0 2px 12px rgba(37,99,235,0.35)'}}
+                  >
+                    설정 저장
+                  </button>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold text-toss-textSub block mb-1">구글 시트 웹 앱 URL</label>
-                  <input 
-                    type="text"
-                    id="settings-sheet-url-mobile"
-                    defaultValue={sheetUrl}
-                    className="w-full px-3 py-2 border border-toss-border rounded-xl text-xs bg-[#F8FAF8]"
-                  />
-                </div>
-                <button
-                  onClick={() => {
-                    const geminiKey = document.getElementById('settings-api-key-mobile').value;
-                    const sheetApiUrl = document.getElementById('settings-sheet-url-mobile').value;
-                    handleSaveSettings(geminiKey, sheetApiUrl);
-                  }}
-                  className="w-full py-2.5 text-xs font-bold bg-[#1F2E5B] text-white rounded-xl hover:bg-[#172346]"
-                >
-                  설정 저장
-                </button>
               </div>
 
-              <div className="bg-red-50 border border-red-200 p-4 rounded-[20px] flex flex-col gap-2">
-                <span className="text-xs font-bold text-toss-red">전체 초기화</span>
-                <p className="text-[9px] text-toss-textSub leading-relaxed">
-                  브라우저에 보관된 모든 설정과 출강 내역을 삭제하고 기본 빈 상태로 리셋합니다.
+              {/* 위험 구역 */}
+              <div className="rounded-[24px] p-5 flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #FEF2F2 0%, #FFF1F2 100%)', border: '1px solid rgba(239,68,68,0.15)'}}>
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={15} className="text-red-500" />
+                  <span className="text-[12px] font-black text-red-700">위험 구역</span>
+                </div>
+                <p className="text-[10px] text-red-600/70 leading-relaxed font-medium">
+                  브라우저에 보관된 모든 설정과 출강 내역을 삭제하고 기본 빈 상태로 리셋합니다. 이 작업은 되돌릴 수 없습니다.
                 </p>
                 <button
                   onClick={() => {
-                    if (window.confirm('정말 전체 리셋하시겠습니까?')) {
+                    if (window.confirm('정말 전체 리셋하시겠습니까? 모든 데이터가 영구 삭제됩니다.')) {
                       localStorage.clear();
                       setLectures([]);
                       setApiKey('');
@@ -1610,10 +1650,22 @@ function doPost(e) {
                       alert('리셋되었습니다.');
                     }
                   }}
-                  className="py-2 text-[10px] font-bold bg-toss-red text-white rounded-xl"
+                  className="py-3 text-[11px] font-black text-white rounded-xl transition-all"
+                  style={{background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', boxShadow: '0 2px 12px rgba(239,68,68,0.25)'}}
                 >
                   기기 데이터 전체 삭제
                 </button>
+              </div>
+
+              {/* 앱 정보 */}
+              <div className="rounded-[24px] p-5 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-2 items-center text-center">
+                <div className="flex items-center gap-2">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                  <span className="text-[13px] font-black text-slate-800">강의정산</span>
+                </div>
+                <p className="text-[9px] text-slate-400 font-semibold">출강료 정산 비서 v1.0</p>
               </div>
             </div>
           </div>
@@ -2076,289 +2128,436 @@ function doPost(e) {
       </div>
 
       {/* ========================================================
-          [MODAL 3]: Add/Edit Lecture Modal (Desktop: centered / Mobile: Bottom Sheet)
+          [MODAL 3]: Add/Edit Lecture Modal — Redesigned with Preset Picker
          ======================================================== */}
       {isAddModalOpen && (
         <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
-          {/* Mobile: bottom-sheet-enter spring / Desktop: centered modal-zoom-in card */}
-          <div className="bg-white w-full md:max-w-md rounded-t-[32px] md:rounded-[28px] max-h-[90vh] md:max-h-none overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl bottom-sheet-enter md:modal-zoom-in" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
-            {/* Drag handle for mobile */}
+          <div className="bg-white w-full md:max-w-md rounded-t-[32px] md:rounded-[28px] max-h-[92vh] md:max-h-none flex flex-col pb-6 md:pb-0 shadow-2xl bottom-sheet-enter md:modal-zoom-in overflow-hidden" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
+            {/* Drag handle */}
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
-            
-            <div className="p-5 border-b border-toss-border flex items-center justify-between bg-slate-50/50">
-              <h3 className="text-xs font-extrabold text-toss-textDark flex items-center gap-1.5">
-                {editingLecture ? <Edit3 size={15} className="text-toss-blue" /> : <Plus size={15} className="text-toss-blue" />}
-                {editingLecture ? '출강 기록 수정' : '새 강의 직접 기록'}
-              </h3>
-              <button onClick={() => setIsAddModalOpen(false)} className="p-1 text-toss-textSub hover:bg-slate-100 rounded-lg">
+
+            {/* Header with tabs: 기록 / 즐겨찾기 편집 */}
+            <div className="px-5 pt-2 pb-0 flex items-center justify-between">
+              <div className="flex gap-0">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, _tab: 'record' }))}
+                  className="px-4 py-2.5 text-[11px] font-extrabold rounded-t-xl transition-all"
+                  style={{
+                    color: (formData._tab || 'record') === 'record' ? '#2563EB' : '#94a3b8',
+                    background: (formData._tab || 'record') === 'record' ? '#EFF6FF' : 'transparent',
+                    borderBottom: (formData._tab || 'record') === 'record' ? '2px solid #2563EB' : '2px solid transparent'
+                  }}
+                >
+                  {editingLecture ? '기록 수정' : '출강 기록'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, _tab: 'presets' }))}
+                  className="px-4 py-2.5 text-[11px] font-extrabold rounded-t-xl transition-all"
+                  style={{
+                    color: (formData._tab || 'record') === 'presets' ? '#2563EB' : '#94a3b8',
+                    background: (formData._tab || 'record') === 'presets' ? '#EFF6FF' : 'transparent',
+                    borderBottom: (formData._tab || 'record') === 'presets' ? '2px solid #2563EB' : '2px solid transparent'
+                  }}
+                >
+                  즐겨찾기 편집
+                </button>
+              </div>
+              <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-xl">
                 <X size={18} />
               </button>
             </div>
+            <div className="h-px bg-slate-100" />
 
-            <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4 text-xs">
-              
-              {/* 즐겨찾기 프리셋 목록 */}
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold text-slate-400">자주 쓰는 즐겨찾기 (원터치 입력)</label>
-                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  {presets.map(p => (
+            {/* ─── TAB: 출강 기록 ─── */}
+            {(formData._tab || 'record') === 'record' && (
+              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 flex flex-col gap-5 text-xs">
+
+                {/* STEP 1: 즐겨찾기 피커 (드롭다운 셀렉트) */}
+                <div className="flex flex-col gap-2 p-4 rounded-2xl" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px solid rgba(37,99,235,0.12)'}}>
+                  <label className="font-black text-[11px] text-[#2563EB] flex items-center gap-1.5">
+                    <span style={{fontSize:'14px'}}>★</span> 즐겨찾기에서 선택
+                  </label>
+                  <select
+                    value={formData._selectedPreset || ''}
+                    onChange={(e) => {
+                      const presetId = e.target.value;
+                      if (!presetId) {
+                        setFormData(prev => ({ ...prev, _selectedPreset: '', _presetLocked: false }));
+                        return;
+                      }
+                      const preset = presets.find(p => p.id === presetId);
+                      if (preset) {
+                        setFormData(prev => ({
+                          ...prev,
+                          _selectedPreset: presetId,
+                          _presetLocked: true,
+                          institution: preset.name,
+                          role: preset.role || 'Main',
+                          rate: preset.rate,
+                          transportFee: preset.transportFee || 0,
+                          taxRate: preset.taxRate || '8.8%',
+                          month: prev.month || `${new Date().getMonth() + 1}월`,
+                          date: prev.date || `${new Date().getMonth() + 1}월 ${new Date().getDate()}일`
+                        }));
+                      }
+                    }}
+                    className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl text-xs font-bold text-slate-800 appearance-none"
+                    style={{backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232563EB' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center'}}
+                  >
+                    <option value="">직접 입력 (즐겨찾기 미사용)</option>
+                    {presets.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} — {p.role === 'Assistant' ? '보조' : '주강사'} · ₩{formatWon(p.rate)}/h · {p.taxRate}
+                      </option>
+                    ))}
+                  </select>
+                  {formData._presetLocked && (
+                    <p className="text-[9.5px] text-blue-500 font-semibold mt-0.5">
+                      ✓ 즐겨찾기가 적용되었습니다. 기관명/단가/세율은 고정됩니다.
+                    </p>
+                  )}
+                </div>
+
+                {/* 기관명 (프리셋 잠금 시 읽기전용) */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-slate-500 text-[11px]">기관 / 교육장명 *</label>
+                  <input
+                    type="text"
+                    name="institution"
+                    required
+                    value={formData.institution}
+                    onChange={handleInputChange}
+                    readOnly={!!formData._presetLocked}
+                    placeholder="예: 사회복지협의회/목포경애원"
+                    list="presets-modal"
+                    className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#2563EB] text-[12px] font-semibold transition-all"
+                    style={{
+                      background: formData._presetLocked ? '#F1F5F9' : 'white',
+                      borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(31,46,91,0.15)',
+                      color: formData._presetLocked ? '#64748B' : '#1E293B'
+                    }}
+                  />
+                  {!formData._presetLocked && (
+                    <datalist id="presets-modal">
+                      {uniqueInstitutions.map((i, idx) => <option key={idx} value={i} />)}
+                    </datalist>
+                  )}
+                </div>
+
+                {/* 출강 구분 */}
+                <div className="flex flex-col gap-2">
+                  <label className="font-bold text-slate-500 text-[11px]">출강 구분</label>
+                  <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200/60">
                     <button
-                      key={p.id}
                       type="button"
-                      onClick={() => applyPreset(p)}
-                      className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold border border-slate-200 rounded-xl transition-all whitespace-nowrap text-[10.5px]"
+                      onClick={() => setFormData(prev => ({ ...prev, role: 'Main' }))}
+                      className={`py-2.5 text-[11px] font-bold rounded-lg transition-all ${
+                        formData.role === 'Main'
+                          ? 'bg-[#2563EB] text-white shadow-sm font-black'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
                     >
-                      ★ {p.name} ({p.role === 'Main' ? '주' : '보조'})
+                      주강사
                     </button>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, role: 'Assistant' }))}
+                      className={`py-2.5 text-[11px] font-bold rounded-lg transition-all ${
+                        formData.role === 'Assistant'
+                          ? 'bg-[#2563EB] text-white shadow-sm font-black'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      보조강사
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* 강사 역할 구분 */}
-              <div className="flex flex-col gap-1.5">
-                <label className="font-bold text-slate-400">출강 구분 *</label>
-                <div className="grid grid-cols-2 gap-1.5 bg-slate-50 p-1 rounded-xl border border-slate-200/60">
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, role: 'Main' }))}
-                    className={`py-1.5 text-[10.5px] font-bold rounded-lg transition-all ${
-                      formData.role === 'Main'
-                        ? 'bg-[#2563EB] text-white shadow-sm font-black'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    주강사
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, role: 'Assistant' }))}
-                    className={`py-1.5 text-[10.5px] font-bold rounded-lg transition-all ${
-                      formData.role === 'Assistant'
-                        ? 'bg-[#2563EB] text-white shadow-sm font-black'
-                        : 'text-slate-500 hover:text-slate-800'
-                    }`}
-                  >
-                    보조강사
-                  </button>
-                </div>
-              </div>
-
-
-              {/* Institution */}
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-toss-textMuted">기관 / 교육장명 *</label>
-                <input 
-                  type="text" 
-                  name="institution"
-                  required
-                  value={formData.institution}
-                  onChange={handleInputChange}
-                  placeholder="예: 사회복지협의회/목포경애원"
-                  list="presets-modal"
-                  className="px-3 py-2 border border-toss-border rounded-xl focus:outline-none focus:border-toss-blue bg-white"
-                />
-                <datalist id="presets-modal">
-                  {uniqueInstitutions.map((i, idx) => <option key={idx} value={i} />)}
-                </datalist>
-              </div>
-
-              {/* Rate & Classes */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-toss-textMuted">강의 단가 (시간당) *</label>
-                  <input 
-                    type="number" 
+                {/* 강의 단가 (프리셋 잠금 시 읽기전용) */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-slate-500 text-[11px]">강의 단가 (시간당) *</label>
+                  <input
+                    type="number"
                     name="rate"
                     required
                     value={formData.rate}
                     onChange={handleInputChange}
-                    className="px-3 py-2 border border-toss-border rounded-xl focus:outline-none"
+                    readOnly={!!formData._presetLocked}
+                    className="px-4 py-3 border rounded-xl focus:outline-none text-[12px] font-bold transition-all"
+                    style={{
+                      background: formData._presetLocked ? '#F1F5F9' : 'white',
+                      borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(31,46,91,0.15)',
+                      color: formData._presetLocked ? '#64748B' : '#1E293B'
+                    }}
                   />
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-bold text-toss-textMuted">총 강의 시간 (차시) *</label>
-                  
-                  {/* +/- 증감 및 입력 조절기 */}
-                  <div className="flex items-center gap-2">
+
+                {/* 총 차시 — 스크롤 피커 */}
+                <div className="flex flex-col gap-2">
+                  <label className="font-bold text-slate-500 text-[11px]">총 강의 시간 (차시) *</label>
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, classes: Math.max(1, prev.classes - 1) }))}
-                      className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-base rounded-xl transition flex items-center justify-center border border-slate-200"
+                      className="w-11 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-lg rounded-xl transition flex items-center justify-center border border-slate-200"
                     >
-                      -
+                      −
                     </button>
-                    <input 
-                      type="number" 
-                      name="classes"
-                      required
-                      value={formData.classes}
-                      onChange={handleInputChange}
-                      className="flex-1 h-10 text-center border border-toss-border rounded-xl focus:outline-none font-bold bg-white text-xs"
-                    />
+                    <div className="flex-1 relative">
+                      <select
+                        name="classes"
+                        value={formData.classes}
+                        onChange={(e) => setFormData(prev => ({ ...prev, classes: Number(e.target.value) }))}
+                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-center font-black text-[14px] text-slate-800 appearance-none"
+                      >
+                        {Array.from({length: 24}, (_, i) => i + 1).map(c => (
+                          <option key={c} value={c}>{c}차시</option>
+                        ))}
+                      </select>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, classes: prev.classes + 1 }))}
-                      className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-base rounded-xl transition flex items-center justify-center border border-slate-200"
+                      onClick={() => setFormData(prev => ({ ...prev, classes: Math.min(24, prev.classes + 1) }))}
+                      className="w-11 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-lg rounded-xl transition flex items-center justify-center border border-slate-200"
                     >
                       +
                     </button>
                   </div>
-
-                  {/* 퀵 탭 스위처 차시 칩 */}
-                  <div className="flex gap-1 overflow-x-auto py-0.5 scrollbar-none">
-                    {[1, 2, 4, 8, 12].map(c => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, classes: c }))}
-                        className={`text-[10px] font-black px-3 py-1.5 rounded-lg border transition ${
-                          formData.classes === c 
-                            ? 'bg-[#1F2E5B] text-white border-[#1F2E5B]' 
-                            : 'bg-white text-toss-textSub border-toss-border/60 hover:bg-slate-50'
-                        }`}
-                      >
-                        {c}회차
-                      </button>
-                    ))}
-                  </div>
                 </div>
-              </div>
 
-              {/* Transport & Month */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-toss-textMuted">추가 교통비 (원)</label>
-                  <input 
-                    type="number" 
+                {/* 추가 교통비 */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-slate-500 text-[11px]">추가 교통비 (원)</label>
+                  <input
+                    type="number"
                     name="transportFee"
                     value={formData.transportFee}
                     onChange={handleInputChange}
-                    className="px-3 py-2 border border-toss-border rounded-xl focus:outline-none"
+                    className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-[#2563EB] bg-white text-[12px] font-semibold"
                   />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-toss-textMuted">정산 월 *</label>
-                  <input 
-                    type="text" 
-                    name="month"
-                    required
-                    placeholder="예: 11월"
-                    value={formData.month}
-                    onChange={handleInputChange}
-                    className="px-3 py-2 border border-toss-border rounded-xl focus:outline-none"
-                  />
-                </div>
-              </div>
 
-              {/* Date & RegDate */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-toss-textMuted">구체적 날짜 *</label>
-                  <input 
-                    type="text" 
-                    name="date"
-                    required
-                    placeholder="예: 11월 19일"
-                    value={formData.date}
-                    onChange={handleInputChange}
-                    className="px-3 py-2 border border-toss-border rounded-xl focus:outline-none"
-                  />
+                {/* 출강 날짜 — 당일 기본값 */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-bold text-slate-500 text-[11px]">정산 월 *</label>
+                    <select
+                      name="month"
+                      value={formData.month}
+                      onChange={handleInputChange}
+                      className="px-3 py-3 border border-slate-200 rounded-xl bg-white text-[11px] font-bold appearance-none"
+                    >
+                      <option value="">선택</option>
+                      {['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'].map(m => (
+                        <option key={m} value={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-bold text-slate-500 text-[11px]">출강 날짜</label>
+                    <input
+                      type="text"
+                      name="date"
+                      placeholder={`${new Date().getMonth()+1}월 ${new Date().getDate()}일`}
+                      value={formData.date}
+                      onChange={handleInputChange}
+                      className="px-3 py-3 border border-slate-200 rounded-xl focus:outline-none text-[11px] font-semibold bg-white"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label className="font-bold text-toss-textMuted">게시등록일 *</label>
-                  <input 
-                    type="date" 
+
+                {/* 게시등록일 */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-slate-500 text-[11px]">게시등록일</label>
+                  <input
+                    type="date"
                     name="registrationDate"
-                    required
                     value={formData.registrationDate}
                     onChange={handleInputChange}
-                    className="px-3 py-2 border border-toss-border rounded-xl focus:outline-none"
+                    className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none bg-white text-[11px] font-semibold"
                   />
                 </div>
-              </div>
 
-              {/* Tax settings */}
-              <div className="p-3 bg-slate-50 border border-toss-border rounded-xl flex flex-col gap-2">
-                <span className="font-bold text-toss-textDark">공제 세율 설정</span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-0.5">
-                    <label className="text-[10px] text-toss-textSub">세율</label>
-                    <select 
-                      name="taxRate" 
-                      value={formData.taxRate}
-                      onChange={handleInputChange}
-                      className="px-2.5 py-1.5 bg-white border border-toss-border rounded-lg"
-                    >
-                      <option value="8.8%">8.8% (기타소득)</option>
-                      <option value="3.3%">3.3% (사업소득)</option>
-                      <option value="None">세금 없음 (0%)</option>
-                      <option value="Custom">직접 입력</option>
-                    </select>
+                {/* 공제 세율 (프리셋 잠금 시 읽기전용) */}
+                <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)', border: '1px solid rgba(31,46,91,0.08)'}}>
+                  <span className="font-black text-[11px] text-slate-700">공제 세율 설정</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-slate-400 font-semibold">세율</label>
+                      <select
+                        name="taxRate"
+                        value={formData.taxRate}
+                        onChange={handleInputChange}
+                        disabled={!!formData._presetLocked}
+                        className="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold"
+                        style={{opacity: formData._presetLocked ? 0.6 : 1}}
+                      >
+                        <option value="8.8%">8.8% (기타소득)</option>
+                        <option value="3.3%">3.3% (사업소득)</option>
+                        <option value="None">세금 없음 (0%)</option>
+                        <option value="Custom">직접 입력</option>
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] text-slate-400 font-semibold">과세기준</label>
+                      <select
+                        name="taxBase"
+                        value={formData.taxBase}
+                        onChange={handleInputChange}
+                        className="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold"
+                      >
+                        <option value="LectureOnly">강의료만 과세</option>
+                        <option value="Total">합계액 전체 과세</option>
+                      </select>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-0.5">
-                    <label className="text-[10px] text-toss-textSub">과세기준</label>
-                    <select 
-                      name="taxBase" 
-                      value={formData.taxBase}
+                  {formData.taxRate === 'Custom' && (
+                    <input
+                      type="number"
+                      name="customTax"
+                      value={formData.customTax}
                       onChange={handleInputChange}
-                      className="px-2.5 py-1.5 bg-white border border-toss-border rounded-lg"
-                    >
-                      <option value="LectureOnly">강의료만 과세</option>
-                      <option value="Total">합계액 전체 과세</option>
-                    </select>
-                  </div>
+                      placeholder="세액 직접 입력"
+                      className="px-3 py-2.5 border border-slate-200 rounded-xl bg-white text-[11px] font-bold"
+                    />
+                  )}
                 </div>
-                {formData.taxRate === 'Custom' && (
-                  <input 
-                    type="number"
-                    name="customTax"
-                    value={formData.customTax}
+
+                {/* 정산 완료 체크 */}
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <input
+                    type="checkbox"
+                    id="modal-isPaid"
+                    name="isPaid"
+                    checked={formData.isPaid}
                     onChange={handleInputChange}
-                    placeholder="세액 직접 입력"
-                    className="px-3 py-1.5 border border-toss-border rounded-lg bg-white mt-1"
+                    className="w-5 h-5 text-[#2563EB] border-slate-300 rounded cursor-pointer accent-[#2563EB]"
                   />
-                )}
-              </div>
+                  <label htmlFor="modal-isPaid" className="font-bold text-slate-600 cursor-pointer select-none text-[11px]">
+                    이미 강의료 입금이 완료되었습니다
+                  </label>
+                </div>
 
-              <div className="flex items-center gap-2">
-                <input 
-                  type="checkbox" 
-                  id="modal-isPaid"
-                  name="isPaid"
-                  checked={formData.isPaid}
-                  onChange={handleInputChange}
-                  className="w-4 h-4 text-toss-blue border-toss-border rounded cursor-pointer"
-                />
-                <label htmlFor="modal-isPaid" className="font-bold text-toss-textMuted cursor-pointer select-none">
-                  이미 강의료 입금이 완료되었습니다.
-                </label>
-              </div>
+                {/* 하단 액션 버튼 */}
+                <div className="flex gap-3 mt-2 sticky bottom-0 bg-white pt-3 pb-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl text-[11px]"
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-[2] py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black rounded-xl shadow-md text-[12px] transition-all"
+                  >
+                    {editingLecture ? '수정 완료' : '저장'}
+                  </button>
+                </div>
+              </form>
+            )}
 
-              {/* 즐겨찾기 추가 버튼 */}
-              <button
-                type="button"
-                onClick={handleAddPreset}
-                className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 font-bold rounded-xl border border-slate-200 text-center transition-all mt-1"
-              >
-                ★ 이 설정을 자주 쓰는 즐겨찾기로 추가
-              </button>
+            {/* ─── TAB: 즐겨찾기 편집 ─── */}
+            {(formData._tab || 'record') === 'presets' && (
+              <div className="flex-1 overflow-y-auto overflow-x-hidden p-5 flex flex-col gap-4 text-xs">
+                <p className="text-[10px] text-slate-400 font-semibold">기관별 기본값 세트를 등록하면, 출강 기록 시 원터치로 불러올 수 있습니다.</p>
 
-              <div className="flex gap-2.5 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-toss-textMuted font-bold rounded-xl"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 bg-[#1F2E5B] hover:bg-[#172346] text-white font-bold rounded-xl shadow-md"
-                >
-                  {editingLecture ? '기록 수정' : '기록 저장'}
-                </button>
+                {/* 기존 프리셋 목록 */}
+                <div className="flex flex-col gap-2.5">
+                  {presets.map((p, idx) => (
+                    <div key={p.id} className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-slate-200/60 shadow-sm" style={{animation: `cardAppear 0.3s ease ${idx * 40}ms both`}}>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-black text-[11px] text-slate-800 truncate">{p.name}</div>
+                        <div className="text-[9.5px] text-slate-400 mt-0.5 font-semibold">
+                          {p.role === 'Assistant' ? '보조강사' : '주강사'} · ₩{formatWon(p.rate)}/h · 교통비 ₩{formatWon(p.transportFee || 0)} · {p.taxRate}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`"${p.name}" 프리셋을 삭제하시겠습니까?`)) {
+                            setPresets(prev => prev.filter(x => x.id !== p.id));
+                          }
+                        }}
+                        className="ml-3 p-2 text-red-400 hover:bg-red-50 rounded-xl transition flex-shrink-0"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 새 프리셋 등록 폼 */}
+                <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px dashed rgba(37,99,235,0.25)'}}>
+                  <span className="font-black text-[11px] text-[#2563EB]">+ 새 즐겨찾기 등록</span>
+                  <input
+                    type="text"
+                    placeholder="기관명 / 교육장명"
+                    value={formData._newPresetName || ''}
+                    onChange={e => setFormData(prev => ({ ...prev, _newPresetName: e.target.value }))}
+                    className="px-4 py-3 border border-blue-200 rounded-xl bg-white text-[11px] font-semibold focus:outline-none focus:border-[#2563EB]"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={formData._newPresetRole || 'Main'}
+                      onChange={e => setFormData(prev => ({ ...prev, _newPresetRole: e.target.value }))}
+                      className="px-3 py-2.5 border border-blue-100 rounded-xl bg-white text-[11px] font-bold"
+                    >
+                      <option value="Main">주강사</option>
+                      <option value="Assistant">보조강사</option>
+                    </select>
+                    <input
+                      type="number"
+                      placeholder="시간당 단가"
+                      value={formData._newPresetRate || ''}
+                      onChange={e => setFormData(prev => ({ ...prev, _newPresetRate: e.target.value }))}
+                      className="px-3 py-2.5 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      placeholder="교통비 (원)"
+                      value={formData._newPresetTransport || ''}
+                      onChange={e => setFormData(prev => ({ ...prev, _newPresetTransport: e.target.value }))}
+                      className="px-3 py-2.5 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none"
+                    />
+                    <select
+                      value={formData._newPresetTax || '8.8%'}
+                      onChange={e => setFormData(prev => ({ ...prev, _newPresetTax: e.target.value }))}
+                      className="px-3 py-2.5 border border-blue-100 rounded-xl bg-white text-[11px] font-bold"
+                    >
+                      <option value="8.8%">8.8%</option>
+                      <option value="3.3%">3.3%</option>
+                      <option value="None">0%</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const name = (formData._newPresetName || '').trim();
+                      if (!name) { alert('기관명을 입력해 주세요.'); return; }
+                      setPresets(prev => [...prev, {
+                        id: `p-${Date.now()}`,
+                        name,
+                        role: formData._newPresetRole || 'Main',
+                        rate: Number(formData._newPresetRate) || 100000,
+                        classes: 2,
+                        transportFee: Number(formData._newPresetTransport) || 0,
+                        taxRate: formData._newPresetTax || '8.8%'
+                      }]);
+                      setFormData(prev => ({ ...prev, _newPresetName: '', _newPresetRate: '', _newPresetTransport: '', _newPresetRole: 'Main', _newPresetTax: '8.8%' }));
+                      alert('즐겨찾기가 등록되었습니다!');
+                    }}
+                    className="w-full py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black rounded-xl text-[11px] shadow-sm transition-all"
+                  >
+                    즐겨찾기에 추가
+                  </button>
+                </div>
               </div>
-            </form>
+            )}
           </div>
         </div>
       )}
@@ -2579,39 +2778,75 @@ function doPost(e) {
          ======================================================== */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-fade">
-          <div className="bg-white w-full max-w-md rounded-[28px] border border-toss-border shadow-modal overflow-hidden flex flex-col modal-zoom-in">
-            <div className="p-5 border-b border-toss-border flex items-center justify-between bg-slate-50/50">
-              <h3 className="text-xs font-extrabold text-toss-textDark flex items-center gap-1.5">
-                <Settings size={15} />
+          <div className="bg-white w-full max-w-md rounded-[28px] border border-slate-200 shadow-2xl overflow-hidden flex flex-col modal-zoom-in">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                <Settings size={15} className="text-[#2563EB]" />
                 대시보드 환경 설정 (PC)
               </h3>
-              <button onClick={() => setIsSettingsOpen(false)} className="p-1 text-toss-textSub hover:bg-slate-100 rounded-lg">
+              <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-xl transition">
                 <X size={18} />
               </button>
             </div>
 
-            <div className="p-5 flex flex-col gap-4 text-xs">
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-toss-textMuted">Gemini API Key</label>
-                <input 
-                  type="password"
-                  id="settings-api-key-desktop"
-                  defaultValue={apiKey}
-                  className="w-full px-3 py-2 border border-toss-border rounded-xl focus:outline-none"
-                />
+            <div className="p-6 flex flex-col gap-6 text-xs" style={{background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)'}}>
+              {/* API 설정 카드 */}
+              <div className="rounded-2xl p-5 flex flex-col gap-4 text-white" style={{background: 'linear-gradient(145deg, #1E293B 0%, #0F172A 100%)'}}>
+                <span className="font-black text-[11px] text-sky-400 flex items-center gap-1.5">
+                  <Database size={14} /> API 연동
+                </span>
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <label className="font-bold text-slate-300">Gemini AI API Key</label>
+                    <button
+                      type="button"
+                      onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 API Key를 발급받을 수 있습니다.\n\n1. aistudio.google.com 접속\n2. 좌측 메뉴에서 "Get API Key" 클릭\n3. "Create API Key" 버튼 클릭\n4. 생성된 키를 복사하여 이곳에 붙여넣기\n\n이 키는 출강 공지 텍스트를 AI로 자동 분석할 때 사용됩니다.')}
+                      className="w-5 h-5 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                    >
+                      <span className="text-[10px] font-black text-sky-400">?</span>
+                    </button>
+                  </div>
+                  <input 
+                    type="password"
+                    id="settings-api-key-desktop"
+                    defaultValue={apiKey}
+                    placeholder="AIzaSy..."
+                    className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/40 text-[11px] font-semibold"
+                    style={{background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', color: '#E2E8F0'}}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <label className="font-bold text-slate-300">구글 시트 웹 앱 URL</label>
+                    <button
+                      type="button"
+                      onClick={() => alert('구글 스프레드시트를 백업 DB로 사용하려면 다음 절차를 따르세요:\n\n1. Google 스프레드시트를 하나 새로 생성\n2. 상단 메뉴 → 확장 프로그램 → Apps Script\n3. 이 앱의 [백업 탭 → Apps Script 코드] 영역에 있는 코드를 복사하여 Apps Script 편집기에 붙여넣기\n4. 저장 후 [배포 → 새 배포] 클릭\n5. 유형: "웹 앱" 선택\n6. 액세스: "모든 사용자" 선택\n7. 배포 후 생성된 URL을 복사하여 이곳에 붙여넣기\n\n이 URL을 통해 출강 데이터를 구글 시트로 자동 백업/복원할 수 있습니다.')}
+                      className="w-5 h-5 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
+                    >
+                      <span className="text-[10px] font-black text-sky-400">?</span>
+                    </button>
+                  </div>
+                  <input 
+                    type="text"
+                    id="settings-sheet-url-desktop"
+                    defaultValue={sheetUrl}
+                    placeholder="https://script.google.com/macros/s/..."
+                    className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/40 text-[11px] font-semibold"
+                    style={{background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', color: '#E2E8F0'}}
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="font-bold text-toss-textMuted">구글 시트 웹 앱 URL</label>
-                <input 
-                  type="text"
-                  id="settings-sheet-url-desktop"
-                  defaultValue={sheetUrl}
-                  className="w-full px-3 py-2 border border-toss-border rounded-xl focus:outline-none"
-                />
-              </div>
-
-              <div className="flex gap-2 mt-4">
+              {/* 위험 구역 */}
+              <div className="rounded-2xl p-4 bg-red-50 border border-red-200/60 flex flex-col gap-2.5">
+                <span className="font-black text-[11px] text-red-700 flex items-center gap-1.5">
+                  <AlertCircle size={14} className="text-red-500" /> 데이터 초기화
+                </span>
+                <p className="text-[10px] text-red-600/70 leading-relaxed font-semibold">
+                  기기에 저장된 모든 출강 기록과 API 설정값을 삭제합니다.
+                </p>
                 <button
                   type="button"
                   onClick={() => {
@@ -2624,15 +2859,18 @@ function doPost(e) {
                       alert('초기화 완료');
                     }
                   }}
-                  className="py-2.5 px-3 bg-red-50 text-toss-red font-bold rounded-xl hover:bg-red-100"
+                  className="w-full py-2.5 text-center font-bold bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-xl transition-all shadow-sm"
                 >
-                  전체 초기화
+                  전체 삭제 실행
                 </button>
-                <div className="flex-1" />
+              </div>
+
+              {/* 푸터 액션 */}
+              <div className="flex gap-2.5 mt-2">
                 <button
                   type="button"
                   onClick={() => setIsSettingsOpen(false)}
-                  className="py-2.5 px-4 bg-slate-100 text-toss-textMuted font-bold rounded-xl"
+                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl"
                 >
                   닫기
                 </button>
@@ -2644,7 +2882,7 @@ function doPost(e) {
                     handleSaveSettings(geminiKey, sheetApiUrl);
                     setIsSettingsOpen(false);
                   }}
-                  className="py-2.5 px-4 bg-[#1F2E5B] text-white font-bold rounded-xl shadow-md"
+                  className="flex-[2] py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black rounded-xl shadow-md transition-all"
                 >
                   설정 저장
                 </button>
