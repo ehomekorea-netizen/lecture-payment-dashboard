@@ -269,6 +269,11 @@ export default function App() {
   // 파일 업로드 모션 상태
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  
+  // 설정 탭 토글 아코디언 상태
+  const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
+  const [isCloudBackupOpen, setIsCloudBackupOpen] = useState(false);
+  const [isLocalBackupOpen, setIsLocalBackupOpen] = useState(false);
 
 
 
@@ -1230,7 +1235,9 @@ function doPost(e) {
                 <div 
                   className="rounded-[20px] p-4 bg-white border border-slate-200/60 flex flex-col gap-1 shadow-sm relative overflow-hidden"
                 >
-                  <div className="absolute top-0 right-0 w-12 h-12 rounded-full bg-blue-50/50 opacity-40 translate-x-2 -translate-y-2" />
+                          <div className="absolute -right-2 -bottom-2 w-14 h-14 rounded-full bg-blue-50/70 flex items-center justify-center text-blue-500/20 pointer-events-none">
+                    <Clock size={34} className="stroke-[1.5]" />
+                  </div>
                   <span className="text-[12px] font-black text-slate-400">정산 대기</span>
                   <span className="text-lg font-black text-slate-800 tracking-tight">
                     <AnimatedNumber value={totalUnpaid} />
@@ -1244,7 +1251,9 @@ function doPost(e) {
                 <div 
                   className="rounded-[20px] p-4 bg-white border border-slate-200/60 flex flex-col gap-1 shadow-sm relative overflow-hidden"
                 >
-                  <div className="absolute top-0 right-0 w-12 h-12 rounded-full bg-emerald-50/50 opacity-40 translate-x-2 -translate-y-2" />
+                          <div className="absolute -right-2 -bottom-2 w-14 h-14 rounded-full bg-emerald-50/70 flex items-center justify-center text-emerald-500/20 pointer-events-none">
+                    <Check size={34} className="stroke-[2.5]" />
+                  </div>
                   <span className="text-[12px] font-black text-slate-400">정산 완료</span>
                   <span className="text-lg font-black text-emerald-600 tracking-tight">
                     <AnimatedNumber value={totalNet} />
@@ -1271,42 +1280,47 @@ function doPost(e) {
                   />
                 </div>
                 <div className="flex gap-2 items-center justify-between border-t border-slate-100 pt-2.5">
-                  <div className="w-[58%] overflow-x-auto scrollbar-none flex gap-1.5 py-1">
+                  {/* Left Side: Month list (scrollable) */}
+                  <div className="w-[49%] overflow-x-auto scrollbar-none flex gap-1.5 py-1">
                     <button 
                       onClick={() => setSelectedMonth('All')}
-                      className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                      className={`flex-shrink-0 text-[10px] font-black px-2.5 py-1.5 rounded-lg ${selectedMonth === 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-slate-500'}`}
                     >
-                      #전체월
+                      전체월
                     </button>
-                    {uniqueMonths.map((m, idx) => (
+                    {uniqueMonths.slice().reverse().map((m, idx) => (
                       <button 
                         key={idx}
                         onClick={() => setSelectedMonth(m)}
-                        className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === m ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                        className={`flex-shrink-0 text-[10px] font-black px-2.5 py-1.5 rounded-lg ${selectedMonth === m ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-slate-500'}`}
                       >
-                        #{m}
+                        {m}
                       </button>
                     ))}
                   </div>
+                  
+                  {/* Separator line */}
                   <div className="w-[1px] h-6 bg-slate-200 flex-shrink-0" />
-                  <div className="w-[38%] overflow-x-auto scrollbar-none flex gap-1.5 py-1">
+                  
+                  {/* Right Side: Status list (grid, no-scroll) */}
+                  <div className="w-[49%] grid grid-cols-3 gap-1 py-1 flex-shrink-0">
                     <button 
                       onClick={() => setSelectedStatus('All')}
-                      className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'All' ? 'bg-[#10B981] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                      className={`text-[10px] font-black py-1.5 rounded-lg text-center ${selectedStatus === 'All' ? 'bg-[#10B981] text-white' : 'bg-gray-100 text-slate-500'}`}
                     >
-                      #전체
+                      전체
                     </button>
                     <button 
                       onClick={() => setSelectedStatus('Paid')}
-                      className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'Paid' ? 'bg-[#10B981] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                      className={`text-[10px] font-black py-1.5 rounded-lg text-center ${selectedStatus === 'Paid' ? 'bg-[#10B981] text-white' : 'bg-gray-100 text-slate-500'}`}
                     >
-                      #완료
+                      완료
                     </button>
                     <button 
                       onClick={() => setSelectedStatus('Pending')}
-                      className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'Pending' ? 'bg-[#F59E0B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                      className={`text-[10px] font-black py-1.5 rounded-lg text-center ${selectedStatus === 'Pending' ? 'bg-[#F59E0B] text-white' : 'bg-gray-100 text-slate-500'}`}
                     >
-                      #대기
+                      대기
                     </button>
                   </div>
                 </div>
@@ -1325,10 +1339,14 @@ function doPost(e) {
                     return (
                       <div
                         key={l.id}
-                        className="relative overflow-hidden rounded-[22px]"
-                        style={{border:'1px solid rgba(31,46,91,0.10)',boxShadow:'0 2px 12px rgba(31,46,91,0.06)'}}
+                        className="relative bg-white rounded-[22px]"
+                        style={{
+                          border:'1px solid rgba(31,46,91,0.10)',
+                          boxShadow:'0 2px 12px rgba(31,46,91,0.06)',
+                          zIndex: activeMenuCardId === l.id ? 30 : 1
+                        }}
                       >
-                        <div className="card-hover bg-white flex flex-col relative" style={{animationDelay:(idx*55)+'ms',padding:'18px'}}>
+                        <div className="card-hover bg-white flex flex-col relative rounded-[22px]" style={{animationDelay:(idx*55)+'ms',padding:'18px'}}>
                           <div className="flex items-start justify-between mb-2">
                             <div>
                               <div className="flex items-center gap-1.5 mb-1.5">
@@ -1644,89 +1662,137 @@ function doPost(e) {
 
                     {/* TAB 4: SETTINGS (merged with Sync) */}
           {activeTab === 'settings' && (<div key="tab-settings" className={getSlideClass()}>
-            <div className="flex flex-col gap-5">
-              {/* API Settings */}
-              <div className="rounded-[24px] bg-white border border-slate-200/60 p-5 flex flex-col gap-5 shadow-sm">
-                <div className="flex items-center gap-2"><Database size={18} className="text-[#1E3A8A]" /><h3 className="text-[15px] font-black text-slate-800 tracking-tight">API 연동 설정</h3></div>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
-                    <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
+            <div className="flex flex-col gap-4">
+              {/* API Settings Accordion */}
+              <div className="rounded-[24px] bg-white border border-slate-200/60 overflow-hidden shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setIsApiSettingsOpen(!isApiSettingsOpen)}
+                  className="w-full px-5 py-4.5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors border-none text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[16px]">⚙️</span>
+                    <h3 className="text-[15px] font-black text-slate-800 tracking-tight">API 연동 설정</h3>
                   </div>
-                  <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="w-full px-4 py-3.5 border border-slate-200 rounded-xl text-[14px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <label className="text-[13px] font-black text-slate-600">구글 시트 웹 앱 URL</label>
-                    <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[12px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition">연동 방법 보기</button>
-                  </div>
-                  <input type="text" id="settings-sheet-url-mobile" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/..." className="w-full px-4 py-3.5 border border-slate-200 rounded-xl text-[14px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
-                </div>
-                <button onClick={() => { const k=document.getElementById('settings-api-key-mobile').value; const u=document.getElementById('settings-sheet-url-mobile').value; handleSaveSettings(k,u); }} className="w-full py-4 text-[15px] font-black text-white bg-[#1E3A8A] hover:bg-[#0F172A] rounded-xl shadow-md transition">설정 정보 저장</button>
-              </div>
-
-              {/* Cloud Sync (merged from Sync tab) */}
-              <div className="bg-white p-4 rounded-[20px] border border-slate-200/60 shadow-sm flex flex-col gap-3">
-                <h3 className="text-[15px] font-black text-slate-800 flex items-center gap-1.5">
-                  <Cloud size={15} className="text-[#2563EB]" />
-                  클라우드 백업
-                </h3>
-                {!sheetUrl ? (
-                  <div className="p-4 bg-orange-50 border border-orange-200 text-amber-700 rounded-xl text-[12px] font-semibold leading-relaxed">
-                    상단 API 설정에 <strong>구글 시트 웹 앱 URL</strong>을 연동하면 클라우드 백업이 활성화됩니다.
-                  </div>
-                ) : (
-                  <>
-                    {syncMessage && (
-                      <div className={`p-3 rounded-xl border text-[12px] font-semibold ${syncMessage.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
-                        {syncMessage.text}
+                  <ChevronDown
+                    size={16}
+                    className={`text-slate-400 transition-transform duration-200 ${isApiSettingsOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {isApiSettingsOpen && (
+                  <div className="px-5 pb-5 pt-3 flex flex-col gap-5 border-t border-slate-100">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
+                        <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
                       </div>
-                    )}
-                    <div className="flex flex-col gap-2 mt-1">
-                      <button onClick={fetchFromGoogleSheet} disabled={syncLoading} className="w-full py-3.5 text-[13px] font-black bg-blue-50 border border-blue-100 text-[#2563EB] rounded-xl flex items-center justify-center gap-1 hover:bg-blue-100 transition">
-                        {syncLoading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
-                        시트 데이터 불러오기
-                      </button>
-                      <button onClick={() => syncToGoogleSheet(lectures)} disabled={syncLoading} className="w-full py-3.5 text-[13px] font-black bg-[#1F2E5B] text-white rounded-xl flex items-center justify-center gap-1 hover:bg-[#172346] transition">
-                        {syncLoading ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
-                        시트에 데이터 백업하기
-                      </button>
+                      <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="w-full px-4 py-3.5 border border-slate-200 rounded-xl text-[14px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
                     </div>
-                  </>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <label className="text-[13px] font-black text-slate-600">구글 시트 웹 앱 URL</label>
+                        <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[12px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition">연동 방법 보기</button>
+                      </div>
+                      <input type="text" id="settings-sheet-url-mobile" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/..." className="w-full px-4 py-3.5 border border-slate-200 rounded-xl text-[14px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
+                    </div>
+                    <button onClick={() => { const k=document.getElementById('settings-api-key-mobile').value; const u=document.getElementById('settings-sheet-url-mobile').value; handleSaveSettings(k,u); }} className="w-full py-4 text-[15px] font-black text-white bg-[#1E3A8A] hover:bg-[#0F172A] rounded-xl shadow-md transition">설정 정보 저장</button>
+                  </div>
                 )}
               </div>
 
-              {/* Local Export/Import */}
-              <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3">
-                <span className="text-[14px] font-black text-slate-800">로컬 데이터 내보내기 & 가져오기</span>
-                <div className="grid grid-cols-1 gap-3.5">
-                  <button onClick={handleExportCSV} className="w-full py-3.5 bg-[#F8FAF8] border border-slate-200 hover:border-[#2563EB] text-slate-800 text-[13px] font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-sm">
-                    <Download size={14} className="text-[#2563EB]" />
-                    현재 출강 이력 CSV로 내려받기</button>
-                  <div className="relative border-2 border-dashed border-slate-200 rounded-2xl p-6 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
-                    <input type="file" accept=".csv" onChange={handleAnimatedUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" disabled={isUploading} />
-                    <div className={`p-3 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 ${isUploading ? 'upload-pulse' : 'cloud-float'}`}>
-                      <Cloud size={28} className="text-[#2563EB]" />
-                    </div>
-                    {isUploading ? (
-                      <div className="w-full max-w-[180px] flex flex-col items-center gap-2">
-                        <span className="text-[10px] font-bold text-[#2563EB]">파일을 파싱하는 중...</span>
-                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                          <div className="h-full bg-[#2563EB] transition-all duration-75" style={{width: `${uploadProgress}%`}} />
-                        </div>
-                        <span className="text-[9px] text-slate-400 font-extrabold">${uploadProgress}%</span>
+              {/* Cloud Sync Accordion */}
+              <div className="rounded-[24px] bg-white border border-slate-200/60 overflow-hidden shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setIsCloudBackupOpen(!isCloudBackupOpen)}
+                  className="w-full px-5 py-4.5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors border-none text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[16px]">☁️</span>
+                    <h3 className="text-[15px] font-black text-slate-800 tracking-tight">클라우드 백업</h3>
+                  </div>
+                  <ChevronDown
+                    size={16}
+                    className={`text-slate-400 transition-transform duration-200 ${isCloudBackupOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {isCloudBackupOpen && (
+                  <div className="px-5 pb-5 pt-3 flex flex-col gap-3 border-t border-slate-100">
+                    {!sheetUrl ? (
+                      <div className="p-4 bg-orange-50 border border-orange-200 text-amber-700 rounded-xl text-[12px] font-semibold leading-relaxed">
+                        상단 API 설정에 <strong>구글 시트 웹 앱 URL</strong>을 연동하면 클라우드 백업이 활성화됩니다.
                       </div>
                     ) : (
                       <>
-                        <span className="text-[13px] font-black text-slate-800">CSV 백업 파일 가져오기</span>
-                        <p className="text-[11px] text-slate-400 mt-1.5 leading-normal font-semibold">
-                          이곳을 탭하거나 CSV 파일을 끌어놓으세요.<br/>
-                          (이전 백업본이 현재 리스트와 병합됩니다.)
-                        </p>
+                        {syncMessage && (
+                          <div className={`p-3 rounded-xl border text-[12px] font-semibold ${syncMessage.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
+                            {syncMessage.text}
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-2 mt-1">
+                          <button onClick={fetchFromGoogleSheet} disabled={syncLoading} className="w-full py-3.5 text-[13px] font-black bg-blue-50 border border-blue-100 text-[#2563EB] rounded-xl flex items-center justify-center gap-1 hover:bg-blue-100 transition">
+                            {syncLoading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+                            시트 데이터 불러오기
+                          </button>
+                          <button onClick={() => syncToGoogleSheet(lectures)} disabled={syncLoading} className="w-full py-3.5 text-[13px] font-black bg-[#1F2E5B] text-white rounded-xl flex items-center justify-center gap-1 hover:bg-[#172346] transition">
+                            {syncLoading ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
+                            시트에 데이터 백업하기
+                          </button>
+                        </div>
                       </>
                     )}
                   </div>
-                </div>
+                )}
+              </div>
+
+              {/* Local Export/Import Accordion */}
+              <div className="rounded-[24px] bg-white border border-slate-200/60 overflow-hidden shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setIsLocalBackupOpen(!isLocalBackupOpen)}
+                  className="w-full px-5 py-4.5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors border-none text-left"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[16px]">📂</span>
+                    <h3 className="text-[15px] font-black text-slate-800 tracking-tight">로컬 데이터 관리</h3>
+                  </div>
+                  <ChevronDown
+                    size={16}
+                    className={`text-slate-400 transition-transform duration-200 ${isLocalBackupOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {isLocalBackupOpen && (
+                  <div className="px-5 pb-5 pt-3 flex flex-col gap-3 border-t border-slate-100">
+                    <div className="grid grid-cols-1 gap-3.5">
+                      <button onClick={handleExportCSV} className="w-full py-3.5 bg-[#F8FAF8] border border-slate-200 hover:border-[#2563EB] text-slate-800 text-[13px] font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-sm">
+                        <Download size={14} className="text-[#2563EB]" />
+                        현재 출강 이력 CSV로 내려받기</button>
+                      <div className="relative border-2 border-dashed border-slate-200 rounded-2xl p-6 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
+                        <input type="file" accept=".csv" onChange={handleAnimatedUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" disabled={isUploading} />
+                        <div className={`p-3 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 ${isUploading ? 'upload-pulse' : 'cloud-float'}`}>
+                          <Cloud size={28} className="text-[#2563EB]" />
+                        </div>
+                        {isUploading ? (
+                          <div className="w-full max-w-[180px] flex flex-col items-center gap-2">
+                            <span className="text-[10px] font-bold text-[#2563EB]">파일을 파싱하는 중...</span>
+                            <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                              <div className="h-full bg-[#2563EB] transition-all duration-75" style={{width: `${uploadProgress}%`}} />
+                            </div>
+                            <span className="text-[9px] text-slate-400 font-extrabold">${uploadProgress}%</span>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-[13px] font-black text-slate-800">CSV 백업 파일 가져오기</span>
+                            <p className="text-[11px] text-slate-400 mt-1.5 leading-normal font-semibold">
+                              이곳을 탭하거나 CSV 파일을 끌어놓으세요.<br/>
+                              (이전 백업본이 현재 리스트와 병합됩니다.)
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Danger zone */}
@@ -1745,10 +1811,10 @@ function doPost(e) {
         </div>
 
         {/* iOS-style Bottom Navigation Bar — absolute relative to card wrapper */}
-        <div className="absolute bottom-0 left-0 right-0 z-40" style={{background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(31,46,91,0.08)', boxShadow: '0 -4px 20px rgba(31,46,91,0.08)', paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
+        <div className="absolute bottom-6 left-4 right-4 z-40 rounded-3xl border border-slate-200/80 shadow-2xl overflow-hidden" style={{background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: '0px'}}>
           <div className="flex items-center justify-around py-2 px-2">
             {[
-              {id:'home', icon:<Home size={22}/>, label:'홈'},
+              {id:'home', icon:<Home size={22}/>, label:'현황'},
               {id:'calendar', icon:<Calendar size={22}/>, label:'달력'},
               {id:'add', icon:<Plus size={24}/>, label:'기록', isCenter: true},
               {id:'stats', icon:<BarChart size={22}/>, label:'분석'},
@@ -2517,35 +2583,22 @@ function doPost(e) {
                       </div>
                       <p className="text-[9.5px] text-slate-400 mt-1">단가 {formatWon(l.rate)}원 × {l.classes}차시</p>
                     </div>
-                    <button
-                      onClick={() => handleTogglePaid(l)}
-                      className="text-[9.5px] font-black px-2.5 py-1 rounded-xl transition"
+                    <div
+                      className="text-[9.5px] font-black px-2.5 py-1 rounded-xl"
                       style={l.isPaid
                         ? {background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)', color: '#10B981'}
                         : {background: 'rgba(100,116,139,0.06)', border: '1px solid rgba(100,116,139,0.20)', color: '#64748B'}
                       }
                     >
                       {l.isPaid ? '✓ 완료' : '⏳ 대기'}
-                    </button>
+                    </div>
                   </div>
                   
-                  <div className="flex justify-between items-center mt-1 pt-2 border-t border-dashed border-slate-100">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[9.5px] text-slate-400">실수령액:</span>
-                      <strong className="text-xs font-black text-slate-800">
-                        {l.isPaid ? formatWon(l.netAmount) : formatWon(l.expectedAmount)}원
-                      </strong>
-                    </div>
-                    <button 
-                      type="button"
-                      onClick={() => {
-                        setReceiptItem(l);
-                        setSelectedCalendarDate(null);
-                      }}
-                      className="text-[9.5px] font-bold px-2.5 py-0.5 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100 transition"
-                    >
-                      영수증
-                    </button>
+                  <div className="flex items-center gap-1.5 mt-1 pt-2 border-t border-dashed border-slate-100">
+                    <span className="text-[9.5px] text-slate-400">실수령액:</span>
+                    <strong className="text-xs font-black text-slate-800">
+                      {l.isPaid ? formatWon(l.netAmount) : formatWon(l.expectedAmount)}원
+                    </strong>
                   </div>
                 </div>
               ))}
