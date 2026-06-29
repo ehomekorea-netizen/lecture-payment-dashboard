@@ -158,13 +158,15 @@ function ShinyText({ text, className = '' }) {
   );
 }
 
-// ── React Bits: Spotlight Card Mouse Move Handler ──
-const handleCardMouseMove = (e) => {
-  const rect = e.currentTarget.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
-  e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+// KST (한국 표준시) 오늘 날짜 구하기 (YYYY-MM-DD)
+const getKstToday = () => {
+  const now = new Date();
+  const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const kst = new Date(utc + (9 * 60 * 60 * 1000));
+  const year = kst.getFullYear();
+  const month = String(kst.getMonth() + 1).padStart(2, '0');
+  const day = String(kst.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 export default function App() {
@@ -172,9 +174,13 @@ export default function App() {
   // 모바일 앱용 탭 상태 ('home', 'stats', 'sync', 'settings')
   const [activeTab, setActiveTab] = useState('home');
 
-  // Scroll to top on tab change
+  // Scroll to top on tab change (target tab body container for full support)
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
+    const container = document.getElementById('tab-body-container');
+    if (container) {
+      container.scrollTo({ top: 0, behavior: 'instant' });
+    }
   }, [activeTab]);
   const [prevTab, setPrevTab] = useState(null); // for slide direction
 
@@ -204,7 +210,7 @@ export default function App() {
       classes: preset.classes,
       transportFee: preset.transportFee,
       taxRate: preset.taxRate,
-      date: prev.date || `${new Date().getMonth() + 1}월 ${new Date().getDate()}일`
+      date: prev.date || getKstToday()
     }));
   };
 
@@ -413,8 +419,8 @@ export default function App() {
     rate: 100000,
     classes: 4,
     transportFee: 0,
-    date: new Date().toISOString().slice(0, 10),
-    registrationDate: new Date().toISOString().slice(0, 10),
+    date: getKstToday(),
+    registrationDate: getKstToday(),
     isPaid: false,
     taxRate: '3.3%',
     taxBase: 'LectureOnly',
@@ -947,7 +953,7 @@ ${aiText}
       rate: Number(formData.rate) || 100000,
       classes: Number(formData.classes) || 2,
       transportFee: Number(formData.transportFee) || 0,
-      taxRate: formData.taxRate || '8.8%'
+      taxRate: formData.taxRate || '3.3%'
     };
     setPresets(prev => [...prev, newPreset]);
     alert('즐겨찾기 목록에 저장되었습니다.');
@@ -960,7 +966,7 @@ ${aiText}
       lecture.rate,
       lecture.classes,
       lecture.transportFee,
-      lecture.taxRate || '8.8%',
+      lecture.taxRate || '3.3%',
       lecture.taxBase || 'LectureOnly',
       lecture.customTax || 0,
       nextPaid
@@ -979,6 +985,14 @@ ${aiText}
 
       setShowMoneyLottie(true);
       setLottieFade(false);
+
+      // 카칭 효과음 재생
+      try {
+        const audio = new Audio('/mp3/generic-ka-ching.mp3');
+        audio.play().catch(e => console.log('Audio playback failed or blocked:', e));
+      } catch (err) {
+        console.error('Audio initialization failed:', err);
+      }
 
       moneyLottieFadeTimeoutRef.current = setTimeout(() => {
         setLottieFade(true);
@@ -1268,7 +1282,7 @@ function doPost(e) {
                   setIsAiVerifying(false);
                   setIsAiModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-full transition shadow-sm active:scale-95 flex-shrink-0"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-50/60 to-indigo-50/60 hover:from-blue-100/80 hover:to-indigo-100/80 border border-indigo-100 rounded-full transition shadow-sm active:scale-95 flex-shrink-0"
                 title="AI 일정 등록"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[14px] h-[14px] drop-shadow-sm">
@@ -1288,12 +1302,12 @@ function doPost(e) {
         </div>
 
         {/* Dynamic Tab Body — motion: slide direction from prevTab */}
-        <div className="p-4 flex-1 flex flex-col gap-4 overflow-y-auto pb-24">
+        <div id="tab-body-container" className="p-3 flex-1 flex flex-col gap-3 overflow-y-auto pb-20">
           {/* invisible motion key — forces re-mount on tab change for animation */}
           
           {/* TAB 1: HOME (Lectures Card List) */}
           {activeTab === 'home' && (
-            <div key="tab-home" className={`${getSlideClass()} flex flex-col gap-4`}>
+            <div key="tab-home" className={`${getSlideClass()} flex flex-col gap-3`}>
               
               {/* 모바일 2분할 슬림 요약 위젯 */}
               <div className="grid grid-cols-2 gap-3 animate-fade-in">
@@ -1452,7 +1466,7 @@ function doPost(e) {
                                        <Edit3 size={14} className="text-slate-400" />
                                        {l.isPaid ? '금액 수정' : '수정하기'}
                                      </button>
-                                    <button onClick={(e) => {e.stopPropagation();if(confirm('이 강의 기록을 정말 삭제하시겠습니까?')){handleDelete(l.id);}setActiveMenuCardId(null);}} className="w-full text-left py-2.5 px-3 text-[13px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"><Trash2 size={14} className="text-red-400" />삭제하기</button>
+                                    <button onClick={(e) => {e.stopPropagation();handleDelete(l.id);setActiveMenuCardId(null);}} className="w-full text-left py-2.5 px-3 text-[13px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"><Trash2 size={14} className="text-red-400" />삭제하기</button>
                                   </div>
                                 )}
                               </div>
@@ -1498,12 +1512,12 @@ function doPost(e) {
           {activeTab === 'calendar' && (
             <div 
               key="tab-calendar" 
-              className={`${getSlideClass()} flex flex-col gap-3 select-none overflow-hidden max-h-[calc(100vh-175px)]`}
+              className={`${getSlideClass()} flex flex-col gap-2 select-none overflow-hidden max-h-[calc(100vh-165px)]`}
               onTouchStart={handleCalTouchStart}
               onTouchEnd={handleCalTouchEnd}
             >
-              <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between mb-5">
+              <div className="bg-white p-4.5 rounded-[24px] border border-slate-200/60 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <button 
                       type="button"
@@ -1512,7 +1526,7 @@ function doPost(e) {
                     >
                       &lt;
                     </button>
-                    <h3 className="text-[17px] font-black text-slate-800 flex items-center gap-1.5 w-32 justify-center">
+                    <h3 className="text-[16px] font-black text-slate-800 flex items-center gap-1.5 w-32 justify-center">
                       {currentYear}년 {currentMonth + 1}월
                     </h3>
                     <button 
@@ -1592,14 +1606,8 @@ function doPost(e) {
                         <span className={`text-[13px] font-black ${hasLectures ? 'text-[#0F172A] font-black text-[15px]' : 'text-slate-500'} ${isToday ? 'text-[#1E3A8A]' : ''}`}>{day}</span>
                         {/* 도트 */}
                         <div className="flex gap-0.5 justify-center mt-0.5 h-1">
-                          {hasPaid && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                          {hasUnpaid && (
-                            <span className={`w-1.5 h-1.5 rounded-full bg-amber-500 ${hasWarning ? 'relative' : ''}`}>
-                              {hasWarning && (
-                                <span className="absolute -inset-1 rounded-full bg-amber-500/40 animate-ping" />
-                              )}
-                            </span>
-                          )}
+                          {hasPaid && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDuration: '0.6s' }} />}
+                          {hasUnpaid && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" style={{ animationDuration: '0.6s' }} />}
                         </div>
                       </div>
                     );
@@ -1608,13 +1616,12 @@ function doPost(e) {
               </div>
 
               {/* 달력 안내 안내카드 */}
-              <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-[16px] text-[12.5px] text-slate-600 leading-normal flex flex-col gap-1.5 mt-0.5 shadow-sm">
-                <span className="font-extrabold text-[13px] text-slate-800 flex items-center gap-1">💡 캘린더 안내</span>
-                <p className="font-semibold text-slate-500">기록일은 연하게 칠해지며, 해당 날짜 터치 시 하단에 상세 명세서가 바로 노출됩니다.</p>
-                <div className="flex items-center gap-3.5 mt-1 font-bold text-[11px]">
-                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"/> 완료</div>
-                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"/> 대기</div>
-                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"/> 30일 경과</div>
+              <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-[16px] text-[13.5px] text-slate-700 leading-normal flex flex-col gap-1.5 mt-0 shadow-sm">
+                <span className="font-extrabold text-[14.5px] text-slate-800 flex items-center gap-1">💡 캘린더 안내</span>
+                <p className="font-semibold text-slate-600">기록일은 연하게 칠해지며, 해당 날짜 터치 시 하단에 상세 명세서가 바로 노출됩니다.</p>
+                <div className="flex items-center gap-3 mt-1 font-bold text-[12px]">
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" style={{ animationDuration: '0.6s' }}/> 완료</div>
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" style={{ animationDuration: '0.6s' }}/> 대기</div>
                 </div>
               </div>
             </div>
@@ -1622,9 +1629,9 @@ function doPost(e) {
 
           {/* TAB 2: STATS */}
           {activeTab === 'stats' && (<div key="tab-stats" className={getSlideClass()}>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-3">
               {/* 출강 성과 요약 */}
-              <div className="bg-white p-5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
+              <div className="bg-white p-4.5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
                 <span className="text-[15px] font-black block mb-4 text-slate-800">출강 성과 및 요약</span>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
@@ -1725,7 +1732,7 @@ function doPost(e) {
                       <div
                         ref={chartScrollRef}
                         className="w-full overflow-x-auto overflow-y-hidden scrollbar-none pb-4 px-0"
-                        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
+                        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
                       >
                         <div style={{ width: `${SVG_W}px`, flexShrink: 0 }}>
                           <svg viewBox={`0 0 ${SVG_W} 200`} width={SVG_W} height="200" className="overflow-visible">
@@ -1884,11 +1891,11 @@ function doPost(e) {
           {activeTab === 'settings' && (<div key="tab-settings" className={getSlideClass()}>
             <div className="flex flex-col gap-4">
               {/* API Settings Accordion */}
-              <div className="rounded-[24px] bg-violet-50/10 border border-violet-100/80 overflow-hidden shadow-sm transition-all">
+              <div className="rounded-[24px] bg-violet-50/10 border border-violet-200 overflow-hidden shadow-sm transition-all">
                 <button
                   type="button"
                   onClick={() => setIsApiSettingsOpen(!isApiSettingsOpen)}
-                  className="w-full px-5 py-4.5 flex items-center justify-between bg-violet-50/20 hover:bg-violet-50/40 transition-colors border-none text-left"
+                  className="w-full px-5 py-4.5 flex items-center justify-between bg-violet-100 hover:bg-violet-200/70 transition-colors border-none text-left"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[16px]">⚙️</span>
@@ -1896,11 +1903,11 @@ function doPost(e) {
                   </div>
                   <ChevronDown
                     size={16}
-                    className={`text-slate-400 transition-transform duration-200 ${isApiSettingsOpen ? 'rotate-180' : ''}`}
+                    className={`text-slate-500 transition-transform duration-200 ${isApiSettingsOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
                 {isApiSettingsOpen && (
-                  <div className="px-5 pb-5 pt-3 flex flex-col gap-4 border-t border-slate-100">
+                  <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center gap-1.5">
                         <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
@@ -1925,11 +1932,11 @@ function doPost(e) {
               </div>
 
               {/* Cloud Sync Accordion */}
-              <div className="rounded-[24px] bg-sky-50/10 border border-sky-100 overflow-hidden shadow-sm transition-all">
+              <div className="rounded-[24px] bg-sky-50/10 border border-sky-200 overflow-hidden shadow-sm transition-all">
                 <button
                   type="button"
                   onClick={() => setIsCloudBackupOpen(!isCloudBackupOpen)}
-                  className="w-full px-5 py-4.5 flex items-center justify-between bg-sky-50/20 hover:bg-sky-50/40 transition-colors border-none text-left"
+                  className="w-full px-5 py-4.5 flex items-center justify-between bg-sky-100 hover:bg-sky-200/70 transition-colors border-none text-left"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[16px]">☁️</span>
@@ -1937,12 +1944,12 @@ function doPost(e) {
                   </div>
                   <ChevronDown
                     size={16}
-                    className={`text-slate-400 transition-transform duration-200 ${isCloudBackupOpen ? 'rotate-180' : ''}`}
+                    className={`text-slate-500 transition-transform duration-200 ${isCloudBackupOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
                 {isCloudBackupOpen && (
-                  <div className="px-5 pb-5 pt-3 flex flex-col gap-4 border-t border-slate-100">
-                    <div className="p-3 bg-blue-50 border border-blue-100 text-[#1E3A8A] rounded-xl font-semibold leading-relaxed flex flex-col gap-1.5 text-[10.5px]">
+                  <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
+                    <div className="p-3 bg-blue-50/70 border border-blue-100 text-[#1E3A8A] rounded-xl font-semibold leading-relaxed flex flex-col gap-1.5 text-[10.5px]">
                       <p className="font-black text-[11px] flex items-center gap-1">☁️ 클라우드 동기화 안내</p>
                       <p className="text-slate-500">구글 스프레드시트 배포 URL을 연동하면 모바일과 PC 등 다른 기기들과 출강 데이터를 동일하게 백업/복원(동기화)할 수 있습니다.</p>
                       <div>
@@ -2002,11 +2009,11 @@ function doPost(e) {
               </div>
 
               {/* Local Export/Import Accordion */}
-              <div className="rounded-[24px] bg-emerald-50/10 border border-emerald-100 overflow-hidden shadow-sm transition-all">
+              <div className="rounded-[24px] bg-emerald-50/10 border border-emerald-200 overflow-hidden shadow-sm transition-all">
                 <button
                   type="button"
                   onClick={() => setIsLocalBackupOpen(!isLocalBackupOpen)}
-                  className="w-full px-5 py-4.5 flex items-center justify-between bg-emerald-50/20 hover:bg-emerald-50/40 transition-colors border-none text-left"
+                  className="w-full px-5 py-4.5 flex items-center justify-between bg-emerald-100 hover:bg-emerald-200/70 transition-colors border-none text-left"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[16px]">📂</span>
@@ -2014,11 +2021,11 @@ function doPost(e) {
                   </div>
                   <ChevronDown
                     size={16}
-                    className={`text-slate-400 transition-transform duration-200 ${isLocalBackupOpen ? 'rotate-180' : ''}`}
+                    className={`text-slate-500 transition-transform duration-200 ${isLocalBackupOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
                 {isLocalBackupOpen && (
-                  <div className="px-5 pb-5 pt-3 flex flex-col gap-3 border-t border-slate-100">
+                  <div className="p-5 flex flex-col gap-3 border-t border-slate-200/60 bg-white">
                     <div className="grid grid-cols-1 gap-3.5">
                       <button onClick={handleExportCSV} className="w-full py-3.5 bg-[#F8FAF8] border border-slate-200 hover:border-[#2563EB] text-slate-800 text-[13px] font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-sm">
                         <Download size={14} className="text-[#2563EB]" />
@@ -2071,8 +2078,8 @@ function doPost(e) {
           )}
         </div>
 
-        {/* iOS-style Bottom Navigation Bar — fixed bottom-9 on mobile, absolute bottom-5 on desktop mockup */}
-        <div className="fixed bottom-9 md:absolute md:bottom-5 left-4 right-4 z-40 rounded-3xl border border-slate-200/80 shadow-2xl" style={{background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: '0px'}}>
+        {/* iOS-style Bottom Navigation Bar — fixed bottom-4 on mobile, absolute bottom-3 on desktop mockup */}
+        <div className="fixed bottom-4 md:absolute md:bottom-3 left-4 right-4 z-40 rounded-3xl border border-slate-200/80 shadow-2xl" style={{background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: '0px'}}>
           <div className="flex items-center justify-around py-2 px-2">
             {[
               {id:'home', icon:<Home size={22}/>, label:'현황'},
@@ -2473,8 +2480,8 @@ function doPost(e) {
                     <select value={formData._newPresetRole || 'Main'} onChange={e => setFormData(prev => ({ ...prev, _newPresetRole: e.target.value }))} className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"><option value="Main">주강사</option><option value="Assistant">보조강사</option></select>
                     <input type="number" placeholder="시간당 단가(원)" value={formData._newPresetRate || ''} onChange={e => setFormData(prev => ({ ...prev, _newPresetRate: e.target.value }))} className="px-3 py-2 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none" />
                   </div>
-                  <select value={formData._newPresetTax || '8.8%'} onChange={e => setFormData(prev => ({ ...prev, _newPresetTax: e.target.value }))} className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"><option value="8.8%">공제세율 8.8% (기본)</option><option value="3.3%">공제세율 3.3%</option><option value="None">공제 없음 (0%)</option></select>
-                  <button type="button" onClick={() => { const name=(formData._newPresetName||'').trim(); if(!name){alert('기관명을 입력해 주세요.');return;} const emoji=formData._newPresetEmoji||'🏫'; setPresets(prev=>[...prev,{id:`p-${Date.now()}`,name:`[${emoji}] ${name}`,role:formData._newPresetRole||'Main',rate:Number(formData._newPresetRate)||100000,classes:2,transportFee:0,taxRate:formData._newPresetTax||'8.8%'}]); setFormData(prev=>({...prev,_newPresetName:'',_newPresetRate:'',_newPresetRole:'Main',_newPresetTax:'8.8%',_newPresetEmoji:'🏫',_showEmojiPicker:false})); alert('즐겨찾기가 저장되었습니다!'); }} className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11.5px] shadow-sm transition">새 즐겨찾기 추가 저장</button>
+                  <select value={formData._newPresetTax || '3.3%'} onChange={e => setFormData(prev => ({ ...prev, _newPresetTax: e.target.value }))} className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"><option value="3.3%">공제세율 3.3% (기본)</option><option value="8.8%">공제세율 8.8%</option><option value="None">공제 없음 (0%)</option></select>
+                  <button type="button" onClick={() => { const name=(formData._newPresetName||'').trim(); if(!name){alert('기관명을 입력해 주세요.');return;} const emoji=formData._newPresetEmoji||'🏫'; setPresets(prev=>[...prev,{id:`p-${Date.now()}`,name:`[${emoji}] ${name}`,role:formData._newPresetRole||'Main',rate:Number(formData._newPresetRate)||100000,classes:2,transportFee:0,taxRate:formData._newPresetTax||'3.3%'}]); setFormData(prev=>({...prev,_newPresetName:'',_newPresetRate:'',_newPresetRole:'Main',_newPresetTax:'3.3%',_newPresetEmoji:'🏫',_showEmojiPicker:false})); alert('즐겨찾기가 저장되었습니다!'); }} className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11.5px] shadow-sm transition">새 즐겨찾기 추가 저장</button>
                 </div>
               </div>
             )}
