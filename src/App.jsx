@@ -1126,9 +1126,7 @@ ${aiText}
   const handleImportCSV = (file) => {
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target.result;
+    const processCsvText = (text) => {
       const lines = text.split('\n');
       if (lines.length < 2) return;
 
@@ -1181,7 +1179,22 @@ ${aiText}
         }
       }
     };
-    reader.readAsText(file);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      // 한글이 깨질 때 발생하는 유니코드 대체 문자(\uFFFD) 감지 시 EUC-KR로 재디코딩
+      if (text.includes('\uFFFD')) {
+        const reReader = new FileReader();
+        reReader.onload = (reEvent) => {
+          processCsvText(reEvent.target.result);
+        };
+        reReader.readAsText(file, 'EUC-KR');
+      } else {
+        processCsvText(text);
+      }
+    };
+    reader.readAsText(file, 'UTF-8');
   };
 
   // 업로드 시뮬레이션용 애니메이션 함수
