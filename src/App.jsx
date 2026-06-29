@@ -82,6 +82,12 @@ export default function App() {
     localStorage.setItem('lectoss_presets', JSON.stringify(presets));
   }, [presets]);
 
+  // Reset card swipe offsets on filter or search changes to prevent rendering anomalies
+  useEffect(() => {
+    setSwipeActiveId(null);
+    setTouchOffset(0);
+  }, [searchQuery, selectedMonth]);
+
   const applyPreset = (preset) => {
     setFormData(prev => ({
       ...prev,
@@ -96,12 +102,40 @@ export default function App() {
     }));
   };
 
-  // 이번 달 캘린더용 계산 변수
-  const todayVal = new Date();
-  const currentYear = todayVal.getFullYear();
-  const currentMonth = todayVal.getMonth();
+  // 캘린더용 상태 및 계산 변수 (좌우 슬라이드/이동 가능하도록)
+  const [calDate, setCalDate] = useState(new Date());
+  const [calTransition, setCalTransition] = useState(''); // 'slide-left' | 'slide-right' | ''
+  const currentYear = calDate.getFullYear();
+  const currentMonth = calDate.getMonth();
   const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+  const handlePrevMonth = () => {
+    setCalTransition('slide-left');
+    setCalDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setTimeout(() => setCalTransition(''), 300);
+  };
+
+  const handleNextMonth = () => {
+    setCalTransition('slide-right');
+    setCalDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setTimeout(() => setCalTransition(''), 300);
+  };
+
+  const [calTouchStart, setCalTouchStart] = useState(null);
+  const handleCalTouchStart = (e) => {
+    setCalTouchStart(e.touches[0].clientX);
+  };
+  const handleCalTouchEnd = (e) => {
+    if (calTouchStart === null) return;
+    const diff = e.changedTouches[0].clientX - calTouchStart;
+    if (diff > 60) {
+      handlePrevMonth(); // 오른쪽으로 드래그 -> 이전 달
+    } else if (diff < -60) {
+      handleNextMonth(); // 왼쪽으로 드래그 -> 다음 달
+    }
+    setCalTouchStart(null);
+  };
 
   // 모바일 카드 스와이프 상태
   const [swipeActiveId, setSwipeActiveId] = useState(null);
@@ -631,7 +665,28 @@ ${aiText}
   // 수동 폼 서브밋
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.institution.trim()) return;
+    
+    // 친절한 필수값 검증 및 자동 포커싱
+    if (!formData.institution.trim()) {
+      alert('기관 / 교육장명을 입력해 주세요.');
+      const el = document.querySelector('input[name="institution"]');
+      if (el) el.focus();
+      return;
+    }
+    
+    if (!formData.rate || Number(formData.rate) <= 0) {
+      alert('시간당 강의 단가를 올바르게 입력해 주세요.');
+      const el = document.querySelector('input[name="rate"]');
+      if (el) el.focus();
+      return;
+    }
+
+    if (!formData.month) {
+      alert('정산 예정 달을 선택해 주세요.');
+      const el = document.querySelector('select[name="month"]');
+      if (el) el.focus();
+      return;
+    }
 
     const { expectedAmount, deduction, netAmount } = calculateFees(
       Number(formData.rate),
@@ -982,20 +1037,24 @@ function doPost(e) {
       {/* ========================================================
           [MOBILE SCREEN VIEW] - Renders on mobile screens (< 768px)
          ======================================================== */}
-      <div className="flex md:hidden flex-col min-h-screen pb-20">
+      <div className="flex md:hidden flex-col min-h-screen pb-32">
         {/* App Title Header — Clean White Theme */}
         <div className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
           <div className="flex items-center justify-between px-4 py-2.5">
             <div className="flex items-center gap-2">
-              {/* Custom SVG Line Logo (DESIGN.md Spec) */}
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm">
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              {/* 2x2 stamp SVG Logo */}
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 drop-shadow-sm">
+                <rect width="32" height="32" rx="7" fill="#1E3A8A" />
+                <text x="8" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">정</text>
+                <text x="24" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">산</text>
+                <text x="8" y="24" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">비</text>
+                <text x="24" y="24" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">서</text>
               </svg>
               <div>
-                <h1 className="text-slate-900 text-sm font-black tracking-tight" style={{lineHeight: 1.1}}>
-                  강의정산
+                <h1 className="text-[#0F172A] text-sm font-black tracking-tight" style={{lineHeight: 1.1}}>
+                  정산비서
                 </h1>
-                <p className="text-[9px] text-slate-400 font-semibold tracking-wider uppercase">출강 관리 비서</p>
+                <p className="text-[9px] text-[#94A3B8] font-semibold tracking-wider uppercase">출강 관리 비서</p>
               </div>
             </div>
 
@@ -1138,8 +1197,11 @@ function doPost(e) {
                           boxShadow: '0 2px 12px rgba(31,46,91,0.06)'
                         }}
                       >
-                        {/* 카드 뒷면 Action Buttons */}
-                        <div className="absolute inset-0 bg-[#F8FAF8] flex justify-end items-stretch z-0">
+                        {/* 카드 뒷면 Action Buttons — Only display when active offset occurs to prevent visual flickering */}
+                        <div 
+                          className="absolute inset-0 bg-slate-50 flex justify-end items-stretch z-0"
+                          style={{ display: offset < -2 ? 'flex' : 'none' }}
+                        >
                           <button
                             onClick={() => {
                               handleTogglePaid(l);
@@ -1261,27 +1323,61 @@ function doPost(e) {
           )}
           {/* TAB 1.5: CALENDAR */}
           {activeTab === 'calendar' && (
-            <div key="tab-calendar" className={`${getSlideClass()} flex flex-col gap-4`}>
-              <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm animate-fade-in">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-1.5">
-                    <Calendar size={16} className="text-[#2563EB]" />
-                    {currentMonth + 1}월 출강 일정
-                  </h3>
-                  <span className="text-[10px] text-slate-400 font-bold bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-full">
-                    이번 달
-                  </span>
+            <div 
+              key="tab-calendar" 
+              className={`${getSlideClass()} flex flex-col gap-4 select-none`}
+              onTouchStart={handleCalTouchStart}
+              onTouchEnd={handleCalTouchEnd}
+            >
+              <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="button"
+                      onClick={handlePrevMonth}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 transition active:scale-95 text-slate-500 font-bold"
+                    >
+                      &lt;
+                    </button>
+                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5 w-24 justify-center">
+                      {currentYear}년 {currentMonth + 1}월
+                    </h3>
+                    <button 
+                      type="button"
+                      onClick={handleNextMonth}
+                      className="p-1.5 rounded-lg hover:bg-slate-100 transition active:scale-95 text-slate-500 font-bold"
+                    >
+                      &gt;
+                    </button>
+                  </div>
+                  
+                  {new Date().getMonth() === currentMonth && new Date().getFullYear() === currentYear ? (
+                    <span className="text-[9.5px] text-[#2563EB] font-black bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-full">
+                      이번 달
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setCalDate(new Date())}
+                      className="text-[9.5px] text-slate-500 hover:text-slate-700 font-bold bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full transition"
+                    >
+                      오늘로
+                    </button>
+                  )}
                 </div>
                 
                 {/* 요일 헤더 */}
-                <div className="grid grid-cols-7 gap-x-1 text-center border-b border-slate-100 pb-2 mb-2 text-[10px] font-black text-slate-400">
-                  {['일','월','화','수','목','금','토'].map(d => (
-                    <span key={d}>{d}</span>
+                <div className="grid grid-cols-7 gap-x-1 text-center border-b border-slate-100 pb-2.5 mb-3 text-[10px] font-black text-[#94A3B8]">
+                  {['일','월','화','수','목','금','토'].map((d, idx) => (
+                    <span key={d} className={idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : ''}>{d}</span>
                   ))}
                 </div>
                 
-                {/* 날짜 그리드 */}
-                <div className="grid grid-cols-7 gap-y-3 gap-x-1 text-center text-xs">
+                {/* 날짜 그리드 - 슬라이드 효과 적용 */}
+                <div className={`grid grid-cols-7 gap-y-3.5 gap-x-1 text-center text-xs transition-all duration-300 ${
+                  calTransition === 'slide-left' ? 'translate-x-[-12px] opacity-0' :
+                  calTransition === 'slide-right' ? 'translate-x-[12px] opacity-0' : 'translate-x-0 opacity-100'
+                }`}>
                   {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
                     <span key={`empty-${idx}`} />
                   ))}
@@ -1302,9 +1398,10 @@ function doPost(e) {
                       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                       return diffDays >= 30;
                     });
-
+ 
                     const hasLectures = dayLectures.length > 0;
-
+                    const isToday = new Date().getDate() === day && new Date().getMonth() === currentMonth && new Date().getFullYear() === currentYear;
+ 
                     return (
                       <div 
                         key={day} 
@@ -1315,14 +1412,14 @@ function doPost(e) {
                         }}
                         className={`flex flex-col items-center justify-center relative py-1 rounded-xl transition-all ${
                           hasLectures 
-                            ? 'cursor-pointer bg-slate-50 hover:bg-blue-50/60 border border-slate-150' 
+                            ? 'cursor-pointer bg-slate-50 hover:bg-blue-50/60 border border-slate-200/60' 
                             : 'text-slate-400'
-                        }`}
+                        } ${isToday ? 'ring-2 ring-[#1E3A8A]/30 bg-blue-50/20' : ''}`}
                       >
-                        <span className={`font-bold ${hasLectures ? 'text-slate-800 font-extrabold text-[12px]' : ''}`}>{day}</span>
+                        <span className={`font-bold ${hasLectures ? 'text-[#0F172A] font-extrabold text-[12px]' : ''} ${isToday ? 'text-[#1E3A8A]' : ''}`}>{day}</span>
                         {/* 도트 */}
                         <div className="flex gap-0.5 justify-center mt-0.5 h-1">
-                          {hasPaid && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+                          {hasPaid && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
                           {hasUnpaid && (
                             <span className={`w-1.5 h-1.5 rounded-full bg-amber-500 ${hasWarning ? 'relative' : ''}`}>
                               {hasWarning && (
@@ -1722,14 +1819,18 @@ function doPost(e) {
         {/* DESIGN.md: Top Navigation Bar */}
         <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
           <div className="max-w-6xl mx-auto px-8 py-3.5 flex items-center justify-between">
-            {/* DESIGN.md: Cinematic Typography — Hero brand mark */}
             <div className="flex items-center gap-2.5">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm">
-                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              {/* 2x2 stamp SVG Logo */}
+              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 drop-shadow-sm">
+                <rect width="32" height="32" rx="7" fill="#1E3A8A" />
+                <text x="8" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">정</text>
+                <text x="24" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">산</text>
+                <text x="8" y="24" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">비</text>
+                <text x="24" y="24" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">서</text>
               </svg>
               <div>
                 <h1 className="text-slate-900 font-black tracking-tight" style={{fontSize: '18px', lineHeight: 1.1}}>
-                  강의정산
+                  정산비서
                 </h1>
                 <p style={{fontSize: '9px', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase'}}>출강료 정산 비서</p>
               </div>
@@ -2136,48 +2237,51 @@ function doPost(e) {
             {/* Drag handle */}
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
 
-            {/* Header with tabs: 기록 / 즐겨찾기 편집 */}
-            <div className="px-5 pt-2 pb-0 flex items-center justify-between">
-              <div className="flex gap-0">
+            {/* Folder-Tab style Header: 기록 / 즐겨찾기 편집 */}
+            <div className="px-5 pt-3.5 pb-0 flex items-end justify-between bg-slate-50 border-b border-slate-200">
+              <div className="flex gap-1.5">
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, _tab: 'record' }))}
-                  className="px-4 py-2.5 text-[11px] font-extrabold rounded-t-xl transition-all"
+                  className="px-4.5 py-3 text-[11px] font-black rounded-t-xl transition-all border-t border-x"
                   style={{
-                    color: (formData._tab || 'record') === 'record' ? '#2563EB' : '#94a3b8',
-                    background: (formData._tab || 'record') === 'record' ? '#EFF6FF' : 'transparent',
-                    borderBottom: (formData._tab || 'record') === 'record' ? '2px solid #2563EB' : '2px solid transparent'
+                    color: (formData._tab || 'record') === 'record' ? '#1E3A8A' : '#94A3B8',
+                    backgroundColor: (formData._tab || 'record') === 'record' ? '#FFFFFF' : 'transparent',
+                    borderColor: (formData._tab || 'record') === 'record' ? '#E2E8F0 #E2E8F0 transparent #E2E8F0' : 'transparent',
+                    transform: (formData._tab || 'record') === 'record' ? 'translateY(1px)' : 'none',
+                    zIndex: (formData._tab || 'record') === 'record' ? 10 : 1
                   }}
                 >
-                  {editingLecture ? '기록 수정' : '출강 기록'}
+                  {editingLecture ? '기록 수정' : '출강 기록 *'}
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormData(prev => ({ ...prev, _tab: 'presets' }))}
-                  className="px-4 py-2.5 text-[11px] font-extrabold rounded-t-xl transition-all"
+                  className="px-4.5 py-3 text-[11px] font-black rounded-t-xl transition-all border-t border-x"
                   style={{
-                    color: (formData._tab || 'record') === 'presets' ? '#2563EB' : '#94a3b8',
-                    background: (formData._tab || 'record') === 'presets' ? '#EFF6FF' : 'transparent',
-                    borderBottom: (formData._tab || 'record') === 'presets' ? '2px solid #2563EB' : '2px solid transparent'
+                    color: (formData._tab || 'record') === 'presets' ? '#1E3A8A' : '#94A3B8',
+                    backgroundColor: (formData._tab || 'record') === 'presets' ? '#FFFFFF' : 'transparent',
+                    borderColor: (formData._tab || 'record') === 'presets' ? '#E2E8F0 #E2E8F0 transparent #E2E8F0' : 'transparent',
+                    transform: (formData._tab || 'record') === 'presets' ? 'translateY(1px)' : 'none',
+                    zIndex: (formData._tab || 'record') === 'presets' ? 10 : 1
                   }}
                 >
                   즐겨찾기 편집
                 </button>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-xl">
+              <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-xl mb-2 transition">
                 <X size={18} />
               </button>
             </div>
-            <div className="h-px bg-slate-100" />
 
             {/* ─── TAB: 출강 기록 ─── */}
             {(formData._tab || 'record') === 'record' && (
-              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 flex flex-col gap-5 text-xs">
+              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 flex flex-col gap-4.5 text-xs">
 
-                {/* STEP 1: 즐겨찾기 피커 (드롭다운 셀렉트) */}
-                <div className="flex flex-col gap-2 p-4 rounded-2xl" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px solid rgba(37,99,235,0.12)'}}>
-                  <label className="font-black text-[11px] text-[#2563EB] flex items-center gap-1.5">
-                    <span style={{fontSize:'14px'}}>★</span> 즐겨찾기에서 선택
+                {/* 즐겨찾기 피커 */}
+                <div className="flex flex-col gap-2 p-4 rounded-2xl" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px solid rgba(30, 58, 138, 0.12)'}}>
+                  <label className="font-black text-[11px] text-[#1E3A8A] flex items-center gap-1.5">
+                    <span style={{fontSize:'14px'}}>★</span> 즐겨찾기 적용 (선택 시 자동 완성)
                   </label>
                   <select
                     value={formData._selectedPreset || ''}
@@ -2203,8 +2307,8 @@ function doPost(e) {
                         }));
                       }
                     }}
-                    className="w-full px-4 py-3 bg-white border border-blue-200 rounded-xl text-xs font-bold text-slate-800 appearance-none"
-                    style={{backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%232563EB' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center'}}
+                    className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-xs font-bold text-slate-800 appearance-none"
+                    style={{backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231E3A8A' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center'}}
                   >
                     <option value="">직접 입력 (즐겨찾기 미사용)</option>
                     {presets.map(p => (
@@ -2214,15 +2318,15 @@ function doPost(e) {
                     ))}
                   </select>
                   {formData._presetLocked && (
-                    <p className="text-[9.5px] text-blue-500 font-semibold mt-0.5">
-                      ✓ 즐겨찾기가 적용되었습니다. 기관명/단가/세율은 고정됩니다.
+                    <p className="text-[9.5px] text-blue-600 font-semibold mt-0.5">
+                      ✓ 즐겨찾기가 적용되었습니다. 기관명/단가/세율이 잠금 처리됩니다.
                     </p>
                   )}
                 </div>
 
-                {/* 기관명 (프리셋 잠금 시 읽기전용) */}
+                {/* 기관명 */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-bold text-slate-500 text-[11px]">기관 / 교육장명 *</label>
+                  <label className="font-bold text-slate-600 text-[11.5px]">기관 / 교육장명 <span className="text-red-500 font-extrabold">*</span></label>
                   <input
                     type="text"
                     name="institution"
@@ -2232,11 +2336,11 @@ function doPost(e) {
                     readOnly={!!formData._presetLocked}
                     placeholder="예: 사회복지협의회/목포경애원"
                     list="presets-modal"
-                    className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#2563EB] text-[12px] font-semibold transition-all"
+                    className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-semibold transition-all"
                     style={{
                       background: formData._presetLocked ? '#F1F5F9' : 'white',
-                      borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(31,46,91,0.15)',
-                      color: formData._presetLocked ? '#64748B' : '#1E293B'
+                      borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(30,58,138,0.15)',
+                      color: formData._presetLocked ? '#64748B' : '#0F172A'
                     }}
                   />
                   {!formData._presetLocked && (
@@ -2247,15 +2351,15 @@ function doPost(e) {
                 </div>
 
                 {/* 출강 구분 */}
-                <div className="flex flex-col gap-2">
-                  <label className="font-bold text-slate-500 text-[11px]">출강 구분</label>
-                  <div className="grid grid-cols-2 gap-2 bg-slate-50 p-1.5 rounded-xl border border-slate-200/60">
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-slate-600 text-[11.5px]">출강 구분 <span className="text-red-500 font-extrabold">*</span></label>
+                  <div className="grid grid-cols-2 gap-2 bg-slate-100/80 p-1 rounded-xl border border-slate-200/50">
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, role: 'Main' }))}
-                      className={`py-2.5 text-[11px] font-bold rounded-lg transition-all ${
+                      className={`py-2 text-[11px] font-bold rounded-lg transition-all ${
                         formData.role === 'Main'
-                          ? 'bg-[#2563EB] text-white shadow-sm font-black'
+                          ? 'bg-[#1E3A8A] text-white shadow-sm font-black'
                           : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
@@ -2264,9 +2368,9 @@ function doPost(e) {
                     <button
                       type="button"
                       onClick={() => setFormData(prev => ({ ...prev, role: 'Assistant' }))}
-                      className={`py-2.5 text-[11px] font-bold rounded-lg transition-all ${
+                      className={`py-2 text-[11px] font-bold rounded-lg transition-all ${
                         formData.role === 'Assistant'
-                          ? 'bg-[#2563EB] text-white shadow-sm font-black'
+                          ? 'bg-[#1E3A8A] text-white shadow-sm font-black'
                           : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
@@ -2275,79 +2379,65 @@ function doPost(e) {
                   </div>
                 </div>
 
-                {/* 강의 단가 (프리셋 잠금 시 읽기전용) */}
-                <div className="flex flex-col gap-1.5">
-                  <label className="font-bold text-slate-500 text-[11px]">강의 단가 (시간당) *</label>
-                  <input
-                    type="number"
-                    name="rate"
-                    required
-                    value={formData.rate}
-                    onChange={handleInputChange}
-                    readOnly={!!formData._presetLocked}
-                    className="px-4 py-3 border rounded-xl focus:outline-none text-[12px] font-bold transition-all"
-                    style={{
-                      background: formData._presetLocked ? '#F1F5F9' : 'white',
-                      borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(31,46,91,0.15)',
-                      color: formData._presetLocked ? '#64748B' : '#1E293B'
-                    }}
-                  />
-                </div>
+                {/* 타이트 가로 그리드 배치: 강의 단가 & 총 차시 */}
+                <div className="grid grid-cols-2 gap-3">
+                  {/* 강의 단가 */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-bold text-slate-600 text-[11.5px]">강의 단가 (시간당) <span className="text-red-500 font-extrabold">*</span></label>
+                    <input
+                      type="number"
+                      name="rate"
+                      required
+                      value={formData.rate}
+                      onChange={handleInputChange}
+                      readOnly={!!formData._presetLocked}
+                      className="px-4 py-2.5 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-bold transition-all"
+                      style={{
+                        background: formData._presetLocked ? '#F1F5F9' : 'white',
+                        borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(30,58,138,0.15)',
+                        color: formData._presetLocked ? '#64748B' : '#0F172A'
+                      }}
+                    />
+                  </div>
 
-                {/* 총 차시 — 스크롤 피커 */}
-                <div className="flex flex-col gap-2">
-                  <label className="font-bold text-slate-500 text-[11px]">총 강의 시간 (차시) *</label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, classes: Math.max(1, prev.classes - 1) }))}
-                      className="w-11 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-lg rounded-xl transition flex items-center justify-center border border-slate-200"
+                  {/* 총 차시 피커 */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-bold text-slate-600 text-[11.5px]">총 강의 시간 (차시) <span className="text-red-500 font-extrabold">*</span></label>
+                    <select
+                      name="classes"
+                      value={formData.classes}
+                      onChange={(e) => setFormData(prev => ({ ...prev, classes: Number(e.target.value) }))}
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-center font-black text-[12px] text-[#0F172A] focus:outline-none focus:border-[#1E3A8A]"
                     >
-                      −
-                    </button>
-                    <div className="flex-1 relative">
-                      <select
-                        name="classes"
-                        value={formData.classes}
-                        onChange={(e) => setFormData(prev => ({ ...prev, classes: Number(e.target.value) }))}
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-center font-black text-[14px] text-slate-800 appearance-none"
-                      >
-                        {Array.from({length: 24}, (_, i) => i + 1).map(c => (
-                          <option key={c} value={c}>{c}차시</option>
-                        ))}
-                      </select>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, classes: Math.min(24, prev.classes + 1) }))}
-                      className="w-11 h-11 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-lg rounded-xl transition flex items-center justify-center border border-slate-200"
-                    >
-                      +
-                    </button>
+                      {Array.from({length: 24}, (_, i) => i + 1).map(c => (
+                        <option key={c} value={c}>{c}차시</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
-                {/* 추가 교통비 */}
+                {/* 추가 교통비 (선택) */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-bold text-slate-500 text-[11px]">추가 교통비 (원)</label>
+                  <label className="font-bold text-slate-500 text-[11px]">추가 교통비 (선택)</label>
                   <input
                     type="number"
                     name="transportFee"
                     value={formData.transportFee}
                     onChange={handleInputChange}
-                    className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:border-[#2563EB] bg-white text-[12px] font-semibold"
+                    placeholder="교통비 미지원시 비워둠"
+                    className="px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E3A8A] bg-white text-[12px] font-semibold"
                   />
                 </div>
 
-                {/* 출강 날짜 — 당일 기본값 */}
+                {/* 정산 예정 달 & 구체적 날짜 */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className="font-bold text-slate-500 text-[11px]">정산 월 *</label>
+                    <label className="font-bold text-slate-600 text-[11.5px]">정산 예정 달 <span className="text-red-500 font-extrabold">*</span></label>
                     <select
                       name="month"
                       value={formData.month}
                       onChange={handleInputChange}
-                      className="px-3 py-3 border border-slate-200 rounded-xl bg-white text-[11px] font-bold appearance-none"
+                      className="px-3 py-2.5 border border-slate-200 rounded-xl bg-white text-[11px] font-bold focus:outline-none focus:border-[#1E3A8A]"
                     >
                       <option value="">선택</option>
                       {['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'].map(m => (
@@ -2356,33 +2446,33 @@ function doPost(e) {
                     </select>
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="font-bold text-slate-500 text-[11px]">출강 날짜</label>
+                    <label className="font-bold text-slate-500 text-[11px]">출강 날짜 (선택)</label>
                     <input
                       type="text"
                       name="date"
                       placeholder={`${new Date().getMonth()+1}월 ${new Date().getDate()}일`}
                       value={formData.date}
                       onChange={handleInputChange}
-                      className="px-3 py-3 border border-slate-200 rounded-xl focus:outline-none text-[11px] font-semibold bg-white"
+                      className="px-3 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[11px] font-semibold bg-white"
                     />
                   </div>
                 </div>
 
                 {/* 게시등록일 */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-bold text-slate-500 text-[11px]">게시등록일</label>
+                  <label className="font-bold text-slate-500 text-[11px]">게시등록일 (선택)</label>
                   <input
                     type="date"
                     name="registrationDate"
                     value={formData.registrationDate}
                     onChange={handleInputChange}
-                    className="px-4 py-3 border border-slate-200 rounded-xl focus:outline-none bg-white text-[11px] font-semibold"
+                    className="px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none bg-white text-[11px] font-semibold"
                   />
                 </div>
 
-                {/* 공제 세율 (프리셋 잠금 시 읽기전용) */}
-                <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)', border: '1px solid rgba(31,46,91,0.08)'}}>
-                  <span className="font-black text-[11px] text-slate-700">공제 세율 설정</span>
+                {/* 공제 세율 설정 (선택) */}
+                <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)', border: '1px solid rgba(30,58,138,0.08)'}}>
+                  <span className="font-black text-[11px] text-slate-700">공제 세율 설정 (선택)</span>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] text-slate-400 font-semibold">세율</label>
@@ -2391,7 +2481,7 @@ function doPost(e) {
                         value={formData.taxRate}
                         onChange={handleInputChange}
                         disabled={!!formData._presetLocked}
-                        className="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold"
+                        className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold"
                         style={{opacity: formData._presetLocked ? 0.6 : 1}}
                       >
                         <option value="8.8%">8.8% (기타소득)</option>
@@ -2406,7 +2496,7 @@ function doPost(e) {
                         name="taxBase"
                         value={formData.taxBase}
                         onChange={handleInputChange}
-                        className="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-[11px] font-bold"
+                        className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold"
                       >
                         <option value="LectureOnly">강의료만 과세</option>
                         <option value="Total">합계액 전체 과세</option>
@@ -2420,7 +2510,7 @@ function doPost(e) {
                       value={formData.customTax}
                       onChange={handleInputChange}
                       placeholder="세액 직접 입력"
-                      className="px-3 py-2.5 border border-slate-200 rounded-xl bg-white text-[11px] font-bold"
+                      className="px-3 py-2 border border-slate-200 rounded-xl bg-white text-[11px] font-bold"
                     />
                   )}
                 </div>
@@ -2433,7 +2523,7 @@ function doPost(e) {
                     name="isPaid"
                     checked={formData.isPaid}
                     onChange={handleInputChange}
-                    className="w-5 h-5 text-[#2563EB] border-slate-300 rounded cursor-pointer accent-[#2563EB]"
+                    className="w-5 h-5 text-[#1E3A8A] border-slate-300 rounded cursor-pointer accent-[#1E3A8A]"
                   />
                   <label htmlFor="modal-isPaid" className="font-bold text-slate-600 cursor-pointer select-none text-[11px]">
                     이미 강의료 입금이 완료되었습니다
@@ -2451,9 +2541,9 @@ function doPost(e) {
                   </button>
                   <button
                     type="submit"
-                    className="flex-[2] py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black rounded-xl shadow-md text-[12px] transition-all"
+                    className="flex-[2] py-3 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl shadow-md text-[12px] transition-all"
                   >
-                    {editingLecture ? '수정 완료' : '저장'}
+                    {editingLecture ? '수정 완료' : '기록 저장'}
                   </button>
                 </div>
               </form>
@@ -2467,10 +2557,10 @@ function doPost(e) {
                 {/* 기존 프리셋 목록 */}
                 <div className="flex flex-col gap-2.5">
                   {presets.map((p, idx) => (
-                    <div key={p.id} className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-slate-200/60 shadow-sm" style={{animation: `cardAppear 0.3s ease ${idx * 40}ms both`}}>
+                    <div key={p.id} className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-slate-200/60 shadow-sm">
                       <div className="flex-1 min-w-0">
-                        <div className="font-black text-[11px] text-slate-800 truncate">{p.name}</div>
-                        <div className="text-[9.5px] text-slate-400 mt-0.5 font-semibold">
+                        <div className="font-black text-[11.5px] text-[#0F172A] truncate">{p.name}</div>
+                        <div className="text-[9.5px] text-[#475569] mt-0.5 font-semibold">
                           {p.role === 'Assistant' ? '보조강사' : '주강사'} · ₩{formatWon(p.rate)}/h · 교통비 ₩{formatWon(p.transportFee || 0)} · {p.taxRate}
                         </div>
                       </div>
@@ -2490,20 +2580,20 @@ function doPost(e) {
                 </div>
 
                 {/* 새 프리셋 등록 폼 */}
-                <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px dashed rgba(37,99,235,0.25)'}}>
-                  <span className="font-black text-[11px] text-[#2563EB]">+ 새 즐겨찾기 등록</span>
+                <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px dashed rgba(30, 58, 138, 0.25)'}}>
+                  <span className="font-black text-[11px] text-[#1E3A8A]">+ 새 즐겨찾기 등록</span>
                   <input
                     type="text"
                     placeholder="기관명 / 교육장명"
                     value={formData._newPresetName || ''}
                     onChange={e => setFormData(prev => ({ ...prev, _newPresetName: e.target.value }))}
-                    className="px-4 py-3 border border-blue-200 rounded-xl bg-white text-[11px] font-semibold focus:outline-none focus:border-[#2563EB]"
+                    className="px-4 py-2.5 border border-blue-200 rounded-xl bg-white text-[11px] font-semibold focus:outline-none focus:border-[#1E3A8A]"
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <select
                       value={formData._newPresetRole || 'Main'}
                       onChange={e => setFormData(prev => ({ ...prev, _newPresetRole: e.target.value }))}
-                      className="px-3 py-2.5 border border-blue-100 rounded-xl bg-white text-[11px] font-bold"
+                      className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"
                     >
                       <option value="Main">주강사</option>
                       <option value="Assistant">보조강사</option>
@@ -2513,7 +2603,7 @@ function doPost(e) {
                       placeholder="시간당 단가"
                       value={formData._newPresetRate || ''}
                       onChange={e => setFormData(prev => ({ ...prev, _newPresetRate: e.target.value }))}
-                      className="px-3 py-2.5 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none"
+                      className="px-3 py-2 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
@@ -2522,12 +2612,12 @@ function doPost(e) {
                       placeholder="교통비 (원)"
                       value={formData._newPresetTransport || ''}
                       onChange={e => setFormData(prev => ({ ...prev, _newPresetTransport: e.target.value }))}
-                      className="px-3 py-2.5 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none"
+                      className="px-3 py-2 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none"
                     />
                     <select
                       value={formData._newPresetTax || '8.8%'}
                       onChange={e => setFormData(prev => ({ ...prev, _newPresetTax: e.target.value }))}
-                      className="px-3 py-2.5 border border-blue-100 rounded-xl bg-white text-[11px] font-bold"
+                      className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"
                     >
                       <option value="8.8%">8.8%</option>
                       <option value="3.3%">3.3%</option>
@@ -2551,7 +2641,7 @@ function doPost(e) {
                       setFormData(prev => ({ ...prev, _newPresetName: '', _newPresetRate: '', _newPresetTransport: '', _newPresetRole: 'Main', _newPresetTax: '8.8%' }));
                       alert('즐겨찾기가 등록되었습니다!');
                     }}
-                    className="w-full py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black rounded-xl text-[11px] shadow-sm transition-all"
+                    className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11px] shadow-sm transition-all"
                   >
                     즐겨찾기에 추가
                   </button>
