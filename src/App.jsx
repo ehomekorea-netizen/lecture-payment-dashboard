@@ -1122,9 +1122,49 @@ ${aiText}
     document.body.removeChild(link);
   };
 
+  const handleDownloadSampleCSV = () => {
+    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부'];
+    const rows = [
+      ['창의융합/광주전남중', '주강사', '25000', '12', '300000', '0', '-10660', '10월', '193400', '10월 15일', '2025-10-15', '정산완료'],
+      ['TMD교육/고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '-6335', '12월', '185665', '12월 10일', '2025-12-10', '정산완료'],
+      ['TMD교육/고흥동초A (1)', '보조강사', '50000', '3', '192000', '42000', '-6335', '12월', '185665', '12월 11일', '2025-12-11', '정산완료'],
+      ['코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)', '보조강사', '50000', '3', '175787', '25787', '-4950', '1월', '170837', '1월 12일', '2026-01-12', '정산완료']
+    ];
+
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `출강기록_양식예시.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // CSV 가져오기
   const handleImportCSV = (file) => {
     if (!file) return;
+
+    const parseCSVLine = (line) => {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    };
 
     const processCsvText = (text) => {
       const lines = text.split('\n');
@@ -1135,8 +1175,7 @@ ${aiText}
         const line = lines[i].trim();
         if (!line) continue;
 
-        const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g) || line.split(',');
-        const cleanFields = matches.map(f => f.replace(/^"|"$/g, '').trim());
+        const cleanFields = parseCSVLine(line).map(f => f.replace(/^"|"$/g, '').trim());
 
         if (cleanFields.length < 8) continue;
 
@@ -2155,11 +2194,70 @@ function doPost(e) {
                   />
                 </button>
                 {isLocalBackupOpen && (
-                  <div className="p-5 flex flex-col gap-3 border-t border-slate-200/60 bg-white">
-                    <div className="grid grid-cols-1 gap-3.5">
+                  <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
+                    <div className="flex flex-col gap-3.5">
+                      
+                      {/* Priority 1: AI Prompt Guide Card */}
+                      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-col gap-2">
+                        <span className="text-[12.5px] font-black text-slate-800 flex items-center gap-1.5">
+                          🤖 AI 활용 기존 기록 변환 가이드
+                        </span>
+                        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                          기존에 엑셀로 기록해오던 강의 목록이 있으시다면, 아래의 <b>변환 프롬프트</b>를 복사해 ChatGPT나 Claude 등에 복사해 넣으시면 대시보드 규격에 맞는 완벽한 CSV 파일 구조로 즉시 자동 제작해 드립니다.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const promptText = `내가 가진 강의 일정 데이터를 아래의 CSV 규격과 예시 형식에 맞춰서 변환해줘.
+
+[CSV 헤더 규격]
+기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제금액(-),월,실수령액,날짜,등록일,정산여부
+
+[변환 예시 1 (2025년)]
+"TMD교육/고흥동초B (1)","보조강사","50000","3","192000","42000","-6335","12월","185665","12월 10일","2025-12-10","정산완료"
+
+[변환 예시 2 (2026년)]
+"코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)","보조강사","50000","3","175787","25787","-4950","1월","170837","1월 12일","2026-01-12","정산완료"
+
+[주의 사항]
+- 등록일(YYYY-MM-DD)을 기준으로 연도가 구별되니 날짜와 등록일 연도를 일치시켜줘.
+- 실수령액과 공제금액은 숫자로만 채워줘.
+- 마크다운 블록 없이 순수 CSV 텍스트로만 반환해줘.
+
+[나의 데이터]
+(여기에 기존 데이터를 붙여넣으세요)`;
+                            navigator.clipboard.writeText(promptText);
+                            alert('AI 변환 프롬프트가 복사되었습니다!\n\nChatGPT 또는 Claude 창을 열고 붙여넣기(Ctrl+V) 한 뒤, 변환할 데이터를 입력창 맨 아래에 덧붙여 요청하세요.');
+                          }}
+                          className="w-full py-2.5 bg-indigo-50 hover:bg-indigo-100/80 border border-indigo-200 text-indigo-700 text-[11px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 text-center"
+                        >
+                          📋 AI 변환 프롬프트 복사하기
+                        </button>
+                      </div>
+
+                      {/* Priority 2: Downloader CTA (Green styling) */}
+                      <button onClick={handleDownloadSampleCSV} className="w-full py-3.5 bg-emerald-650 hover:bg-emerald-750 text-white text-[13px] font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 border-none">
+                        <Download size={14} className="text-white" />
+                        출강기록 양식 예시 CSV 받기 (2025-2026 예제)
+                      </button>
+
+                      {/* Formatting explanation */}
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col gap-1.5">
+                        <span className="text-[12px] font-extrabold text-slate-800 flex items-center gap-1">📊 중요 양식 규격</span>
+                        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                          - <b>날짜</b>: <code>M월 D일</code> 형식 (예: 12월 10일)<br/>
+                          - <b>등록일</b>: <code>YYYY-MM-DD</code> 형식 (예: 2025-12-10). 연도별 리포트 분류는 이 등록일의 연도를 기준으로 작동하므로 규격을 정확히 맞추어 입력해 주세요.
+                        </p>
+                      </div>
+
+                      <div className="h-px bg-slate-100 my-1" />
+
+                      {/* Priority 3: Export/Import Buttons */}
                       <button onClick={handleExportCSV} className="w-full py-3.5 bg-[#F8FAF8] border border-slate-200 hover:border-[#2563EB] text-slate-800 text-[13px] font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-sm">
                         <Download size={14} className="text-[#2563EB]" />
-                        현재 출강 이력 CSV로 내려받기</button>
+                        현재 출강 이력 CSV로 내려받기
+                      </button>
+
                       <div className="relative border-2 border-dashed border-slate-200 rounded-2xl p-6 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
                         <input type="file" accept=".csv" onChange={handleAnimatedUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" disabled={isUploading} />
                         <div className={`p-3 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 ${isUploading ? 'upload-pulse' : 'cloud-float'}`}>
@@ -2171,7 +2269,7 @@ function doPost(e) {
                             <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                               <div className="h-full bg-[#2563EB] transition-all duration-75" style={{width: `${uploadProgress}%`}} />
                             </div>
-                            <span className="text-[9px] text-slate-400 font-extrabold">${uploadProgress}%</span>
+                            <span className="text-[9px] text-slate-400 font-extrabold">{uploadProgress}%</span>
                           </div>
                         ) : (
                           <>
