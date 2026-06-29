@@ -1,50 +1,27 @@
 <!doctype html>
-<html lang="ko">
+<html lang="ko" style="background-color:#1F2E5B;">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%233182F6'/%3E%3Cpath d='M30 45 L45 60 L75 30' fill='none' stroke='white' stroke-width='10' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%231F2E5B'/%3E%3Cpath d='M25 55 L45 72 L78 32' fill='none' stroke='%2300BCD4' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>Lectoss - 프리랜서 강의료 정산 대시보드</title>
-    <!-- Pretendard Web Font -->
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <meta name="description" content="Lectoss - 프리랜서 사회복지 강사를 위한 강의료 정산 대시보드. AI 카카오톡 일정 파싱, 구글 시트 연동, 세금 자동 계산.">
+    <title>Lectoss — 강의료 정산비서</title>
+    <!-- Pretendard Web Font (DESIGN.md: display.family) -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" onload="this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" /></noscript>
     <script>
+      // DESIGN.md: FOUC Prevention — html background stays #1F2E5B until CSS loads
+      document.documentElement.style.backgroundColor = '#1F2E5B';
       window.addEventListener('error', function(event) {
         var errorDiv = document.createElement('div');
-        errorDiv.style.position = 'fixed';
-        errorDiv.style.top = '0';
-        errorDiv.style.left = '0';
-        errorDiv.style.width = '100%';
-        errorDiv.style.background = '#fee2e2';
-        errorDiv.style.color = '#991b1b';
-        errorDiv.style.padding = '20px';
-        errorDiv.style.zIndex = '999999';
-        errorDiv.style.fontFamily = 'monospace';
-        errorDiv.style.fontSize = '12px';
-        errorDiv.style.whiteSpace = 'pre-wrap';
-        errorDiv.style.borderBottom = '4px solid #ef4444';
-        errorDiv.innerHTML = '<strong>[Runtime Error Catch]</strong><br/>' + event.message + '<br/>Source: ' + event.filename + ':' + event.lineno + ':' + event.colno + '<br/><br/>Stack Trace:<br/>' + (event.error ? event.error.stack : 'No stack trace');
-        document.body.appendChild(errorDiv);
-      });
-      window.addEventListener('unhandledrejection', function(event) {
-        var errorDiv = document.createElement('div');
-        errorDiv.style.position = 'fixed';
-        errorDiv.style.top = '0';
-        errorDiv.style.left = '0';
-        errorDiv.style.width = '100%';
-        errorDiv.style.background = '#fef3c7';
-        errorDiv.style.color = '#92400e';
-        errorDiv.style.padding = '20px';
-        errorDiv.style.zIndex = '999999';
-        errorDiv.style.fontFamily = 'monospace';
-        errorDiv.style.fontSize = '12px';
-        errorDiv.style.whiteSpace = 'pre-wrap';
-        errorDiv.style.borderBottom = '4px solid #f59e0b';
-        errorDiv.innerHTML = '<strong>[Promise Rejection Catch]</strong><br/>' + event.reason;
+        errorDiv.style.cssText = 'position:fixed;top:0;left:0;width:100%;background:#fee2e2;color:#991b1b;padding:20px;z-index:999999;font-family:monospace;font-size:12px;white-space:pre-wrap;border-bottom:4px solid #ef4444;';
+        errorDiv.innerHTML = '<strong>[Runtime Error]</strong><br/>' + event.message + '<br/>Source: ' + event.filename + ':' + event.lineno;
         document.body.appendChild(errorDiv);
       });
     </script>
   </head>
-  <body class="bg-gray-50 text-gray-900 font-sans antialiased selection:bg-blue-100 selection:text-blue-800">
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -867,7 +867,7 @@ function doPost(e) {
 }`;
 
   return (
-    <div className="min-h-screen bg-[#F8FAF8] text-toss-textDark font-sans antialiased">
+    <div className="min-h-screen bg-[#F8FAF8] text-[#1F2E5B] font-sans antialiased" style={{fontFamily: "'Pretendard', 'Inter', sans-serif"}}>
       <svg className="absolute w-0 h-0" width="0" height="0">
         <defs>
           <pattern id="unpaid-stripes" width="12" height="12" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
@@ -881,56 +881,61 @@ function doPost(e) {
           [MOBILE SCREEN VIEW] - Renders on mobile screens (< 768px)
          ======================================================== */}
       <div className="flex md:hidden flex-col min-h-screen pb-20">
-        {/* App Title Header */}
-        <div className="bg-[#1F2E5B] text-white p-4 flex items-center justify-between shadow-sm sticky top-0 z-40">
-          <div className="flex items-center gap-2">
-            <span className="bg-white/10 p-1.5 rounded-xl">
-              <TrendingUp size={16} className="text-toss-teal" />
-            </span>
-            <div>
-              <h1 className="text-xs font-black tracking-tight">Lectoss DX</h1>
-              <p className="text-[8px] text-white/70">프리랜서 강사용 정산비서</p>
+        {/* App Title Header — DESIGN.md: brand identity #1F2E5B base */}
+        <div className="sticky top-0 z-40 shadow-md" style={{background: 'linear-gradient(135deg, #1F2E5B 0%, #162348 100%)'}}>
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center gap-2.5">
+              <span className="p-1.5 rounded-xl" style={{background: 'rgba(0,188,212,0.15)', border: '1px solid rgba(0,188,212,0.30)'}}>
+                <TrendingUp size={16} color="#00BCD4" />
+              </span>
+              <div>
+                {/* DESIGN.md: Cinematic Typography — display weight 900, tracking -0.02em */}
+                <h1 style={{fontFamily: "'Pretendard', sans-serif", fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'white', fontSize: '14px'}}>Lectoss</h1>
+                <p style={{fontSize: '9px', color: 'rgba(0,188,212,0.80)', fontWeight: 600, letterSpacing: '0.01em'}}>강의료 정산비서</p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-1.5">
-            <button 
-              onClick={() => {
-                setAiText('');
-                setAiError(null);
-                setParsedLectures([]);
-                setIsAiVerifying(false);
-                setIsAiModalOpen(true);
-              }}
-              className="bg-white/10 p-2 rounded-xl text-toss-teal"
-              title="AI 일정 등록"
-            >
-              <Sparkles size={14} />
-            </button>
-            <button 
-              onClick={() => {
-                setEditingLecture(null);
-                setFormData({
-                  institution: '',
-                  rate: 100000,
-                  classes: 2,
-                  transportFee: 0,
-                  month: '',
-                  date: '',
-                  registrationDate: new Date().toISOString().slice(0, 10),
-                  isPaid: false,
-                  taxRate: '8.8%',
-                  taxBase: 'LectureOnly',
-                  customTax: 0
-                });
-                setGpsMessage(null);
-                setIsAddModalOpen(true);
-              }}
-              className="bg-toss-teal text-[#1F2E5B] p-2 rounded-xl font-bold"
-              title="강의 추가"
-            >
-              <Plus size={14} />
-            </button>
+            <div className="flex items-center gap-1.5">
+              <button 
+                onClick={() => {
+                  setAiText('');
+                  setAiError(null);
+                  setParsedLectures([]);
+                  setIsAiVerifying(false);
+                  setIsAiModalOpen(true);
+                }}
+                className="p-2 rounded-xl transition"
+                style={{background: 'rgba(255,255,255,0.10)', color: '#00BCD4'}}
+                title="AI 일정 등록"
+              >
+                <Sparkles size={14} />
+              </button>
+              <button 
+                onClick={() => {
+                  setEditingLecture(null);
+                  setFormData({
+                    institution: '',
+                    rate: 100000,
+                    classes: 2,
+                    transportFee: 0,
+                    month: '',
+                    date: '',
+                    registrationDate: new Date().toISOString().slice(0, 10),
+                    isPaid: false,
+                    taxRate: '8.8%',
+                    taxBase: 'LectureOnly',
+                    customTax: 0
+                  });
+                  setGpsMessage(null);
+                  setIsAddModalOpen(true);
+                }}
+                className="p-2 rounded-xl font-bold btn-teal-glow"
+                style={{background: '#00BCD4', color: '#1F2E5B'}}
+                title="강의 추가"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1031,16 +1036,18 @@ function doPost(e) {
           {/* TAB 2: STATS */}
           {activeTab === 'stats' && (
             <div className="flex flex-col gap-4">
-              <div className="bg-white p-4 rounded-[20px] border border-toss-border shadow-sm">
-                <span className="text-[10px] font-bold text-toss-textSub block mb-2">정산 누적액</span>
+              {/* DESIGN.md: Cinematic Typography stats — 6vw mobile */}
+              <div className="bg-white p-4 rounded-[24px] shadow-sm" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
+                <span className="text-[10px] font-bold block mb-3" style={{color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase'}}>정산 누적액</span>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-[#F8FAF8] p-3 rounded-xl border border-toss-border">
-                    <span className="text-[9px] text-toss-textSub block">수령 완료</span>
-                    <strong className="text-[5vw] font-black tracking-tighter text-toss-green leading-none block mt-1">₩{formatWon(totalNet)}</strong>
+                  <div className="p-3 rounded-2xl" style={{background: 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(16,185,129,0.02))', border: '1px solid rgba(16,185,129,0.15)'}}>
+                    <span className="text-[9px] font-semibold block mb-1" style={{color: '#10B981'}}>✓ 수령 완료</span>
+                    {/* DESIGN.md: Cinematic Typography — stat-number class, 6vw, weight 900 */}
+                    <strong className="stat-number block" style={{fontSize: '6vw', color: '#10B981'}}>₩{formatWon(totalNet)}</strong>
                   </div>
-                  <div className="bg-[#F8FAF8] p-3 rounded-xl border border-toss-border">
-                    <span className="text-[9px] text-toss-textSub block">대기 중</span>
-                    <strong className="text-[5vw] font-black tracking-tighter text-toss-amber leading-none block mt-1">₩{formatWon(totalUnpaid)}</strong>
+                  <div className="p-3 rounded-2xl" style={{background: 'linear-gradient(135deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02))', border: '1px solid rgba(245,158,11,0.15)'}}>
+                    <span className="text-[9px] font-semibold block mb-1" style={{color: '#F59E0B'}}>⏳ 대기 중</span>
+                    <strong className="stat-number block" style={{fontSize: '6vw', color: '#F59E0B'}}>₩{formatWon(totalUnpaid)}</strong>
                   </div>
                 </div>
               </div>
@@ -1212,76 +1219,87 @@ function doPost(e) {
       {/* ========================================================
           [DESKTOP SCREEN VIEW] - Renders on desktop screens (>= 768px)
          ======================================================== */}
-      <div className="hidden md:flex flex-col gap-6 max-w-5xl mx-auto py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-toss-border">
-          <div>
-            <h1 className="text-[2.8vw] lg:text-[2vw] leading-none font-black text-toss-textDark flex items-center gap-3 tracking-tighter">
-              <span className="bg-[#1F2E5B] text-white p-2 rounded-2xl shadow-sm">
-                <TrendingUp className="w-[2.2vw] h-[2.2vw] min-w-5 min-h-5 text-[#00BCD4]" />
-              </span>
-              <span>Lectoss</span>
-              <span className="text-xs bg-blue-50 text-toss-blue px-3 py-1 rounded-full border border-blue-100 font-bold self-center">사회복지 강사용 DX 정산비서</span>
-            </h1>
-            <p className="text-xs text-toss-textSub mt-1">프리랜서 강사를 위한 개인 클라우드 연동 출강료 통계 대시보드</p>
-          </div>
+      {/* ── DESKTOP VIEW ── */}
+      <div className="hidden md:flex flex-col min-h-screen" style={{background: '#F8FAF8'}}>
+        {/* DESIGN.md: Top Navigation Bar */}
+        <header style={{background: 'linear-gradient(135deg, #1F2E5B 0%, #162348 100%)', borderBottom: '1px solid rgba(0,188,212,0.15)'}} className="sticky top-0 z-40 shadow-lg">
+          <div className="max-w-6xl mx-auto px-8 py-4 flex items-center justify-between">
+            {/* DESIGN.md: Cinematic Typography — Hero brand mark */}
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-2xl" style={{background: 'rgba(0,188,212,0.15)', border: '1px solid rgba(0,188,212,0.30)'}}>
+                <TrendingUp size={22} color="#00BCD4" />
+              </div>
+              <div>
+                <h1 style={{fontFamily: "'Pretendard', sans-serif", fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1, color: 'white', fontSize: 'clamp(18px, 2vw, 28px)'}}>Lectoss</h1>
+                <p style={{fontSize: '10px', color: 'rgba(0,188,212,0.75)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase'}}>강의료 정산비서 · DX Edition</p>
+              </div>
+            </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsSettingsOpen(true)}
-              className="p-2 bg-white border border-toss-border text-toss-textSub rounded-xl hover:bg-slate-50 transition"
-              title="API 환경 설정"
-            >
-              <Settings size={18} />
-            </button>
-            <button 
-              onClick={() => {
-                setAiText('');
-                setAiError(null);
-                setParsedLectures([]);
-                setIsAiVerifying(false);
-                setIsAiModalOpen(true);
-              }}
-              className="flex items-center gap-1 text-xs font-bold bg-indigo-50 border border-indigo-200 text-indigo-700 px-3.5 py-2.5 rounded-xl hover:bg-indigo-100 transition"
-            >
-              <Sparkles size={14} />
-              AI 카톡 일정 등록
-            </button>
-            <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-1 text-xs font-bold bg-white border border-toss-border text-toss-textMuted px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition"
-            >
-              <Download size={14} /> CSV 내보내기
-            </button>
-            <label className="flex items-center gap-1 text-xs font-bold bg-white border border-toss-border text-toss-textMuted px-3.5 py-2.5 rounded-xl hover:bg-slate-50 transition cursor-pointer">
-              <Upload size={14} /> CSV 불러오기
-              <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
-            </label>
-            <button
-              onClick={() => {
-                setEditingLecture(null);
-                setFormData({
-                  institution: '',
-                  rate: 100000,
-                  classes: 2,
-                  transportFee: 0,
-                  month: '',
-                  date: '',
-                  registrationDate: new Date().toISOString().slice(0, 10),
-                  isPaid: false,
-                  taxRate: '8.8%',
-                  taxBase: 'LectureOnly',
-                  customTax: 0
-                });
-                setGpsMessage(null);
-                setIsAddModalOpen(true);
-              }}
-              className="flex items-center gap-1 text-xs font-bold bg-[#1F2E5B] text-white px-4.5 py-2.5 rounded-xl hover:bg-[#172346] transition"
-            >
-              <Plus size={16} /> 새 강의 기록
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="p-2 rounded-xl transition"
+                style={{background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.70)', border: '1px solid rgba(255,255,255,0.12)'}}
+                title="환경 설정"
+              >
+                <Settings size={16} />
+              </button>
+              <button 
+                onClick={() => {
+                  setAiText('');
+                  setAiError(null);
+                  setParsedLectures([]);
+                  setIsAiVerifying(false);
+                  setIsAiModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl transition"
+                style={{background: 'rgba(129,140,248,0.20)', color: '#a5b4fc', border: '1px solid rgba(129,140,248,0.30)'}}
+              >
+                <Sparkles size={13} />
+                AI 카톡 등록
+              </button>
+              <button
+                onClick={handleExportCSV}
+                className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl transition"
+                style={{background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.70)', border: '1px solid rgba(255,255,255,0.12)'}}
+              >
+                <Download size={13} /> CSV
+              </button>
+              <label className="flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl transition cursor-pointer"
+                style={{background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.70)', border: '1px solid rgba(255,255,255,0.12)'}}
+              >
+                <Upload size={13} /> 업로드
+                <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
+              </label>
+              <button
+                onClick={() => {
+                  setEditingLecture(null);
+                  setFormData({
+                    institution: '',
+                    rate: 100000,
+                    classes: 2,
+                    transportFee: 0,
+                    month: '',
+                    date: '',
+                    registrationDate: new Date().toISOString().slice(0, 10),
+                    isPaid: false,
+                    taxRate: '8.8%',
+                    taxBase: 'LectureOnly',
+                    customTax: 0
+                  });
+                  setGpsMessage(null);
+                  setIsAddModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 rounded-xl btn-teal-glow transition"
+                style={{background: '#00BCD4', color: '#1F2E5B'}}
+              >
+                <Plus size={15} /> 새 강의 기록
+              </button>
+            </div>
           </div>
-        </div>
+        </header>
+
+        <div className="flex flex-col gap-6 max-w-6xl mx-auto px-8 py-8 w-full">
 
         {/* Cloud Sync Status bar */}
         {sheetUrl && (
@@ -1307,19 +1325,40 @@ function doPost(e) {
           </div>
         )}
 
-        {/* Statistics Widgets */}
-        <div className="grid grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-[24px] border border-toss-border shadow-sm">
-            <span className="text-xs font-semibold text-toss-textSub block mb-1">정산 완료액 (실수령 완료)</span>
-            <div className="text-[4vw] md:text-[2.2vw] font-black tracking-tighter text-toss-textDark leading-none mt-1">₩{formatWon(totalNet)}</div>
+        {/* DESIGN.md: Statistics Widgets — Cinematic Typography 3vw scale */}
+        <div className="grid grid-cols-3 gap-5">
+          {/* Paid Total */}
+          <div className="rounded-[24px] p-6 relative overflow-hidden" style={{background: 'white', border: '1px solid rgba(31,46,91,0.08)', boxShadow: '0 2px 16px rgba(31,46,91,0.06)'}}>
+            <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-5" style={{background: '#10B981', transform: 'translate(30%, -30%)'}} />
+            <span className="text-xs font-semibold block mb-1" style={{color: '#64748B', letterSpacing: '0.03em'}}>정산 완료 실수령액</span>
+            <div className="flex items-center gap-2 mt-2">
+              <CheckCircle2 size={16} color="#10B981" />
+              <span style={{fontSize: '11px', color: '#10B981', fontWeight: 700}}>{lectures.filter(l=>l.isPaid).length}건 완료</span>
+            </div>
+            {/* DESIGN.md: Cinematic Typography — 3vw, weight 900, letter-spacing -0.03em */}
+            <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#10B981'}}>₩{formatWon(totalNet)}</div>
           </div>
-          <div className="bg-white p-6 rounded-[24px] border border-toss-border shadow-sm">
-            <span className="text-xs font-semibold text-toss-textSub block mb-1">총 예상 수령액 (대기 포함)</span>
-            <div className="text-[4vw] md:text-[2.2vw] font-black tracking-tighter text-toss-textDark leading-none mt-1">₩{formatWon(totalExpected)}</div>
+
+          {/* Expected Total */}
+          <div className="rounded-[24px] p-6 relative overflow-hidden" style={{background: 'white', border: '1px solid rgba(31,46,91,0.08)', boxShadow: '0 2px 16px rgba(31,46,91,0.06)'}}>
+            <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-5" style={{background: '#1F2E5B', transform: 'translate(30%, -30%)'}} />
+            <span className="text-xs font-semibold block mb-1" style={{color: '#64748B', letterSpacing: '0.03em'}}>총 예상 수령액 (전체)</span>
+            <div className="flex items-center gap-2 mt-2">
+              <Info size={16} color="#1F2E5B" />
+              <span style={{fontSize: '11px', color: '#1F2E5B', fontWeight: 700}}>{lectures.length}건 전체</span>
+            </div>
+            <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#1F2E5B'}}>₩{formatWon(totalExpected)}</div>
           </div>
-          <div className="bg-white p-6 rounded-[24px] border border-toss-border shadow-sm bg-orange-50/20 border-orange-100">
-            <span className="text-xs font-semibold text-toss-textSub block mb-1">미정산(정산대기) 총액</span>
-            <div className="text-[4vw] md:text-[2.2vw] font-black tracking-tighter text-toss-amber leading-none mt-1">₩{formatWon(totalUnpaid)}</div>
+
+          {/* Unpaid Total */}
+          <div className="rounded-[24px] p-6 relative overflow-hidden" style={{background: 'linear-gradient(135deg, #fffbeb 0%, #fffde7 100%)', border: '1px solid rgba(245,158,11,0.20)', boxShadow: '0 2px 16px rgba(245,158,11,0.08)'}}>
+            <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-10" style={{background: '#F59E0B', transform: 'translate(30%, -30%)'}} />
+            <span className="text-xs font-semibold block mb-1" style={{color: '#64748B', letterSpacing: '0.03em'}}>미정산 대기 총액</span>
+            <div className="flex items-center gap-2 mt-2">
+              <AlertCircle size={16} color="#F59E0B" />
+              <span style={{fontSize: '11px', color: '#F59E0B', fontWeight: 700}}>{unpaidCount}건 대기</span>
+            </div>
+            <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#F59E0B'}}>₩{formatWon(totalUnpaid)}</div>
           </div>
         </div>
 
@@ -1355,17 +1394,19 @@ function doPost(e) {
             </div>
           </div>
 
-          {/* Table right columns */}
-          <div className="col-span-2 bg-white rounded-[24px] border border-toss-border shadow-sm overflow-hidden flex flex-col">
-            <div className="p-4 border-b border-toss-border flex items-center justify-between bg-slate-50/50">
-              <div className="relative w-72">
-                <Search className="absolute left-2.5 top-2 text-toss-textSub" size={16} />
+          {/* DESIGN.md: Typography Ledger Grid — right 2/3 column */}
+          <div className="col-span-2 rounded-[24px] overflow-hidden flex flex-col" style={{background: 'white', border: '1px solid rgba(31,46,91,0.10)', boxShadow: '0 2px 16px rgba(31,46,91,0.06)'}}>
+            {/* Table toolbar */}
+            <div className="px-5 py-3 flex items-center justify-between" style={{background: 'rgba(31,46,91,0.03)', borderBottom: '1px solid rgba(31,46,91,0.08)'}}>
+              <div className="relative w-64">
+                <Search className="absolute left-2.5 top-2" size={15} style={{color: '#94a3b8'}} />
                 <input 
                   type="text" 
                   placeholder="교육 기관 검색..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 border border-toss-border rounded-xl text-xs bg-white"
+                  className="w-full text-xs rounded-xl px-3 py-1.5"
+                  style={{paddingLeft: '32px', border: '1px solid rgba(31,46,91,0.12)', background: 'white', color: '#1F2E5B', outline: 'none'}}
                 />
               </div>
 
@@ -1373,7 +1414,8 @@ function doPost(e) {
                 <select 
                   value={selectedMonth} 
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="text-[11px] font-semibold bg-white border border-toss-border text-toss-textMuted px-2.5 py-1.5 rounded-lg"
+                  className="text-[11px] font-semibold rounded-lg px-2.5 py-1.5"
+                  style={{border: '1px solid rgba(31,46,91,0.12)', background: 'white', color: '#475569'}}
                 >
                   <option value="All">전체 월</option>
                   {uniqueMonths.map((m, idx) => <option key={idx} value={m}>{m}</option>)}
@@ -1381,183 +1423,115 @@ function doPost(e) {
                 <select 
                   value={selectedStatus} 
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="text-[11px] font-semibold bg-white border border-toss-border text-toss-textMuted px-2.5 py-1.5 rounded-lg"
+                  className="text-[11px] font-semibold rounded-lg px-2.5 py-1.5"
+                  style={{border: '1px solid rgba(31,46,91,0.12)', background: 'white', color: '#475569'}}
                 >
-                  <option value="All">전체 정산상태</option>
+                  <option value="All">전체 상태</option>
                   <option value="Paid">정산 완료</option>
                   <option value="Pending">정산 대기</option>
                 </select>
               </div>
             </div>
 
-            {/* Desktop Table body */}
+            {/* DESIGN.md: Typography Ledger Grid — table body */}
             {filteredLectures.length === 0 ? (
-              <div className="py-16 px-6 text-center flex flex-col items-center justify-center gap-4 bg-slate-50/30 rounded-[20px] border border-dashed border-toss-border w-full">
-                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
-                  <Database size={24} />
+              <div className="flex-1 py-16 px-6 text-center flex flex-col items-center justify-center gap-4">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto" style={{background: 'rgba(31,46,91,0.06)'}}>
+                  <Database size={28} color="rgba(31,46,91,0.35)" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-toss-textDark">출강 기록이 없습니다</h4>
-                  <p className="text-[11px] text-toss-textSub mt-1">강의 일정을 직접 등록하거나, 구글 시트 연동 또는 아래 샘플 데이터를 입력해 체험해 보세요.</p>
+                  <h4 className="text-sm font-bold" style={{color: '#1F2E5B', fontWeight: 900}}>출강 기록이 없습니다</h4>
+                  <p className="text-[11px] mt-1" style={{color: '#64748B'}}>강의 일정을 직접 등록하거나 샘플 데이터로 체험해 보세요.</p>
                 </div>
                 <div className="flex justify-center gap-2">
                   <button
                     onClick={() => {
-                      const sampleLectures = [
-                        {
-                          id: "sample-1",
-                          institution: "사회복지협의회/목포경애원",
-                          rate: 100000,
-                          classes: 3,
-                          expectedAmount: 300000,
-                          transportFee: 0,
-                          deduction: -26400,
-                          netAmount: 273600,
-                          month: "6월",
-                          date: "6월 15일",
-                          registrationDate: "2026-06-15",
-                          isPaid: true,
-                          taxRate: "8.8%",
-                          taxBase: "LectureOnly",
-                          customTax: 0
-                        },
-                        {
-                          id: "sample-2",
-                          institution: "전남공업고등학교",
-                          rate: 100000,
-                          classes: 2,
-                          expectedAmount: 250000,
-                          transportFee: 50000,
-                          deduction: 0,
-                          netAmount: 0,
-                          month: "6월",
-                          date: "6월 20일",
-                          registrationDate: "2026-06-20",
-                          isPaid: false,
-                          taxRate: "3.3%",
-                          taxBase: "LectureOnly",
-                          customTax: 0
-                        },
-                        {
-                          id: "sample-3",
-                          institution: "혜림종합복지관",
-                          rate: 100000,
-                          classes: 4,
-                          expectedAmount: 400000,
-                          transportFee: 0,
-                          deduction: -35200,
-                          netAmount: 364800,
-                          month: "6월",
-                          date: "6월 22일",
-                          registrationDate: "2026-06-22",
-                          isPaid: true,
-                          taxRate: "8.8%",
-                          taxBase: "LectureOnly",
-                          customTax: 0
-                        },
-                        {
-                          id: "sample-4",
-                          institution: "TMD교육/벌교 보성중",
-                          rate: 50000,
-                          classes: 6,
-                          expectedAmount: 384000,
-                          transportFee: 84000,
-                          deduction: -9900,
-                          netAmount: 374100,
-                          month: "7월",
-                          date: "7월 05일",
-                          registrationDate: "2026-06-29",
-                          isPaid: true,
-                          taxRate: "3.3%",
-                          taxBase: "LectureOnly",
-                          customTax: 0
-                        }
-                      ];
-                      setLectures(sampleLectures);
+                      setLectures([
+                        { id: "sample-1", institution: "사회복지협의회/목포경애원", rate: 100000, classes: 3, expectedAmount: 300000, transportFee: 0, deduction: -26400, netAmount: 273600, month: "6월", date: "6월 15일", registrationDate: "2026-06-15", isPaid: true, taxRate: "8.8%", taxBase: "LectureOnly", customTax: 0 },
+                        { id: "sample-2", institution: "전남공업고등학교", rate: 100000, classes: 2, expectedAmount: 250000, transportFee: 50000, deduction: 0, netAmount: 0, month: "6월", date: "6월 20일", registrationDate: "2026-06-20", isPaid: false, taxRate: "3.3%", taxBase: "LectureOnly", customTax: 0 },
+                        { id: "sample-3", institution: "혜림종합복지관", rate: 100000, classes: 4, expectedAmount: 400000, transportFee: 0, deduction: -35200, netAmount: 364800, month: "6월", date: "6월 22일", registrationDate: "2026-06-22", isPaid: true, taxRate: "8.8%", taxBase: "LectureOnly", customTax: 0 },
+                        { id: "sample-4", institution: "TMD교육/벌교 보성중", rate: 50000, classes: 6, expectedAmount: 384000, transportFee: 84000, deduction: -9900, netAmount: 374100, month: "7월", date: "7월 05일", registrationDate: "2026-06-29", isPaid: true, taxRate: "3.3%", taxBase: "LectureOnly", customTax: 0 }
+                      ]);
                     }}
-                    className="px-4 py-2 bg-[#00BCD4] hover:bg-[#009BB0] text-white text-xs font-bold rounded-xl transition"
+                    className="px-4 py-2 text-xs font-bold rounded-xl transition btn-teal-glow"
+                    style={{background: '#00BCD4', color: '#1F2E5B'}}
                   >
                     샘플 데이터 채우기
                   </button>
                   <button
                     onClick={() => {
                       setEditingLecture(null);
-                      setFormData({
-                        institution: '',
-                        rate: 100000,
-                        classes: 2,
-                        transportFee: 0,
-                        month: '',
-                        date: '',
-                        registrationDate: new Date().toISOString().slice(0, 10),
-                        isPaid: false,
-                        taxRate: '8.8%',
-                        taxBase: 'LectureOnly',
-                        customTax: 0
-                      });
+                      setFormData({ institution: '', rate: 100000, classes: 2, transportFee: 0, month: '', date: '', registrationDate: new Date().toISOString().slice(0, 10), isPaid: false, taxRate: '8.8%', taxBase: 'LectureOnly', customTax: 0 });
                       setGpsMessage(null);
                       setIsAddModalOpen(true);
                     }}
-                    className="px-4 py-2 bg-[#1F2E5B] hover:bg-[#172346] text-white text-xs font-bold rounded-xl transition"
+                    className="px-4 py-2 text-xs font-bold rounded-xl transition btn-navy-glow"
+                    style={{background: '#1F2E5B', color: 'white'}}
                   >
                     직접 등록하기
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[350px] overflow-y-auto">
-                <table className="w-full text-left text-xs border-collapse border border-[#1F2E5B]/10">
+              <div className="overflow-x-auto" style={{maxHeight: '380px', overflowY: 'auto'}}>
+                {/* DESIGN.md: Ledger Grid — ledger-table class = 1px #1F2E5B/10 borders */}
+                <table className="ledger-table text-xs">
                   <thead>
-                    <tr className="border-b border-[#1F2E5B]/10 bg-[#1F2E5B]/5 text-toss-textSub font-bold">
-                      <th className="border border-[#1F2E5B]/10 px-4 py-3">교육 기관명</th>
-                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-right">단가 × 시간</th>
-                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-right">예상액</th>
-                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-right">교통비</th>
-                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-right">공제</th>
-                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-right">실수령액</th>
-                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-center">출강 기간 (월)</th>
-                      <th className="border border-[#1F2E5B]/10 px-4 py-3 text-center">정산상태</th>
-                      <th className="border border-[#1F2E5B]/10 px-4 py-3 text-center">관리</th>
+                    <tr style={{background: 'rgba(31,46,91,0.05)', position: 'sticky', top: 0, zIndex: 1}}>
+                      <th className="px-4 py-3 text-left font-bold" style={{color: '#1F2E5B', whiteSpace: 'nowrap'}}>교육 기관명</th>
+                      <th className="px-3 py-3 text-right font-bold" style={{color: '#1F2E5B', whiteSpace: 'nowrap'}}>단가 × 시간</th>
+                      <th className="px-3 py-3 text-right font-bold" style={{color: '#1F2E5B', whiteSpace: 'nowrap'}}>예상액</th>
+                      <th className="px-3 py-3 text-right font-bold" style={{color: '#1F2E5B', whiteSpace: 'nowrap'}}>교통비</th>
+                      <th className="px-3 py-3 text-right font-bold" style={{color: '#1F2E5B', whiteSpace: 'nowrap'}}>공제</th>
+                      <th className="px-3 py-3 text-right font-bold" style={{color: '#00BCD4', whiteSpace: 'nowrap'}}>실수령액</th>
+                      <th className="px-3 py-3 text-center font-bold" style={{color: '#1F2E5B', whiteSpace: 'nowrap'}}>기간</th>
+                      <th className="px-4 py-3 text-center font-bold" style={{color: '#1F2E5B', whiteSpace: 'nowrap'}}>정산상태</th>
+                      <th className="px-4 py-3 text-center font-bold" style={{color: '#1F2E5B', whiteSpace: 'nowrap'}}>관리</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#1F2E5B]/10">
+                  <tbody>
                     {filteredLectures.map((lecture) => (
-                      <tr key={lecture.id} className="hover:bg-[#1F2E5B]/5 transition-colors">
-                        <td className="border border-[#1F2E5B]/10 px-4 py-3 font-bold text-toss-textDark hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">{lecture.institution}</td>
-                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-right font-medium text-toss-textSub hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
+                      <tr key={lecture.id} style={{cursor: 'default'}}>
+                        {/* DESIGN.md: Ledger Grid — ledger-cell: hover bg #1F2E5B/8, text #00BCD4 */}
+                        <td className="ledger-cell px-4 py-3 font-bold" style={{color: '#1F2E5B'}}>{lecture.institution}</td>
+                        <td className="ledger-cell px-3 py-3 text-right" style={{color: '#475569'}}>
                           ₩{formatWon(lecture.rate)} × {lecture.classes}h
                         </td>
-                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-right font-semibold text-toss-textMuted hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
+                        <td className="ledger-cell px-3 py-3 text-right font-semibold" style={{color: '#475569'}}>
                           ₩{formatWon(lecture.expectedAmount)}
                         </td>
-                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-right text-toss-textSub hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
-                          {lecture.transportFee > 0 ? "₩" + formatWon(lecture.transportFee) : '-'}
+                        <td className="ledger-cell px-3 py-3 text-right" style={{color: '#64748B'}}>
+                          {lecture.transportFee > 0 ? '₩' + formatWon(lecture.transportFee) : '—'}
                         </td>
-                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-right text-toss-red font-medium hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
-                          {lecture.isPaid && lecture.deduction !== 0 ? "₩" + formatWon(lecture.deduction) : '-'}
+                        <td className="ledger-cell px-3 py-3 text-right font-medium" style={{color: '#EF4444'}}>
+                          {lecture.isPaid && lecture.deduction !== 0 ? '₩' + formatWon(lecture.deduction) : '—'}
                         </td>
-                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-right font-bold text-toss-blue hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
-                          {lecture.isPaid ? "₩" + formatWon(lecture.netAmount) : '-'}
+                        <td className="ledger-cell px-3 py-3 text-right font-black" style={{color: lecture.isPaid ? '#10B981' : '#94a3b8', letterSpacing: '-0.01em'}}>
+                          {lecture.isPaid ? '₩' + formatWon(lecture.netAmount) : '—'}
                         </td>
-                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-center hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
-                          <div className="font-semibold">{lecture.month}</div>
-                          <div className="text-[10px] mt-0.5">{lecture.date}</div>
+                        <td className="ledger-cell px-3 py-3 text-center">
+                          <div className="font-semibold" style={{color: '#1F2E5B'}}>{lecture.month}</div>
+                          <div style={{fontSize: '10px', color: '#94a3b8', marginTop: '2px'}}>{lecture.date}</div>
                         </td>
-                        <td className="border border-[#1F2E5B]/10 px-4 py-3 text-center hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
+                        <td className="ledger-cell px-4 py-3 text-center">
                           <button
                             onClick={() => handleTogglePaid(lecture)}
-                            className={`text-[10px] font-bold px-2.5 py-1.5 rounded-lg border ${lecture.isPaid ? 'bg-green-50 border-green-200 text-toss-green' : 'bg-orange-50 border-orange-200 text-toss-amber'}`}
+                            className="text-[10px] font-bold px-2.5 py-1 rounded-lg transition"
+                            style={lecture.isPaid
+                              ? {background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)', color: '#10B981'}
+                              : {background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)', color: '#F59E0B'}
+                            }
                           >
-                            {lecture.isPaid ? '정산완료' : '정산대기'}
+                            {lecture.isPaid ? '✓ 완료' : '⏳ 대기'}
                           </button>
                         </td>
-                        <td className="border border-[#1F2E5B]/10 px-4 py-3 text-center hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
+                        <td className="ledger-cell px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1.5">
-                            <button onClick={() => handleEditClick(lecture)} className="p-1 hover:bg-slate-100 rounded text-toss-textSub">
-                              <Edit3 size={13} />
+                            <button onClick={() => handleEditClick(lecture)} className="p-1.5 rounded-lg transition" style={{color: '#64748B'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(31,46,91,0.06)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                              <Edit3 size={12} />
                             </button>
-                            <button onClick={() => handleDelete(lecture.id)} className="p-1 hover:bg-red-50 rounded text-toss-red">
-                              <Trash2 size={13} />
+                            <button onClick={() => handleDelete(lecture.id)} className="p-1.5 rounded-lg transition" style={{color: '#EF4444'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(239,68,68,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                              <Trash2 size={12} />
                             </button>
                           </div>
                         </td>
@@ -1571,11 +1545,11 @@ function doPost(e) {
         </div>
 
         {/* Apps Script template description area */}
-        <div className="bg-white p-6 rounded-[24px] border border-toss-border shadow-sm flex flex-col gap-4">
+        <div className="p-6 rounded-[24px] flex flex-col gap-4" style={{background: 'white', border: '1px solid rgba(31,46,91,0.08)', boxShadow: '0 2px 16px rgba(31,46,91,0.06)'}}>
           <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-toss-textDark flex items-center gap-1.5">
-              <BookOpen size={15} />
-              구글 시트 연동용 Google Apps Script 원본 코드
+            <h3 className="text-xs font-bold flex items-center gap-1.5" style={{color: '#1F2E5B', fontWeight: 800}}>
+              <BookOpen size={15} color="#00BCD4" />
+              구글 시트 연동용 Apps Script 코드
             </h3>
             <button
               onClick={() => {
@@ -1583,36 +1557,63 @@ function doPost(e) {
                 setCopiedCode(true);
                 setTimeout(() => setCopiedCode(false), 2000);
               }}
-              className="text-[11px] font-bold text-toss-blue flex items-center gap-1 hover:underline"
+              className="text-[11px] font-bold flex items-center gap-1"
+              style={{color: '#00BCD4'}}
             >
-              {copiedCode ? '복사되었습니다!' : '코드 클립보드 복사'}
+              <Copy size={12} />
+              {copiedCode ? '복사 완료!' : '코드 복사'}
             </button>
           </div>
-          <pre className="p-3 bg-slate-900 text-slate-100 rounded-lg overflow-x-auto text-[10px] font-mono leading-relaxed max-h-[140px] overflow-y-auto">
+          <pre className="p-4 rounded-xl overflow-x-auto text-[10px] font-mono leading-relaxed" style={{background: '#0f1729', color: '#a5b4fc', maxHeight: '140px', overflowY: 'auto'}}>
             {gasTemplateCode}
           </pre>
         </div>
-      </div>
 
-      {/* Scroll-Linked Interactive Index Line (Desktop only) */}
-      <div className="hidden md:block fixed right-0 top-0 bottom-0 w-8 z-50 pointer-events-none">
-        <svg className="w-full h-full">
-          {/* Base track */}
-          <line x1="16" y1="0" x2="16" y2="100%" stroke="#1F2E5B" strokeWidth="3" strokeOpacity="0.08" />
+        </div>{/* end inner max-w-6xl container */}
+      </div>{/* end desktop view */}
+
+      {/* DESIGN.md: Scroll-Linked Interactive Index — pure SVG + JS scroll listener */}
+      {/* Track: #1F2E5B 8% opacity, gauge fill: #00BCD4, magnetic Bezier on proximity */}
+      <div className="hidden md:block fixed right-0 top-0 bottom-0 z-50 pointer-events-none" style={{width: '28px'}}>
+        <svg width="28" height="100%" style={{position: 'absolute', top: 0, left: 0}}>
+          {/* Base track — #1F2E5B 8% opacity */}
+          <line x1="14" y1="20" x2="14" y2="100%" stroke="#1F2E5B" strokeWidth="2" strokeOpacity="0.12" />
           
-          {/* Progress line */}
-          <path
-            d={
-              isNearIndex
-                ? "M 16 0 L 16 " + Math.max(0, mouseY - 60) + " Q " + (16 - 20) + " " + mouseY + " 16 " + (mouseY + 60) + " L 16 100%"
-                : "M 16 0 L 16 100%"
-            }
-            fill="none"
+          {/* Scroll progress fill — #00BCD4 */}
+          {/* Uses strokeDashoffset to fill from top proportionally to scroll */}
+          <line
+            x1="14" y1="20"
+            x2="14" y2="100%"
             stroke="#00BCD4"
             strokeWidth="3"
-            strokeDasharray="1000"
-            strokeDashoffset={1000 - (scrollProgress * 1000)}
-            className="transition-all duration-75 ease-out"
+            strokeLinecap="round"
+            style={{
+              strokeDasharray: 2000,
+              strokeDashoffset: 2000 - (scrollProgress * 2000),
+              transition: 'stroke-dashoffset 0.1s linear'
+            }}
+          />
+
+          {/* Magnetic Bezier curve effect on mouse proximity */}
+          {isNearIndex && (
+            <path
+              d={`M 14 ${Math.max(20, mouseY - 80)} Q ${14 - 18} ${mouseY} 14 ${Math.min(window.innerHeight - 20, mouseY + 80)}`}
+              fill="none"
+              stroke="#00BCD4"
+              strokeWidth="3"
+              strokeOpacity="0.60"
+              strokeLinecap="round"
+              style={{transition: 'd 0.08s cubic-bezier(0.22,1,0.36,1)'}}
+            />
+          )}
+
+          {/* Scroll thumb dot */}
+          <circle
+            cx="14"
+            cy={20 + scrollProgress * (window.innerHeight - 40)}
+            r="4"
+            fill="#00BCD4"
+            style={{transition: 'cy 0.1s linear'}}
           />
         </svg>
       </div>

@@ -1,77 +1,161 @@
+/* ============================================================
+   DESIGN.md — Lectoss Dashboard Global Stylesheet
+   Brand: Deep Trust Navy #1F2E5B + DX Aqua Teal #00BCD4
+   Font: Pretendard (DESIGN.md: typography.display.family)
+   ============================================================ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ── DESIGN.md: FOUC Prevention Base ── */
 @layer base {
   html {
-    background-color: #1F2E5B; /* FOUC Prevention Color */
+    background-color: #1F2E5B; /* FOUC prevention — matches fouc_prevention token */
+    scroll-behavior: smooth;
   }
+
   body {
-    @apply bg-[#F8FAF8] text-[#1F2E5B] font-sans antialiased;
+    font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background-color: #F8FAF8; /* DESIGN.md: colors.background */
+    color: #1F2E5B;            /* DESIGN.md: colors.text_primary */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    letter-spacing: 0em;       /* DESIGN.md: body.letter_spacing */
+    line-height: 1.6;          /* DESIGN.md: body.line_height */
+  }
+
+  /* DESIGN.md: Cinematic Typography — display text */
+  h1, h2, h3 {
+    font-family: 'Pretendard', 'Inter', sans-serif;
+    font-weight: 900;           /* DESIGN.md: display.weight */
+    letter-spacing: -0.02em;   /* DESIGN.md: display.letter_spacing */
+    line-height: 1.15;         /* DESIGN.md: display.line_height */
   }
 }
 
-/* Custom Utilities */
+/* ── DESIGN.md: Scroll-Linked Interactive Index SVG Track ── */
+.scroll-index-track {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  z-index: 50;
+  pointer-events: none;
+}
+
+/* ── DESIGN.md: Typography Ledger Grid ── */
+/* 1px ultra-fine Light Navy (#1F2E5B, 10% opacity) dividers */
+.ledger-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.ledger-table th,
+.ledger-table td {
+  border: 1px solid rgba(31, 46, 91, 0.10);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ledger-table tbody tr:hover td {
+  background-color: rgba(31, 46, 91, 0.04);
+}
+
+.ledger-table td.ledger-cell:hover {
+  background-color: rgba(31, 46, 91, 0.08) !important;
+  color: #00BCD4 !important;
+}
+
+/* ── DESIGN.md: Magnetic Scroll Index — Bezier curve animation ── */
+.scroll-bezier-path {
+  transition: d 0.08s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Glassmorphism card ── */
 .glass-card {
   background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(229, 232, 235, 0.5);
+  border: 1px solid rgba(226, 232, 240, 0.6);
 }
 
-.dark-glass-card {
-  background: rgba(25, 31, 40, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-/* Custom Scrollbar for Sleek Aesthetic */
+/* ── Custom slim scrollbar ── */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: #E5E8EB;
+  background: rgba(31, 46, 91, 0.18);
   border-radius: 99px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #D1D6DB;
+  background: rgba(31, 46, 91, 0.32);
 }
 
-/* Stripe pattern style for unpaid area in charts (compatible with HTML divs) */
+/* ── Stripe pattern for unpaid bars ── */
 .chart-unpaid-pattern {
-  background-image: linear-gradient(
+  background-image: repeating-linear-gradient(
     45deg,
-    rgba(31, 46, 91, 0.08) 25%,
-    transparent 25%,
-    transparent 50%,
-    rgba(31, 46, 91, 0.08) 50%,
-    rgba(31, 46, 91, 0.08) 75%,
-    transparent 75%,
-    transparent
+    rgba(31, 46, 91, 0.10) 0px,
+    rgba(31, 46, 91, 0.10) 4px,
+    transparent 4px,
+    transparent 10px
   );
-  background-size: 12px 12px;
 }
 
-/* Micro-animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to { opacity: 1; transform: translateY(0); }
+/* ── DESIGN.md: Cinematic Typography — Stat display numbers ── */
+.stat-number {
+  font-family: 'Pretendard', 'Inter', sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+/* ── Micro-animations ── */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeSlideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.font-pretendard {
-  font-family: 'Pretendard', sans-serif;
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f0f4ff 25%, #e0e8ff 50%, #f0f4ff 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}
+
+/* ── Bottom sheet drag handle ── */
+.drag-handle {
+  width: 48px;
+  height: 6px;
+  background: #E2E8F0;
+  border-radius: 99px;
+  margin: 12px auto;
+  flex-shrink: 0;
+}
+
+/* ── Teal accent glow on CTAs ── */
+.btn-teal-glow {
+  box-shadow: 0 0 0 0 rgba(0, 188, 212, 0);
+  transition: box-shadow 0.3s ease;
+}
+.btn-teal-glow:hover {
+  box-shadow: 0 0 16px 2px rgba(0, 188, 212, 0.35);
+}
+
+/* ── Navy button hover ── */
+.btn-navy-glow:hover {
+  box-shadow: 0 4px 20px rgba(31, 46, 91, 0.30);
 }
