@@ -236,15 +236,23 @@ export default function App() {
 
   const [calTouchStart, setCalTouchStart] = useState(null);
   const handleCalTouchStart = (e) => {
-    setCalTouchStart(e.touches[0].clientX);
+    setCalTouchStart({
+      x: e.touches[0].clientX,
+      y: e.touches[0].clientY
+    });
   };
   const handleCalTouchEnd = (e) => {
-    if (calTouchStart === null) return;
-    const diff = e.changedTouches[0].clientX - calTouchStart;
-    if (diff > 60) {
-      handlePrevMonth(); // 오른쪽으로 드래그 -> 이전 달
-    } else if (diff < -60) {
-      handleNextMonth(); // 왼쪽으로 드래그 -> 다음 달
+    if (!calTouchStart) return;
+    const diffX = e.changedTouches[0].clientX - calTouchStart.x;
+    const diffY = e.changedTouches[0].clientY - calTouchStart.y;
+    
+    // 가로 스와이프 거리가 세로 스크롤 거리보다 1.5배 이상 클 때만 월 전환 실행 (오동작 방지)
+    if (Math.abs(diffX) > Math.abs(diffY) * 1.5) {
+      if (diffX > 60) {
+        handlePrevMonth(); // 오른쪽 드래그 -> 이전 달
+      } else if (diffX < -60) {
+        handleNextMonth(); // 왼쪽 드래그 -> 다음 달
+      }
     }
     setCalTouchStart(null);
   };
@@ -273,6 +281,14 @@ export default function App() {
   // 설정 탭 임시 입력 값 상태 (Controlled Inputs용)
   const [tempApiKey, setTempApiKey] = useState(() => safeLocalStorage.getItem('gemini_api_key') || '');
   const [tempSheetUrl, setTempSheetUrl] = useState(() => safeLocalStorage.getItem('google_sheet_url') || '');
+
+  // 실정산액 직접 편집을 위한 상태
+  const [editingNetCardId, setEditingNetCardId] = useState(null);
+  const [editingNetValue, setEditingNetValue] = useState('');
+
+  // Lottie 애니메이션 타임아웃 참조
+  const moneyLottieTimeoutRef = useRef(null);
+  const moneyLottieFadeTimeoutRef = useRef(null);
 
 
 
@@ -419,8 +435,19 @@ export default function App() {
   ];
   const extractMonth = (dateStr) => {
     if (!dateStr) return '';
-    const m = dateStr.match(/(\d+)월/);
-    return m ? `${m[1]}월` : '';
+    // Format 1: "6월 15일" or "2026년 06월 15일"
+    const m1 = dateStr.match(/(\d+)월/);
+    if (m1) return `${parseInt(m1[1], 10)}월`;
+    
+    // Format 2: "2026-06-30" (YYYY-MM-DD)
+    const m2 = dateStr.match(/^\d{4}-(\d{2})-\d{2}$/);
+    if (m2) return `${parseInt(m2[1], 10)}월`;
+    
+    // Format 3: "6-30" or "MM-DD"
+    const m3 = dateStr.match(/^(\d{1,2})-\d{1,2}$/);
+    if (m3) return `${parseInt(m3[1], 10)}월`;
+    
+    return '';
   };
 
   const uniqueMonths = Array.from(new Set(lectures.map(l => extractMonth(l?.date)).filter(Boolean))).sort((a, b) => {
@@ -934,8 +961,19 @@ ${aiText}
     });
 
     if (nextPaid) {
+      if (moneyLottieTimeoutRef.current) clearTimeout(moneyLottieTimeoutRef.current);
+      if (moneyLottieFadeTimeoutRef.current) clearTimeout(moneyLottieFadeTimeoutRef.current);
+
       setShowMoneyLottie(true);
       setLottieFade(false);
+
+      moneyLottieFadeTimeoutRef.current = setTimeout(() => {
+        setLottieFade(true);
+      }, 1400);
+
+      moneyLottieTimeoutRef.current = setTimeout(() => {
+        setShowMoneyLottie(false);
+      }, 1900);
     }
 
     setLectures(updatedList);
@@ -1385,22 +1423,65 @@ function doPost(e) {
                                 </div>
                               </div>
                               <div className="flex flex-col items-end justify-center pl-2 border-l border-slate-200">
-                                <button 
-                                  onClick={() => setToggledCardIds(prev => { const n = new Set(prev); if(n.has(l.id)) n.delete(l.id); else n.add(l.id); return n; })}
-                                  className="flex flex-col items-end text-right transition-transform active:scale-95"
-                                >
-                                  {toggledCardIds.has(l.id) ? (
-                                    <>
-                                      <span className="text-[11px] font-extrabold text-slate-400 mb-0.5">실정산액</span>
-                                      <AnimatedNumber value={l.netAmount} className="font-black text-[#10B981] text-[16px] leading-tight" />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span className="text-[11px] font-extrabold text-slate-400 mb-0.5">총액 보기 (클릭)</span>
-                                      <AnimatedNumber value={l.expectedAmount} className="font-black text-[#1E3A8A] text-[16px] leading-tight" />
-                                    </>
-                                  )}
-                                </button>
+                                {editingNetCardId === l.id ? (
+                                  <div className="flex flex-col items-end justify-center w-full">
+                                    <span className="text-[9.5px] text-slate-400 font-bold block mb-1">실정산액 직접 입력</span>
+                                    <div className="flex items-center gap-1 w-full justify-end">
+                                      <input 
+                                        type="number" 
+                                        value={editingNetValue} 
+                                        onChange={(e) => setEditingNetValue(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="w-20 px-1.5 py-0.5 text-right border border-slate-300 rounded-lg text-xs font-black text-slate-800 focus:outline-none focus:border-[#10B981]"
+                                        autoFocus
+                                      />
+                                      <span className="text-[11px] font-black text-slate-500">원</span>
+                                    </div>
+                                    <div className="flex gap-1 mt-1.5">
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setLectures(prev => prev.map(item => item.id === l.id ? { ...item, netAmount: Number(editingNetValue) } : item));
+                                          setEditingNetCardId(null);
+                                        }}
+                                        className="px-2 py-0.5 bg-[#10B981] text-white text-[9.5px] font-black rounded-md hover:bg-emerald-600 transition"
+                                      >
+                                        저장
+                                      </button>
+                                      <button 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingNetCardId(null);
+                                        }}
+                                        className="px-2 py-0.5 bg-slate-200 text-slate-600 text-[9.5px] font-black rounded-md hover:bg-slate-300 transition"
+                                      >
+                                        취소
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex flex-col items-end text-right">
+                                    <span className="text-[9.5px] font-extrabold text-slate-400">총 예상수령액</span>
+                                    <span className="text-[12px] font-bold text-slate-400/80 line-through mt-0.5">
+                                      {formatWon(l.expectedAmount)}원
+                                    </span>
+                                    <button 
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingNetCardId(l.id);
+                                        setEditingNetValue(l.netAmount);
+                                      }}
+                                      className="btn-press flex items-center gap-1 mt-1 text-[#10B981] hover:opacity-85 transition"
+                                      title="실정산액 직접 수정"
+                                    >
+                                      <span className="text-[10px] font-black">⬇️</span>
+                                      <span className="text-[15px] font-black tracking-tight border-b border-dashed border-[#10B981]/50 pb-0.5">
+                                        <AnimatedNumber value={l.netAmount} className="font-black text-[#10B981]" />
+                                      </span>
+                                      <Edit3 size={11} className="text-[#10B981]/70 ml-0.5" />
+                                    </button>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           )}
@@ -1547,67 +1628,159 @@ function doPost(e) {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
                     <span className="text-[11px] font-bold text-slate-400">총 출강 횟수</span>
-                    <span className="text-[18px] font-black text-slate-800">{lectures.length}건</span>
+                    <AnimatedNumber value={lectures.length} suffix="건" className="text-[18px] font-black text-slate-800" />
                   </div>
                   <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
                     <span className="text-[11px] font-bold text-slate-400">총 출강 시간</span>
-                    <span className="text-[18px] font-black text-indigo-600">{lectures.reduce((sum, l) => sum + (l.classes || 0), 0)}시간</span>
+                    <AnimatedNumber value={lectures.reduce((sum, l) => sum + (l.classes || 0), 0)} suffix="시간" className="text-[18px] font-black text-indigo-600" />
                   </div>
                   <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
                     <span className="text-[11px] font-bold text-slate-400">평균 시간당 단가</span>
-                    <span className="text-[18px] font-black text-slate-800">{formatWon(lectures.length > 0 ? Math.round(lectures.reduce((sum, l) => sum + (l.rate || 0), 0) / lectures.length) : 0)}원</span>
+                    <AnimatedNumber value={lectures.length > 0 ? Math.round(lectures.reduce((sum, l) => sum + (l.rate || 0), 0) / lectures.length) : 0} suffix="원" className="text-[18px] font-black text-slate-800" />
                   </div>
                   <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
                     <span className="text-[11px] font-bold text-slate-400">평균 건당 수령액</span>
-                    <span className="text-[18px] font-black text-slate-800">{formatWon(lectures.length > 0 ? Math.round(lectures.reduce((sum, l) => sum + (l.expectedAmount || 0), 0) / lectures.length) : 0)}원</span>
+                    <AnimatedNumber value={lectures.length > 0 ? Math.round(lectures.reduce((sum, l) => sum + (l.expectedAmount || 0), 0) / lectures.length) : 0} suffix="원" className="text-[18px] font-black text-slate-800" />
                   </div>
                 </div>
               </div>
 
-              {/* 월별 수입 및 시간 더블 바 차트 */}
-              <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-4 animate-fade-in">
-                <div>
-                  <h4 className="text-[15px] font-black text-slate-800">월별 수입 & 출강 시간 추이</h4>
-                  <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">파란색: 수입(원) / 하늘색: 강의 시간(시간)</p>
-                </div>
-                {chartData.length === 0 ? (
-                  <div className="text-[12px] text-slate-400 text-center py-10 font-bold">출강 데이터가 없습니다.</div>
-                ) : (
-                  <div className="flex flex-col gap-5 pt-2">
-                    {chartData.map((d, idx) => {
-                      const maxIncome = Math.max(...chartData.map(c => c.total), 1);
-                      const maxHours = Math.max(...chartData.map(c => c.hours), 1);
-                      const incomePercent = (d.total / maxIncome) * 100;
-                      const hoursPercent = (d.hours / maxHours) * 100;
+              {/* 월별 수입 및 시간 세로 추이 차트 (1월~12월) */}
+              {(() => {
+                const fullYearMonths = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+                const fullYearData = fullYearMonths.map(m => {
+                  const monthItems = lectures.filter(l => extractMonth(l.date) === m);
+                  const paidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? curr.netAmount : 0), 0);
+                  const unpaidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
+                  return {
+                    month: m,
+                    total: paidTotal + unpaidTotal
+                  };
+                });
+                const maxTotal = Math.max(...fullYearData.map(d => d.total), 1);
+                
+                const points = fullYearData.map((d, i) => ({
+                  x: 55 + (d.total / maxTotal) * 190,
+                  y: i * 35 + 25
+                }));
+                const pathD = points.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(' ');
 
-                      return (
-                        <div key={idx} className="flex flex-col gap-1">
-                          <span className="text-[12px] font-black text-slate-600">{d.month}</span>
-                          <div className="flex flex-col gap-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                            {/* 수입 바 */}
-                            <div className="flex items-center justify-between text-[11px] font-bold">
-                              <span className="text-slate-400">정산수입</span>
-                              <span className="font-black text-slate-800">{formatWon(d.total)}원</span>
-                            </div>
-                            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-[#2563EB] rounded-full transition-all" style={{ width: `${incomePercent}%` }} />
-                            </div>
+                return (
+                  <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-4 animate-fade-in">
+                    <div>
+                      <h4 className="text-[15px] font-black text-slate-800">연간 월별 정산 추이 (1월~12월)</h4>
+                      <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">1월부터 12월까지의 정산 총액 추이 (세로 흐름)</p>
+                    </div>
+                    {lectures.length === 0 ? (
+                      <div className="text-[12px] text-slate-400 text-center py-10 font-bold">출강 데이터가 없습니다.</div>
+                    ) : (
+                      <div className="relative pt-2" style={{ background: '#121216', borderRadius: '16px', padding: '16px 12px 16px 8px', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.4)' }}>
+                        <svg viewBox="0 0 320 440" width="100%" height="440" className="overflow-visible">
+                          <defs>
+                            {/* Glow Filter */}
+                            <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
+                              <feGaussianBlur stdDeviation="4.5" result="blur" />
+                              <feMerge>
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="blur" />
+                                <feMergeNode in="SourceGraphic" />
+                              </feMerge>
+                            </filter>
+                          </defs>
+                          
+                          {/* Grid lines & Month Labels */}
+                          {fullYearData.map((d, i) => {
+                            const y = i * 35 + 25;
+                            return (
+                              <g key={i} className="opacity-40">
+                                <line 
+                                  x1="55" 
+                                  y1={y} 
+                                  x2="300" 
+                                  y2={y} 
+                                  stroke="#334155" 
+                                  strokeWidth="1" 
+                                  strokeDasharray="3 3" 
+                                />
+                                <text 
+                                  x="15" 
+                                  y={y + 4} 
+                                  fill="#94A3B8" 
+                                  fontSize="11.5" 
+                                  fontWeight="900"
+                                >
+                                  {d.month}
+                                </text>
+                              </g>
+                            );
+                          })}
 
-                            {/* 시간 바 */}
-                            <div className="flex items-center justify-between text-[11px] font-bold mt-1">
-                              <span className="text-slate-400">강의시간</span>
-                              <span className="font-black text-indigo-600">{d.hours}시간</span>
-                            </div>
-                            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-sky-400 rounded-full transition-all" style={{ width: `${hoursPercent}%` }} />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          {/* Glowing Animated Line */}
+                          {pathD && (
+                            <path 
+                              d={pathD} 
+                              fill="none" 
+                              stroke="#FF8A00" 
+                              strokeWidth="3.5" 
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              filter="url(#glow-orange)"
+                              style={{
+                                strokeDasharray: 2000,
+                                strokeDashoffset: 2000,
+                                animation: 'drawVerticalLine 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards'
+                              }}
+                            />
+                          )}
+
+                          {/* Dots & Values */}
+                          {points.map((p, i) => {
+                            const d = fullYearData[i];
+                            const hasValue = d.total > 0;
+                            return (
+                              <g key={i}>
+                                <circle 
+                                  cx={p.x} 
+                                  cy={p.y} 
+                                  r={hasValue ? "6" : "3"} 
+                                  fill={hasValue ? "rgba(255, 138, 0, 0.4)" : "#334155"} 
+                                  className={hasValue ? "animate-pulse" : ""}
+                                />
+                                <circle 
+                                  cx={p.x} 
+                                  cy={p.y} 
+                                  r={hasValue ? "4" : "1.5"} 
+                                  fill={hasValue ? "#FFFFFF" : "#475569"} 
+                                  stroke={hasValue ? "#FF8A00" : "none"}
+                                  strokeWidth={hasValue ? "2.5" : "0"}
+                                />
+                                {hasValue && (
+                                  <text 
+                                    x={p.x > 210 ? p.x - 72 : p.x + 10} 
+                                    y={p.y + 4} 
+                                    fill="#FF8A00" 
+                                    fontSize="10" 
+                                    fontWeight="900"
+                                  >
+                                    {formatWon(d.total)}원
+                                  </text>
+                                )}
+                              </g>
+                            );
+                          })}
+                        </svg>
+                        <style dangerouslySetInnerHTML={{__html: `
+                          @keyframes drawVerticalLine {
+                            to {
+                              stroke-dashoffset: 0;
+                            }
+                          }
+                        `}} />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                );
+              })()}
 
               {/* 주관사(기관)별 출강 비중 */}
               <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3">
@@ -1844,17 +2017,14 @@ function doPost(e) {
                       });
                       setIsAddModalOpen(true);
                     }}
-                    className="btn-press relative flex flex-col items-center gap-1.5 py-2 px-3.5 rounded-2xl"
+                    className="btn-press flex flex-col items-center justify-center w-14 h-14 rounded-full bg-[#2563EB] text-white shadow-lg shadow-blue-500/25 -mt-4 flex-shrink-0"
                     style={{
-                      color: '#2563EB',
-                      background: 'rgba(37,99,235,0.06)',
-                      transition: 'color 200ms, background 200ms'
+                      border: '3px solid white',
+                      transition: 'transform 200ms'
                     }}
                   >
-                    <span style={{display: 'block'}}>
-                      {t.icon}
-                    </span>
-                    <span style={{fontSize: '11px', fontWeight: 800, lineHeight: 1}}>{t.label}</span>
+                    <Plus size={20} className="text-white" />
+                    <span style={{fontSize: '9.5px', fontWeight: 900, color: '#FFFFFF', lineHeight: 1, marginTop: '2px'}}>{t.label}</span>
                   </button>
                 );
               }
@@ -2711,6 +2881,21 @@ function doPost(e) {
         </div>
       )}
       
+      {/* 완료 처리 시 축하 Lottie overlay */}
+      {showMoneyLottie && (
+        <div className={`fixed inset-0 flex items-center justify-center z-[100] pointer-events-none transition-opacity duration-500 ${lottieFade ? 'opacity-0' : 'opacity-100'}`}>
+          <div className="fixed inset-0 bg-[#0F172A]/20 backdrop-blur-[3px] transition-all" />
+          <div className="bg-white/95 backdrop-blur-md p-8 rounded-[36px] shadow-2xl flex flex-col items-center justify-center border border-slate-100 z-10 scale-up-bounce pointer-events-auto">
+            <StableLottie 
+              path="/lottie/Money stack.json" 
+              className="w-48 h-48"
+              loop={false}
+            />
+            <span className="text-[14px] font-black text-[#10B981] mt-2 block animate-pulse">정산 완료 처리가 되었습니다! 💸</span>
+          </div>
+        </div>
+      )}
+
       {/* ── SETTINGS MODAL ── */}
 
 
