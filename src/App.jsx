@@ -308,6 +308,8 @@ export default function App() {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isMockParseResult, setIsMockParseResult] = useState(false);
   const [globalLottie, setGlobalLottie] = useState(null);
+  const [showMoneyLottie, setShowMoneyLottie] = useState(false);
+  const [lottieFade, setLottieFade] = useState(false);
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
   const [activeMenuCardId, setActiveMenuCardId] = useState(null);
 
@@ -887,6 +889,11 @@ ${aiText}
       return l;
     });
 
+    if (nextPaid) {
+      setShowMoneyLottie(true);
+      setLottieFade(false);
+    }
+
     setLectures(updatedList);
   };
 
@@ -1213,7 +1220,7 @@ function doPost(e) {
                   <div className="absolute top-0 right-0 w-12 h-12 rounded-full bg-blue-50/50 opacity-40 translate-x-2 -translate-y-2" />
                   <span className="text-[12px] font-black text-slate-400">정산 대기</span>
                   <span className="text-lg font-black text-slate-800 tracking-tight">
-                    ₩{formatWon(totalUnpaid)}
+                    <AnimatedNumber value={totalUnpaid} />
                   </span>
                   <div className="text-[11px] text-slate-500 font-bold mt-0.5">
                     총 {unpaidCount}건 대기 중
@@ -1227,7 +1234,7 @@ function doPost(e) {
                   <div className="absolute top-0 right-0 w-12 h-12 rounded-full bg-emerald-50/50 opacity-40 translate-x-2 -translate-y-2" />
                   <span className="text-[12px] font-black text-slate-400">정산 완료</span>
                   <span className="text-lg font-black text-emerald-600 tracking-tight">
-                    ₩{formatWon(totalNet)}
+                    <AnimatedNumber value={totalNet} />
                   </span>
                   <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
                     총 {lectures.filter(l=>l.isPaid).length}건 완료
@@ -1250,41 +1257,45 @@ function doPost(e) {
                     className="w-full pl-8 pr-3 py-2 border border-toss-border rounded-xl text-[13px] font-medium bg-[#F8FAF8]"
                   />
                 </div>
-                <div className="flex gap-1.5 overflow-x-auto py-1 scrollbar-none">
-                  <button 
-                    onClick={() => setSelectedMonth('All')}
-                    className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
-                  >
-                    #전체월
-                  </button>
-                  {uniqueMonths.map((m, idx) => (
+                <div className="flex gap-2 items-center justify-between border-t border-slate-100 pt-2.5">
+                  <div className="w-[58%] overflow-x-auto scrollbar-none flex gap-1.5 py-1">
                     <button 
-                      key={idx}
-                      onClick={() => setSelectedMonth(m)}
-                      className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === m ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                      onClick={() => setSelectedMonth('All')}
+                      className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
                     >
-                      #{m}
+                      #전체월
                     </button>
-                  ))}
-                  <div className="w-[1px] bg-slate-200 mx-1 flex-shrink-0" />
-                  <button 
-                    onClick={() => setSelectedStatus('All')}
-                    className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'All' ? 'bg-[#10B981] text-white' : 'bg-gray-100 text-toss-textSub'}`}
-                  >
-                    #전체상태
-                  </button>
-                  <button 
-                    onClick={() => setSelectedStatus('Paid')}
-                    className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'Paid' ? 'bg-[#10B981] text-white' : 'bg-gray-100 text-toss-textSub'}`}
-                  >
-                    #완료
-                  </button>
-                  <button 
-                    onClick={() => setSelectedStatus('Pending')}
-                    className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'Pending' ? 'bg-[#F59E0B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
-                  >
-                    #대기
-                  </button>
+                    {uniqueMonths.map((m, idx) => (
+                      <button 
+                        key={idx}
+                        onClick={() => setSelectedMonth(m)}
+                        className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === m ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                      >
+                        #{m}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="w-[1px] h-6 bg-slate-200 flex-shrink-0" />
+                  <div className="w-[38%] overflow-x-auto scrollbar-none flex gap-1.5 py-1">
+                    <button 
+                      onClick={() => setSelectedStatus('All')}
+                      className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'All' ? 'bg-[#10B981] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                    >
+                      #전체
+                    </button>
+                    <button 
+                      onClick={() => setSelectedStatus('Paid')}
+                      className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'Paid' ? 'bg-[#10B981] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                    >
+                      #완료
+                    </button>
+                    <button 
+                      onClick={() => setSelectedStatus('Pending')}
+                      className={`flex-shrink-0 text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedStatus === 'Pending' ? 'bg-[#F59E0B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                    >
+                      #대기
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1355,12 +1366,12 @@ function doPost(e) {
                                   {toggledCardIds.has(l.id) ? (
                                     <>
                                       <span className="text-[11px] font-extrabold text-slate-400 mb-0.5">실정산액</span>
-                                      <span className="font-black text-[#10B981] text-[16px] leading-tight">₩{formatWon(l.netAmount)}</span>
+                                      <AnimatedNumber value={l.netAmount} className="font-black text-[#10B981] text-[16px] leading-tight" />
                                     </>
                                   ) : (
                                     <>
                                       <span className="text-[11px] font-extrabold text-slate-400 mb-0.5">총액 보기 (클릭)</span>
-                                      <span className="font-black text-[#1E3A8A] text-[16px] leading-tight">₩{formatWon(l.expectedAmount)}</span>
+                                      <AnimatedNumber value={l.expectedAmount} className="font-black text-[#1E3A8A] text-[16px] leading-tight" />
                                     </>
                                   )}
                                 </button>
@@ -1589,20 +1600,25 @@ function doPost(e) {
                         .sort((a, b) => b.val - a.val)
                         .slice(0, 5); // TOP 5
 
-                      return sortedInsts.map((inst, i) => (
-                        <div key={i} className="flex flex-col gap-1.5">
-                          <div className="flex justify-between items-center text-[12px] font-bold">
-                            <span className="text-slate-700">{inst.name}</span>
-                            <span className="text-slate-500">{Math.round(inst.pct)}% (₩{formatWon(inst.val)})</span>
+                      return sortedInsts.map((inst, i) => {
+                        const isPreset = presets.some(p => p.name === inst.name);
+                        return (
+                          <div key={i} className="flex flex-col gap-1.5">
+                            <div className="flex justify-between items-center text-[12px] font-bold">
+                              <span className="text-slate-700">{isPreset ? `⭐ ${inst.name}` : inst.name}</span>
+                              {!isPreset && (
+                                <span className="text-slate-500">{Math.round(inst.pct)}% (₩{formatWon(inst.val)})</span>
+                              )}
+                            </div>
+                            <div className="w-full h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                              <div 
+                                className="h-full bg-indigo-500 rounded-full" 
+                                style={{ width: `${inst.pct}%`, opacity: 1 - (i * 0.15) }} 
+                              />
+                            </div>
                           </div>
-                          <div className="w-full h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                            <div 
-                              className="h-full bg-indigo-500 rounded-full" 
-                              style={{ width: `${inst.pct}%`, opacity: 1 - (i * 0.15) }} 
-                            />
-                          </div>
-                        </div>
-                      ));
+                        );
+                      });
                     })()}
                   </div>
                 )}
@@ -1906,7 +1922,7 @@ function doPost(e) {
             </div>
             {/* DESIGN.md: Cinematic Typography — 3vw, weight 900, letter-spacing -0.03em */}
             <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#10B981'}}>
-              <ShinyText text={"₩" + formatWon(totalNet)} />
+              <AnimatedNumber value={totalNet} className="shiny-text" style={{fontSize: 'clamp(22px, 3vw, 40px)', fontWeight: 900}} />
             </div>
           </div>
 
@@ -1923,7 +1939,7 @@ function doPost(e) {
               <span style={{fontSize: '11px', color: '#1F2E5B', fontWeight: 700}}>{lectures.length}건 전체</span>
             </div>
             <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#1F2E5B'}}>
-              <ShinyText text={"₩" + formatWon(totalExpected)} />
+              <AnimatedNumber value={totalExpected} className="shiny-text" style={{fontSize: 'clamp(22px, 3vw, 40px)', fontWeight: 900}} />
             </div>
           </div>
 
@@ -1940,7 +1956,7 @@ function doPost(e) {
               <span style={{fontSize: '11px', color: '#F59E0B', fontWeight: 700}}>{unpaidCount}건 대기</span>
             </div>
             <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#F59E0B'}}>
-              <ShinyText text={"₩" + formatWon(totalUnpaid)} />
+              <AnimatedNumber value={totalUnpaid} className="shiny-text" style={{fontSize: 'clamp(22px, 3vw, 40px)', fontWeight: 900}} />
             </div>
           </div>
         </div>
