@@ -269,6 +269,10 @@ export default function App() {
   const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
   const [isCloudBackupOpen, setIsCloudBackupOpen] = useState(false);
   const [isLocalBackupOpen, setIsLocalBackupOpen] = useState(false);
+  
+  // 설정 탭 임시 입력 값 상태 (Controlled Inputs용)
+  const [tempApiKey, setTempApiKey] = useState(() => safeLocalStorage.getItem('gemini_api_key') || '');
+  const [tempSheetUrl, setTempSheetUrl] = useState(() => safeLocalStorage.getItem('google_sheet_url') || '');
 
 
 
@@ -1182,7 +1186,7 @@ function doPost(e) {
       </svg>
 
       {/* Main centered mobile-frame container on desktop, full screen on mobile */}
-      <div className="w-full max-w-md bg-[#F8FAF8] min-h-screen md:min-h-[88vh] md:max-h-[94vh] md:rounded-[36px] shadow-2xl relative overflow-hidden flex flex-col pb-32 md:border md:border-slate-800/10">
+      <div className="w-full max-w-md bg-[#F8FAF8] min-h-screen md:min-h-[88vh] md:max-h-[94vh] md:rounded-[36px] shadow-2xl relative overflow-hidden flex flex-col pb-40 md:border md:border-slate-800/10">
         <div className="flex-1 flex flex-col min-h-0">
         {/* App Title Header — Clean White Theme */}
         <div className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
@@ -1230,9 +1234,7 @@ function doPost(e) {
                 <div 
                   className="rounded-[20px] p-4 bg-white border border-slate-200/60 flex flex-col gap-1 shadow-sm relative overflow-hidden"
                 >
-                          <div className="absolute -right-2 -bottom-2 w-14 h-14 rounded-full bg-blue-50/70 flex items-center justify-center text-blue-500/20 pointer-events-none">
-                    <Clock size={34} className="stroke-[1.5]" />
-                  </div>
+                  
                   <span className="text-[12px] font-black text-slate-400">정산 대기</span>
                   <span className="text-lg font-black text-slate-800 tracking-tight">
                     <AnimatedNumber value={totalUnpaid} />
@@ -1246,9 +1248,7 @@ function doPost(e) {
                 <div 
                   className="rounded-[20px] p-4 bg-white border border-slate-200/60 flex flex-col gap-1 shadow-sm relative overflow-hidden"
                 >
-                          <div className="absolute -right-2 -bottom-2 w-14 h-14 rounded-full bg-emerald-50/70 flex items-center justify-center text-emerald-500/20 pointer-events-none">
-                    <Check size={34} className="stroke-[2.5]" />
-                  </div>
+                  
                   <span className="text-[12px] font-black text-slate-400">정산 완료</span>
                   <span className="text-lg font-black text-emerald-600 tracking-tight">
                     <AnimatedNumber value={totalNet} />
@@ -1541,17 +1541,25 @@ function doPost(e) {
           {/* TAB 2: STATS */}
           {activeTab === 'stats' && (<div key="tab-stats" className={getSlideClass()}>
             <div className="flex flex-col gap-4">
-              {/* DESIGN.md: Cinematic Typography stats — 6vw mobile */}
-              <div className="bg-white p-5 rounded-[24px] shadow-sm" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
-                <span className="text-[15px] font-black block mb-4 text-slate-800">정산 누적액</span>
+              {/* 출강 성과 요약 */}
+              <div className="bg-white p-5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
+                <span className="text-[15px] font-black block mb-4 text-slate-800">출강 성과 및 요약</span>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 rounded-2xl" style={{background: 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(16,185,129,0.02))', border: '1px solid rgba(16,185,129,0.15)'}}>
-                    <span className="text-[13px] font-black block mb-1.5" style={{color: '#10B981'}}>수령 완료</span>
-                    <strong className="stat-number block" style={{fontSize: '6vw', color: '#10B981'}}>{formatWon(totalNet)}원</strong>
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
+                    <span className="text-[11px] font-bold text-slate-400">총 출강 횟수</span>
+                    <span className="text-[18px] font-black text-slate-800">{lectures.length}건</span>
                   </div>
-                  <div className="p-4 rounded-2xl" style={{background: 'linear-gradient(135deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02))', border: '1px solid rgba(245,158,11,0.15)'}}>
-                    <span className="text-[13px] font-black block mb-1.5" style={{color: '#F59E0B'}}>대기 중</span>
-                    <strong className="stat-number block" style={{fontSize: '6vw', color: '#F59E0B'}}>{formatWon(totalUnpaid)}원</strong>
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
+                    <span className="text-[11px] font-bold text-slate-400">총 출강 시간</span>
+                    <span className="text-[18px] font-black text-indigo-600">{lectures.reduce((sum, l) => sum + (l.classes || 0), 0)}시간</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
+                    <span className="text-[11px] font-bold text-slate-400">평균 시간당 단가</span>
+                    <span className="text-[18px] font-black text-slate-800">{formatWon(lectures.length > 0 ? Math.round(lectures.reduce((sum, l) => sum + (l.rate || 0), 0) / lectures.length) : 0)}원</span>
+                  </div>
+                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
+                    <span className="text-[11px] font-bold text-slate-400">평균 건당 수령액</span>
+                    <span className="text-[18px] font-black text-slate-800">{formatWon(lectures.length > 0 ? Math.round(lectures.reduce((sum, l) => sum + (l.expectedAmount || 0), 0) / lectures.length) : 0)}원</span>
                   </div>
                 </div>
               </div>
@@ -1805,13 +1813,13 @@ function doPost(e) {
           )}
         </div>
 
-        {/* iOS-style Bottom Navigation Bar — absolute relative to card wrapper */}
-        <div className="absolute bottom-6 left-4 right-4 z-40 rounded-3xl border border-slate-200/80 shadow-2xl overflow-hidden" style={{background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: '0px'}}>
+        {/* iOS-style Bottom Navigation Bar — fixed bottom-16 on mobile (above browser bar), absolute bottom-8 on desktop mockup */}
+        <div className="fixed bottom-16 md:absolute md:bottom-8 left-4 right-4 z-40 rounded-3xl border border-slate-200/80 shadow-2xl overflow-hidden" style={{background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: '0px'}}>
           <div className="flex items-center justify-around py-2 px-2">
             {[
               {id:'home', icon:<Home size={22}/>, label:'현황'},
               {id:'calendar', icon:<Calendar size={22}/>, label:'달력'},
-              {id:'add', icon:<Plus size={24}/>, label:'기록', isCenter: true},
+              {id:'add', icon:<Plus size={22}/>, label:'기록', isCenter: true},
               {id:'stats', icon:<BarChart size={22}/>, label:'분석'},
               {id:'settings', icon:<Settings size={22}/>, label:'설정'}
             ].map(t => {
@@ -1836,12 +1844,17 @@ function doPost(e) {
                       });
                       setIsAddModalOpen(true);
                     }}
-                    className="btn-press relative flex flex-col items-center gap-1 -mt-5"
+                    className="btn-press relative flex flex-col items-center gap-1.5 py-2 px-3.5 rounded-2xl"
+                    style={{
+                      color: '#2563EB',
+                      background: 'rgba(37,99,235,0.06)',
+                      transition: 'color 200ms, background 200ms'
+                    }}
                   >
-                    <span className="w-14 h-14 rounded-full bg-[#2563EB] text-white flex items-center justify-center shadow-lg shadow-blue-500/30" style={{border: '4px solid white'}}>
+                    <span style={{display: 'block'}}>
                       {t.icon}
                     </span>
-                    <span style={{fontSize: '10px', fontWeight: 800, color: '#2563EB', lineHeight: 1}}>{t.label}</span>
+                    <span style={{fontSize: '11px', fontWeight: 800, lineHeight: 1}}>{t.label}</span>
                   </button>
                 );
               }

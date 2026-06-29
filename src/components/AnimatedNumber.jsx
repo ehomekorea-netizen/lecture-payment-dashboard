@@ -51,7 +51,7 @@ function AnimatedNumber({ value, prefix = '', suffix = '원', className, style, 
   const transitionDuration = `${duration}ms`;
 
   return (
-    <span ref={ref} className={className} style={{ display: 'inline-flex', ...style }}>
+    <span ref={ref} className={className} style={{ display: 'inline-flex', alignItems: 'center', ...style }}>
       {prefix && <span>{prefix}</span>}
       {chars.map((char, i) => {
         if (char === ',') {
@@ -78,7 +78,7 @@ function AnimatedNumber({ value, prefix = '', suffix = '원', className, style, 
           </span>
         );
       })}
-      {suffix && <span>{suffix}</span>}
+      {suffix && <span style={{ display: 'inline-block', height: '1em', lineHeight: '1.15em', marginLeft: '1px' }}>{suffix}</span>}
     </span>
   );
 }
