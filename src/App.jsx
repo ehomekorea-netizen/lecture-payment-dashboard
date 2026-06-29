@@ -2124,9 +2124,9 @@ function doPost(e) {
           [MODAL 3]: Add/Edit Lecture Modal (Desktop: centered / Mobile: Bottom Sheet)
          ======================================================== */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50" style={{background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)'}}>
-          {/* Mobile: bottom-sheet-enter spring / Desktop: centered card */}
-          <div className="bg-white w-full md:max-w-md rounded-t-[32px] md:rounded-[28px] max-h-[90vh] md:max-h-none overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl bottom-sheet-enter" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
+        <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
+          {/* Mobile: bottom-sheet-enter spring / Desktop: centered modal-zoom-in card */}
+          <div className="bg-white w-full md:max-w-md rounded-t-[32px] md:rounded-[28px] max-h-[90vh] md:max-h-none overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl bottom-sheet-enter md:modal-zoom-in" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
             {/* Drag handle for mobile */}
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
             
@@ -2378,10 +2378,11 @@ function doPost(e) {
           [MODAL 4]: AI Scan Modal (Desktop: centered / Mobile: Bottom Sheet)
          ======================================================== */}
       {isAiModalOpen && (
-        <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50" style={{background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)'}}>
-          <div className="bg-white w-full md:max-w-xl rounded-t-[32px] md:rounded-[28px] max-h-[90vh] overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl bottom-sheet-enter" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
+        <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
+          <div className="bg-white w-full md:max-w-xl rounded-t-[32px] md:rounded-[28px] max-h-[90vh] overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl bottom-sheet-enter md:modal-zoom-in" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
             {/* drag handle for mobile */}
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
+
 
             <div className="p-5 border-b border-toss-border flex items-center justify-between bg-slate-50/50">
               <h3 className="text-sm font-extrabold text-toss-textDark flex items-center gap-1.5">
@@ -2588,8 +2589,8 @@ function doPost(e) {
           [MODAL 5]: Desktop API Settings Modal
          ======================================================== */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 bg-[#191F28]/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="bg-white w-full max-w-md rounded-[28px] border border-toss-border shadow-modal overflow-hidden flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-fade">
+          <div className="bg-white w-full max-w-md rounded-[28px] border border-toss-border shadow-modal overflow-hidden flex flex-col modal-zoom-in">
             <div className="p-5 border-b border-toss-border flex items-center justify-between bg-slate-50/50">
               <h3 className="text-xs font-extrabold text-toss-textDark flex items-center gap-1.5">
                 <Settings size={15} />
@@ -2668,7 +2669,7 @@ function doPost(e) {
           [MODAL 7]: Calendar Date Details Bottom Sheet
          ======================================================== */}
       {selectedCalendarDate && (
-        <div className="fixed inset-0 flex items-end justify-center p-0 z-50 animate-fade-in md:hidden" style={{background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)'}}>
+        <div className="fixed inset-0 flex items-end justify-center p-0 z-50 backdrop-blur-fade md:hidden">
           {/* Bottom Sheet wrapper */}
           <div className="bg-[#F8FAF8] w-full rounded-t-[32px] max-h-[75vh] flex flex-col pb-8 shadow-2xl bottom-sheet-enter overflow-hidden">
             {/* Drag Handle */}
@@ -2742,9 +2743,9 @@ function doPost(e) {
          ======================================================== */}
 
       {receiptItem && (
-        <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-fade-in" style={{background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(8px)'}}>
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50 backdrop-blur-fade">
           {/* Torn Receipt Card */}
-          <div className="bg-white w-full max-w-sm rounded-t-2xl shadow-2xl relative overflow-hidden flex flex-col bottom-sheet-enter">
+          <div className="bg-white w-full max-w-sm rounded-t-2xl shadow-2xl relative overflow-hidden flex flex-col modal-zoom-in">
             {/* Header pattern */}
             <div className="h-2 bg-[#00BCD4] w-full" />
             
