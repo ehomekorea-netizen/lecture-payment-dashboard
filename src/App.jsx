@@ -176,11 +176,16 @@ export default function App() {
 
   // Scroll to top on tab change (target tab body container for full support)
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
-    const container = document.getElementById('tab-body-container');
-    if (container) {
-      container.scrollTo({ top: 0, behavior: 'instant' });
-    }
+    const resetScroll = () => {
+      window.scrollTo(0, 0);
+      const container = document.getElementById('tab-body-container');
+      if (container) {
+        container.scrollTop = 0;
+      }
+    };
+    resetScroll();
+    const timer = setTimeout(resetScroll, 10);
+    return () => clearTimeout(timer);
   }, [activeTab]);
   const [prevTab, setPrevTab] = useState(null); // for slide direction
 
@@ -1628,30 +1633,52 @@ function doPost(e) {
           )}
 
           {/* TAB 2: STATS */}
-          {activeTab === 'stats' && (
-            <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
-              {/* 출강 성과 요약 */}
-              <div className="bg-white p-4.5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
-                <span className="text-[15px] font-black block mb-4 text-slate-800">출강 성과 및 요약</span>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
-                    <span className="text-[11px] font-bold text-slate-400">총 출강 횟수</span>
-                    <AnimatedNumber value={lectures.length} suffix="건" className="text-[18px] font-black text-slate-800" />
-                  </div>
-                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
-                    <span className="text-[11px] font-bold text-slate-400">총 출강 시간</span>
-                    <AnimatedNumber value={lectures.reduce((sum, l) => sum + (l.classes || 0), 0)} suffix="시간" className="text-[18px] font-black text-indigo-600" />
-                  </div>
-                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
-                    <span className="text-[11px] font-bold text-slate-400">평균 시간당 단가</span>
-                    <AnimatedNumber value={lectures.length > 0 ? Math.round(lectures.reduce((sum, l) => sum + (l.rate || 0), 0) / lectures.length) : 0} suffix="원" className="text-[18px] font-black text-slate-800" />
-                  </div>
-                  <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
-                    <span className="text-[11px] font-bold text-slate-400">평균 건당 수령액</span>
-                    <AnimatedNumber value={lectures.length > 0 ? Math.round(lectures.reduce((sum, l) => sum + (l.expectedAmount || 0), 0) / lectures.length) : 0} suffix="원" className="text-[18px] font-black text-slate-800" />
+          {activeTab === 'stats' && (() => {
+            const mostFrequentInstitution = (() => {
+              if (lectures.length === 0) return '없음';
+              const counts = {};
+              lectures.forEach(l => {
+                if (l.institution) {
+                  counts[l.institution] = (counts[l.institution] || 0) + 1;
+                }
+              });
+              let maxCount = 0;
+              let maxInst = '없음';
+              Object.entries(counts).forEach(([inst, count]) => {
+                if (count > maxCount) {
+                  maxCount = count;
+                  maxInst = inst;
+                }
+              });
+              return maxInst;
+            })();
+
+            return (
+              <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
+                {/* 출강 성과 요약 */}
+                <div className="bg-white p-5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
+                  <span className="text-[15px] font-black block mb-4 text-slate-800">출강 성과 및 요약</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
+                      <span className="text-[11px] font-bold text-slate-400">총 출강 횟수</span>
+                      <AnimatedNumber value={lectures.length} suffix="건" className="text-[18px] font-black text-slate-800" />
+                    </div>
+                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
+                      <span className="text-[11px] font-bold text-slate-400">총 출강 시간</span>
+                      <AnimatedNumber value={lectures.reduce((sum, l) => sum + (l.classes || 0), 0)} suffix="시간" className="text-[18px] font-black text-indigo-600" />
+                    </div>
+                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
+                      <span className="text-[11px] font-bold text-slate-400">월별 출강 평균 횟수</span>
+                      <AnimatedNumber value={lectures.length > 0 ? Math.round(lectures.length / (uniqueMonths.length || 1)) : 0} suffix="건" className="text-[18px] font-black text-slate-800" />
+                    </div>
+                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5 min-w-0">
+                      <span className="text-[11px] font-bold text-slate-400">최다 출강 교육기관</span>
+                      <span className="text-[13.5px] font-black text-slate-800 truncate block mt-0.5" title={mostFrequentInstitution}>
+                        {mostFrequentInstitution}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
               {/* 월별 수입 가로 추이 차트 (연도별, 1월~12월) */}
               {(() => {
@@ -1882,7 +1909,8 @@ function doPost(e) {
                 )}
               </div>
             </div>
-          )}
+          );
+        })()}
 
 
 
@@ -1913,14 +1941,14 @@ function doPost(e) {
                         <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
                       </div>
                       <div className="flex gap-2">
-                        <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
+                        <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-400" />
                         <button 
                           onClick={() => {
                             const k = document.getElementById('settings-api-key-mobile').value;
                             handleSaveSettings(k, sheetUrl);
                             alert('Gemini API Key가 저장되었습니다.');
                           }}
-                          className="px-4 py-3 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[13px] transition shadow-sm"
+                          className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm"
                         >
                           저장
                         </button>
@@ -2707,14 +2735,14 @@ function doPost(e) {
                 <span className="font-black text-[11.5px] text-[#1E3A8A] flex items-center gap-1.5"><Database size={14} /> API 연동</span>
                 <div className="flex flex-col gap-1.5">
                   <label className="font-bold text-slate-600">Gemini AI API Key</label>
-                  <input type="password" id="settings-api-key-desktop" defaultValue={apiKey} placeholder="AIzaSy..." className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#1E3A8A]" />
+                  <input type="password" id="settings-api-key-desktop" defaultValue={apiKey} placeholder="AIzaSy..." className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-1.5">
                     <label className="font-bold text-slate-600">구글 시트 웹 앱 URL</label>
                     <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[10px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition">연동 방법</button>
                   </div>
-                  <input type="text" id="settings-sheet-url-desktop" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/..." className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#1E3A8A]" />
+                  <input type="text" id="settings-sheet-url-desktop" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/..." className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
                 </div>
               </div>
               <div className="rounded-2xl p-4 bg-red-50 border border-red-200/60 flex flex-col gap-2">
@@ -2724,7 +2752,7 @@ function doPost(e) {
             </div>
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
               <button type="button" onClick={() => setIsSettingsOpen(false)} className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl transition">닫기</button>
-              <button type="button" onClick={() => { const k=document.getElementById('settings-api-key-desktop').value; const u=document.getElementById('settings-sheet-url-desktop').value; handleSaveSettings(k,u); setIsSettingsOpen(false); }} className="w-full py-2.5 bg-[#1E3A8A] text-white font-black rounded-xl shadow-md hover:bg-[#0F172A] transition">설정 저장</button>
+              <button type="button" onClick={() => { const k=document.getElementById('settings-api-key-desktop').value; const u=document.getElementById('settings-sheet-url-desktop').value; handleSaveSettings(k,u); setIsSettingsOpen(false); }} className="w-full py-2.5 bg-[#2563EB] text-white font-black rounded-xl shadow-md hover:bg-blue-700 transition">설정 저장</button>
             </div>
           </div>
         </div>
