@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  Search, Plus, Calendar, TrendingUp, AlertCircle, 
-  CheckCircle2, X, Download, Upload, Trash2, Edit3, Check, Info,
-  Settings, Sparkles, Database, RefreshCw, Home, BarChart, 
-   BookOpen, Copy, Cloud, ClipboardList
-} from 'lucide-react';
+import { AlertCircle, BarChart, BookOpen, Calendar, Check, CheckCircle2, ChevronDown, ClipboardList, Clock, Cloud, Copy, Database, Download, Edit3, Home, Info, Plus, RefreshCw, Search, Settings, Sparkles, Trash2, TrendingUp, Upload, X } from 'lucide-react';
 import { INITIAL_LECTURES } from './initialData';
 import StableLottie from './components/StableLottie';
 import ConstellationView from './components/ConstellationView';
