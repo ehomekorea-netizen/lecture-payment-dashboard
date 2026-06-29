@@ -296,31 +296,6 @@ export default function App() {
   const [deletedLecture, setDeletedLecture] = useState(null);
   const [undoCountdown, setUndoCountdown] = useState(0);
 
-  // 데이터 불러올 시 달력 자동 동기화 (최근 출강 날짜의 년/월로 달력 이동)
-  useEffect(() => {
-    if (lectures.length > 0) {
-      const sorted = [...lectures].sort((a, b) => {
-        const da = a.registrationDate ? new Date(a.registrationDate).getTime() : 0;
-        const db = b.registrationDate ? new Date(b.registrationDate).getTime() : 0;
-        return db - da;
-      });
-      const latest = sorted[0];
-      const targetDateStr = latest.registrationDate || latest.date || '';
-      if (targetDateStr) {
-        let yr = new Date().getFullYear();
-        let mo = new Date().getMonth();
-        if (targetDateStr.includes('-')) {
-          const d = new Date(targetDateStr);
-          if (!isNaN(d.getTime())) { yr = d.getFullYear(); mo = d.getMonth(); }
-        } else {
-          const match = targetDateStr.match(/(\d+)월/);
-          if (match) mo = parseInt(match[1], 10) - 1;
-        }
-        setCurrentYear(yr);
-        setCurrentMonth(mo);
-      }
-    }
-  }, [lectures]);
 
   useEffect(() => {
     if (undoCountdown <= 0) {
@@ -437,6 +412,31 @@ export default function App() {
     }
     return INITIAL_LECTURES;
   });
+
+  // 데이터 불러올 시 달력 자동 동기화 (최근 출강 날짜의 년/월로 달력 이동)
+  useEffect(() => {
+    if (lectures.length > 0) {
+      const sorted = [...lectures].sort((a, b) => {
+        const da = a.registrationDate ? new Date(a.registrationDate).getTime() : 0;
+        const db = b.registrationDate ? new Date(b.registrationDate).getTime() : 0;
+        return db - da;
+      });
+      const latest = sorted[0];
+      const targetDateStr = latest.registrationDate || latest.date || '';
+      if (targetDateStr) {
+        let yr = new Date().getFullYear();
+        let mo = new Date().getMonth();
+        if (targetDateStr.includes('-')) {
+          const d = new Date(targetDateStr);
+          if (!isNaN(d.getTime())) { yr = d.getFullYear(); mo = d.getMonth(); }
+        } else {
+          const match = targetDateStr.match(/(\d+)월/);
+          if (match) mo = parseInt(match[1], 10) - 1;
+        }
+        setCalDate(new Date(yr, mo, 1));
+      }
+    }
+  }, [lectures]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('All');
