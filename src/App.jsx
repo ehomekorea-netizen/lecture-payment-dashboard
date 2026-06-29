@@ -14,6 +14,16 @@ function formatWon(val) {
   return (Number(val) || 0).toLocaleString();
 }
 
+// 다음 달 계산 유틸리티 (12월 다음은 1월)
+function getNextMonthString() {
+  const now = new Date();
+  let nextMonth = now.getMonth() + 2; // getMonth()는 0~11 이므로 +1이 당월, +2가 익월
+  if (nextMonth > 12) {
+    nextMonth = 1;
+  }
+  return `${nextMonth}월`;
+}
+
 // 안전한 로컬 스토리지 래퍼 (모바일 사파리 사설 브라우징/인앱 브라우저 예외 방지)
 const safeLocalStorage = {
   getItem: (key) => {
@@ -292,6 +302,7 @@ export default function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
+  const [activeMenuCardId, setActiveMenuCardId] = useState(null);
 
 
 
@@ -315,9 +326,9 @@ export default function App() {
     institution: '',
     role: 'Main', // 'Main' | 'Assistant'
     rate: 100000,
-    classes: 2,
+    classes: 4,
     transportFee: 0,
-    month: '',
+    month: getNextMonthString(),
     date: '',
     registrationDate: new Date().toISOString().slice(0, 10),
     isPaid: false,
@@ -750,6 +761,20 @@ ${aiText}
       return;
     }
 
+    if (Number(formData.rate) > 150000) {
+      alert('시간당 강의 단가는 최대 15만원까지만 설정할 수 있습니다.');
+      const el = document.querySelector('input[name="rate"]');
+      if (el) el.focus();
+      return;
+    }
+
+    if (Number(formData.classes) > 16) {
+      alert('총 강의 시간(차시)은 최대 16차시까지만 선택할 수 있습니다.');
+      const el = document.querySelector('select[name="classes"]');
+      if (el) el.focus();
+      return;
+    }
+
     if (!formData.month) {
       alert('정산 예정 달을 선택해 주세요.');
       const el = document.querySelector('select[name="month"]');
@@ -805,9 +830,9 @@ ${aiText}
       institution: '',
       role: 'Main',
       rate: 100000,
-      classes: 2,
+      classes: 4,
       transportFee: 0,
-      month: '',
+      month: getNextMonthString(),
       date: '',
       registrationDate: new Date().toISOString().slice(0, 10),
       isPaid: false,
@@ -1112,7 +1137,7 @@ function doPost(e) {
           <div className="flex items-center justify-between px-4 py-2.5">
             <div className="flex items-center gap-2">
               {/* 2x2 stamp SVG Logo */}
-              <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 drop-shadow-sm">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 drop-shadow-sm">
                 <rect width="32" height="32" rx="7" fill="#1E3A8A" />
                 <text x="8" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">정</text>
                 <text x="24" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">산</text>
@@ -1120,10 +1145,10 @@ function doPost(e) {
                 <text x="24" y="24" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">서</text>
               </svg>
               <div>
-                <h1 className="text-[#0F172A] text-sm font-black tracking-tight" style={{lineHeight: 1.1}}>
+                <h1 className="text-[#0F172A] text-[16px] font-black tracking-tight" style={{lineHeight: 1.15}}>
                   정산비서
                 </h1>
-                <p className="text-[9px] text-[#94A3B8] font-semibold tracking-wider uppercase">출강 관리 비서</p>
+                <p className="text-[10px] text-[#94A3B8] font-bold tracking-wider uppercase">출강 관리 비서</p>
               </div>
             </div>
 
@@ -1149,9 +1174,9 @@ function doPost(e) {
                     institution: '',
                     role: 'Main',
                     rate: 100000,
-                    classes: 2,
+                    classes: 4,
                     transportFee: 0,
-                    month: '',
+                    month: getNextMonthString(),
                     date: '',
                     registrationDate: new Date().toISOString().slice(0, 10),
                     isPaid: false,
@@ -1186,11 +1211,11 @@ function doPost(e) {
                   className="rounded-[20px] p-4 bg-white border border-slate-200/60 flex flex-col gap-1 shadow-sm relative overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 w-12 h-12 rounded-full bg-blue-50/50 opacity-40 translate-x-2 -translate-y-2" />
-                  <span className="text-[10px] font-black text-slate-400">정산 대기</span>
-                  <span className="text-base font-extrabold text-slate-800 tracking-tight">
+                  <span className="text-[12px] font-black text-slate-400">정산 대기</span>
+                  <span className="text-lg font-black text-slate-800 tracking-tight">
                     ₩{formatWon(totalUnpaid)}
                   </span>
-                  <div className="text-[9px] text-slate-500 font-bold mt-0.5">
+                  <div className="text-[11px] text-slate-500 font-bold mt-0.5">
                     총 {unpaidCount}건 대기 중
                   </div>
                 </div>
@@ -1200,11 +1225,11 @@ function doPost(e) {
                   className="rounded-[20px] p-4 bg-white border border-slate-200/60 flex flex-col gap-1 shadow-sm relative overflow-hidden"
                 >
                   <div className="absolute top-0 right-0 w-12 h-12 rounded-full bg-emerald-50/50 opacity-40 translate-x-2 -translate-y-2" />
-                  <span className="text-[10px] font-black text-slate-400">정산 완료</span>
-                  <span className="text-base font-extrabold text-emerald-600 tracking-tight">
+                  <span className="text-[12px] font-black text-slate-400">정산 완료</span>
+                  <span className="text-lg font-black text-emerald-600 tracking-tight">
                     ₩{formatWon(totalNet)}
                   </span>
-                  <div className="text-[9px] text-emerald-600 font-bold mt-0.5">
+                  <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
                     총 {lectures.filter(l=>l.isPaid).length}건 완료
                   </div>
                 </div>
@@ -1222,13 +1247,13 @@ function doPost(e) {
                     placeholder="교육 기관명 검색..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 border border-toss-border rounded-xl text-xs bg-[#F8FAF8]"
+                    className="w-full pl-8 pr-3 py-2 border border-toss-border rounded-xl text-[13px] font-medium bg-[#F8FAF8]"
                   />
                 </div>
-                <div className="flex gap-1 overflow-x-auto py-0.5 scrollbar-none">
+                <div className="flex gap-1.5 overflow-x-auto py-1 scrollbar-none">
                   <button 
                     onClick={() => setSelectedMonth('All')}
-                    className={`text-[9px] font-bold px-2.5 py-1 rounded-lg ${selectedMonth === 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                    className={`text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
                   >
                     전체 월
                   </button>
@@ -1236,7 +1261,7 @@ function doPost(e) {
                     <button 
                       key={idx}
                       onClick={() => setSelectedMonth(m)}
-                      className={`text-[9px] font-bold px-2.5 py-1 rounded-lg ${selectedMonth === m ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
+                      className={`text-[11px] font-black px-3 py-1.5 rounded-lg ${selectedMonth === m ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-toss-textSub'}`}
                     >
                       {m}
                     </button>
@@ -1263,27 +1288,27 @@ function doPost(e) {
                         <div className="card-hover bg-white flex flex-col gap-2.5 relative" style={{animationDelay:(idx*55)+'ms',padding:'18px'}}>
                           <div className="flex items-start justify-between">
                             <div>
-                              <div className="flex items-center gap-1.5 mb-1">
-                                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-lg inline-block" style={{background:'rgba(30,58,138,0.07)',color:'#1E3A8A'}}>{l.month}월 {l.date}일</span>
-                                {l.role === 'Assistant' && <span className="text-[9px] font-black text-slate-400 border border-slate-200 px-1.5 rounded">보조</span>}
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <span className="text-[13px] font-black px-3 py-1 rounded-lg inline-block" style={{background:'rgba(30,58,138,0.07)',color:'#1E3A8A'}}>{l.month} {l.date}</span>
+                                {l.role === 'Assistant' && <span className="text-[11px] font-black text-slate-400 border border-slate-200 px-1.5 rounded">보조</span>}
                               </div>
-                              <h3 className="text-[15.5px] font-black text-[#0F172A] leading-tight tracking-tight">{l.institution}</h3>
+                              <h3 className="text-[17.5px] font-black text-[#0F172A] leading-tight tracking-tight">{l.institution}</h3>
                             </div>
-                            <button onClick={() => handleTogglePaid(l)} className="btn-press text-[11.5px] font-black px-3 py-1 rounded-xl transition" style={l.isPaid?{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.25)',color:'#10B981'}:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',color:'#F59E0B'}}>
+                            <button onClick={() => handleTogglePaid(l)} className="btn-press text-[13px] font-black px-3.5 py-1.5 rounded-xl transition" style={l.isPaid?{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.25)',color:'#10B981'}:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',color:'#F59E0B'}}>
                               {l.isPaid ? '✓ 완료' : '⏳ 대기'}
                             </button>
                           </div>
-                          <div className="grid grid-cols-2 gap-y-1.5 text-[12px] text-slate-500 py-2.5 border-y border-dashed border-slate-200">
-                            <div className="flex justify-between pr-3.5"><span className="font-semibold">단가:</span><span className="font-extrabold text-slate-800">₩{formatWon(l.rate)} × {l.classes}차시</span></div>
-                            <div className="flex justify-between pl-3.5 border-l border-slate-200"><span className="font-semibold">총액:</span><span className="font-black text-[#1E3A8A]">₩{formatWon(l.expectedAmount)}</span></div>
+                          <div className="grid grid-cols-2 gap-y-1.5 text-[14px] text-slate-500 py-3 border-y border-dashed border-slate-200">
+                            <div className="flex justify-between pr-3.5"><span className="font-bold">단가:</span><span className="font-extrabold text-slate-800">₩{formatWon(l.rate)} × {l.classes}차시</span></div>
+                            <div className="flex justify-between pl-3.5 border-l border-slate-200"><span className="font-bold">총액:</span><span className="font-black text-[#1E3A8A]">₩{formatWon(l.expectedAmount)}</span></div>
                           </div>
                           <div className="flex items-center justify-between mt-2 pt-2.5" style={{borderTop:'1px dashed rgba(31,46,91,0.08)'}}>
                             <div className="flex items-center gap-2">
                               <div>
-                                <span className="text-[11px] font-bold text-slate-400">실수령액</span>
-                                <div className="text-[18px] font-black tracking-tight" style={{color:l.isPaid?'#10B981':'#64748B',lineHeight:1.1}}>{l.isPaid?('₩'+formatWon(l.netAmount)):'⏳ 대기'}</div>
+                                <span className="text-[13px] font-extrabold text-slate-400">실수령액</span>
+                                <div className="text-[20px] font-black tracking-tight" style={{color:l.isPaid?'#10B981':'#64748B',lineHeight:1.1}}>{l.isPaid?('₩'+formatWon(l.netAmount)):'⏳ 대기'}</div>
                               </div>
-                              <button type="button" onClick={(e) => {e.stopPropagation();setReceiptItem(l);}} className="btn-press text-[11px] font-black px-3 py-1 rounded-xl bg-slate-100 text-slate-600 border border-slate-200">영수증</button>
+                              <button type="button" onClick={(e) => {e.stopPropagation();setReceiptItem(l);}} className="btn-press text-[13px] font-black px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 border border-slate-200">영수증</button>
                             </div>
                             <div className="relative">
                               <button onClick={(e) => {e.stopPropagation();setActiveMenuCardId(activeMenuCardId===l.id?null:l.id);}} className="btn-press p-2 rounded-xl hover:bg-slate-100 transition">
@@ -1323,27 +1348,27 @@ function doPost(e) {
                     >
                       &lt;
                     </button>
-                    <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5 w-24 justify-center">
+                    <h3 className="text-[17px] font-black text-slate-800 flex items-center gap-1.5 w-32 justify-center">
                       {currentYear}년 {currentMonth + 1}월
                     </h3>
                     <button 
                       type="button"
                       onClick={handleNextMonth}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 transition active:scale-95 text-slate-500 font-bold"
+                      className="p-2 rounded-lg hover:bg-slate-100 transition active:scale-95 text-slate-500 font-black text-base"
                     >
                       &gt;
                     </button>
                   </div>
                   
                   {new Date().getMonth() === currentMonth && new Date().getFullYear() === currentYear ? (
-                    <span className="text-[9.5px] text-[#2563EB] font-black bg-blue-50 border border-blue-100 px-2.5 py-0.5 rounded-full">
+                    <span className="text-[11px] text-[#2563EB] font-black bg-blue-50 border border-blue-100 px-3 py-1 rounded-full">
                       이번 달
                     </span>
                   ) : (
                     <button
                       type="button"
                       onClick={() => setCalDate(new Date())}
-                      className="text-[9.5px] text-slate-500 hover:text-slate-700 font-bold bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-full transition"
+                      className="text-[11px] text-slate-500 hover:text-slate-700 font-black bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-full transition"
                     >
                       오늘로
                     </button>
@@ -1351,7 +1376,7 @@ function doPost(e) {
                 </div>
                 
                 {/* 요일 헤더 */}
-                <div className="grid grid-cols-7 gap-x-1 text-center border-b border-slate-100 pb-2.5 mb-3 text-[10px] font-black text-[#94A3B8]">
+                <div className="grid grid-cols-7 gap-x-1 text-center border-b border-slate-100 pb-2.5 mb-3 text-[12px] font-black text-[#94A3B8]">
                   {['일','월','화','수','목','금','토'].map((d, idx) => (
                     <span key={d} className={idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : ''}>{d}</span>
                   ))}
@@ -1400,7 +1425,7 @@ function doPost(e) {
                             : 'text-slate-400'
                         } ${isToday ? 'ring-2 ring-[#1E3A8A]/30 bg-blue-50/20' : ''}`}
                       >
-                        <span className={`font-bold ${hasLectures ? 'text-[#0F172A] font-extrabold text-[12px]' : ''} ${isToday ? 'text-[#1E3A8A]' : ''}`}>{day}</span>
+                        <span className={`text-[13px] font-black ${hasLectures ? 'text-[#0F172A] font-black text-[15px]' : 'text-slate-500'} ${isToday ? 'text-[#1E3A8A]' : ''}`}>{day}</span>
                         {/* 도트 */}
                         <div className="flex gap-0.5 justify-center mt-0.5 h-1">
                           {hasPaid && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
@@ -1453,11 +1478,11 @@ function doPost(e) {
               {/* 월별 수입 및 시간 더블 바 차트 */}
               <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-4 animate-fade-in">
                 <div>
-                  <h4 className="text-xs font-black text-slate-800">월별 수입 & 출강 시간 추이</h4>
-                  <p className="text-[9.5px] text-slate-400 mt-0.5">파란색: 수입(원) / 하늘색: 강의 시간(시간)</p>
+                  <h4 className="text-[15px] font-black text-slate-800">월별 수입 & 출강 시간 추이</h4>
+                  <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">파란색: 수입(원) / 하늘색: 강의 시간(시간)</p>
                 </div>
                 {chartData.length === 0 ? (
-                  <div className="text-[10.5px] text-slate-400 text-center py-10">출강 데이터가 없습니다.</div>
+                  <div className="text-[12px] text-slate-400 text-center py-10 font-bold">출강 데이터가 없습니다.</div>
                 ) : (
                   <div className="flex flex-col gap-5 pt-2">
                     {chartData.map((d, idx) => {
@@ -1468,21 +1493,21 @@ function doPost(e) {
 
                       return (
                         <div key={idx} className="flex flex-col gap-1">
-                          <span className="text-[10px] font-black text-slate-600">{d.month}</span>
-                          <div className="flex flex-col gap-1 bg-slate-50 p-2 rounded-xl border border-slate-100">
+                          <span className="text-[12px] font-black text-slate-600">{d.month}</span>
+                          <div className="flex flex-col gap-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                             {/* 수입 바 */}
-                            <div className="flex items-center justify-between text-[9.5px]">
+                            <div className="flex items-center justify-between text-[11px] font-bold">
                               <span className="text-slate-400">정산수입</span>
-                              <span className="font-extrabold text-slate-800">₩{formatWon(d.total)}</span>
+                              <span className="font-black text-slate-800">₩{formatWon(d.total)}</span>
                             </div>
-                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                               <div className="h-full bg-[#2563EB] rounded-full transition-all" style={{ width: `${incomePercent}%` }} />
                             </div>
 
                             {/* 시간 바 */}
-                            <div className="flex items-center justify-between text-[9.5px] mt-1">
-                              <span className="text-slate-400 font-medium">강의시간</span>
-                              <span className="font-bold text-indigo-600">{d.hours}시간</span>
+                            <div className="flex items-center justify-between text-[11px] font-bold mt-1">
+                              <span className="text-slate-400">강의시간</span>
+                              <span className="font-black text-indigo-600">{d.hours}시간</span>
                             </div>
                             <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                               <div className="h-full bg-sky-400 rounded-full transition-all" style={{ width: `${hoursPercent}%` }} />
@@ -1498,11 +1523,11 @@ function doPost(e) {
               {/* 주관사(기관)별 출강 비중 */}
               <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3">
                 <div>
-                  <h4 className="text-xs font-black text-slate-800">주요 주관사별 비중</h4>
-                  <p className="text-[9.5px] text-slate-400 mt-0.5">매출 기여도 기준 정렬</p>
+                  <h4 className="text-[15px] font-black text-slate-800">주요 주관사별 비중</h4>
+                  <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">매출 기여도 기준 정렬</p>
                 </div>
                 {lectures.length === 0 ? (
-                  <div className="text-[10.5px] text-slate-400 text-center py-10">데이터가 없습니다.</div>
+                  <div className="text-[12px] text-slate-400 text-center py-10 font-bold">데이터가 없습니다.</div>
                 ) : (
                   <div className="flex flex-col gap-3">
                     {(() => {
@@ -1521,12 +1546,12 @@ function doPost(e) {
                         .slice(0, 5); // TOP 5
 
                       return sortedInsts.map((inst, i) => (
-                        <div key={i} className="flex flex-col gap-1">
-                          <div className="flex justify-between items-center text-[10px]">
-                            <span className="font-bold text-slate-700">{inst.name}</span>
-                            <span className="text-slate-500 font-semibold">{Math.round(inst.pct)}% (₩{formatWon(inst.val)})</span>
+                        <div key={i} className="flex flex-col gap-1.5">
+                          <div className="flex justify-between items-center text-[12px] font-bold">
+                            <span className="text-slate-700">{inst.name}</span>
+                            <span className="text-slate-500">{Math.round(inst.pct)}% (₩{formatWon(inst.val)})</span>
                           </div>
-                          <div className="w-full h-2 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                          <div className="w-full h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
                             <div 
                               className="h-full bg-indigo-500 rounded-full" 
                               style={{ width: `${inst.pct}%`, opacity: 1 - (i * 0.15) }} 
@@ -1548,19 +1573,19 @@ function doPost(e) {
           {activeTab === 'sync' && (<div key="tab-sync" className={getSlideClass()}>
             <div className="flex flex-col gap-4">
               <div className="bg-white p-4 rounded-[20px] border border-toss-border shadow-sm flex flex-col gap-3">
-                <h3 className="text-xs font-extrabold text-toss-textDark flex items-center gap-1">
-                  <Database size={13} className="text-toss-blue" />
+                <h3 className="text-[15px] font-black text-toss-textDark flex items-center gap-1.5">
+                  <Database size={15} className="text-toss-blue" />
                   구글 스프레드시트 클라우드 백업
                 </h3>
 
                 {!sheetUrl ? (
-                  <div className="p-3 bg-orange-50 border border-orange-200 text-toss-amber rounded-xl text-[10px] leading-relaxed">
+                  <div className="p-4 bg-orange-50 border border-orange-200 text-toss-amber rounded-xl text-[12px] font-semibold leading-relaxed">
                     [환경 설정] 탭에 본인의 <strong>구글 시트 웹 앱 URL</strong>을 연동하면 클라우드 실시간 백업이 활성화됩니다.
                   </div>
                 ) : (
                   <>
                     {syncMessage && (
-                      <div className={`p-2.5 rounded-xl border text-[10px] ${syncMessage.type === 'success' ? 'bg-green-50 border-green-200 text-toss-green' : 'bg-red-50 border-red-200 text-toss-red'}`}>
+                      <div className={`p-3 rounded-xl border text-[12px] font-semibold ${syncMessage.type === 'success' ? 'bg-green-50 border-green-200 text-toss-green' : 'bg-red-50 border-red-200 text-toss-red'}`}>
                         {syncMessage.text}
                       </div>
                     )}
@@ -1568,17 +1593,17 @@ function doPost(e) {
                       <button
                         onClick={fetchFromGoogleSheet}
                         disabled={syncLoading}
-                        className="w-full py-2.5 text-xs font-bold bg-blue-50 border border-blue-100 text-toss-blue rounded-xl flex items-center justify-center gap-1 hover:bg-blue-100"
+                        className="w-full py-3.5 text-[13px] font-black bg-blue-50 border border-blue-100 text-toss-blue rounded-xl flex items-center justify-center gap-1 hover:bg-blue-100 transition"
                       >
-                        {syncLoading ? <RefreshCw size={12} className="animate-spin" /> : <Download size={12} />}
+                        {syncLoading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
                         시트 데이터 불러오기 (Pull)
                       </button>
                       <button
                         onClick={() => syncToGoogleSheet(lectures)}
                         disabled={syncLoading}
-                        className="w-full py-2.5 text-xs font-bold bg-[#1F2E5B] text-white rounded-xl flex items-center justify-center gap-1 hover:bg-[#172346]"
+                        className="w-full py-3.5 text-[13px] font-black bg-[#1F2E5B] text-white rounded-xl flex items-center justify-center gap-1 hover:bg-[#172346] transition"
                       >
-                        {syncLoading ? <RefreshCw size={12} className="animate-spin" /> : <Upload size={12} />}
+                        {syncLoading ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
                         시트에 데이터 백업하기 (Push)
                       </button>
                     </div>
@@ -1588,17 +1613,16 @@ function doPost(e) {
 
               {/* Collect UI: Premium Animated File Upload Card */}
               <div className="bg-white p-5 rounded-[24px] border border-toss-border shadow-sm flex flex-col gap-3">
-                <span className="text-xs font-extrabold text-toss-textDark">로컬 데이터 내보내기 & 가져오기</span>
+                <span className="text-[14px] font-black text-toss-textDark">로컬 데이터 내보내기 & 가져오기</span>
                 
                 <div className="grid grid-cols-1 gap-3.5">
                   {/* CSV Export Button */}
                   <button 
                     onClick={handleExportCSV} 
-                    className="w-full py-3 bg-[#F8FAF8] border border-toss-border hover:border-toss-blue text-toss-textDark text-[11px] font-bold rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                    className="w-full py-3.5 bg-[#F8FAF8] border border-toss-border hover:border-toss-blue text-toss-textDark text-[13px] font-black rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-sm"
                   >
-                    <Download size={13} className="text-toss-blue" />
-                    현재 출강 이력 CSV로 내려받기
-                  </button>
+                    <Download size={14} className="text-toss-blue" />
+                    현재 출강 이력 CSV로 내려받기</button>
                   
                   {/* Collect UI Cloud Upload Area */}
                   <div className="relative border-2 border-dashed border-toss-border/80 rounded-2xl p-6 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
@@ -1625,8 +1649,8 @@ function doPost(e) {
                       </div>
                     ) : (
                       <>
-                        <span className="text-[11px] font-black text-slate-800">CSV 백업 파일 가져오기</span>
-                        <p className="text-[9px] text-slate-400 mt-1 leading-normal">
+                        <span className="text-[13px] font-black text-slate-800">CSV 백업 파일 가져오기</span>
+                        <p className="text-[11px] text-slate-400 mt-1.5 leading-normal font-semibold">
                           이곳을 탭하거나 CSV 파일을 끌어놓으세요.<br/>
                           (이전 백업본이 현재 리스트와 병합됩니다.)
                         </p>
@@ -1646,31 +1670,31 @@ function doPost(e) {
           {activeTab === 'settings' && (<div key="tab-settings" className={getSlideClass()}>
             <div className="flex flex-col gap-5">
               <div className="rounded-[24px] bg-white border border-slate-200/60 p-5 flex flex-col gap-5 shadow-sm">
-                <div className="flex items-center gap-2"><Database size={16} className="text-[#1E3A8A]" /><h3 className="text-[13px] font-black text-slate-800 tracking-tight">API 연동 설정</h3></div>
+                <div className="flex items-center gap-2"><Database size={18} className="text-[#1E3A8A]" /><h3 className="text-[15px] font-black text-slate-800 tracking-tight">API 연동 설정</h3></div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-1.5">
-                    <label className="text-[11px] font-black text-slate-600">Gemini AI API Key</label>
-                    <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[10px] font-black">?</span></button>
+                    <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
+                    <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
                   </div>
-                  <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-[12px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
+                  <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="w-full px-4 py-3.5 border border-slate-200 rounded-xl text-[14px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center gap-1.5">
-                    <label className="text-[11px] font-black text-slate-600">구글 시트 웹 앱 URL</label>
-                    <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[10px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition">연동 방법 보기</button>
+                    <label className="text-[13px] font-black text-slate-600">구글 시트 웹 앱 URL</label>
+                    <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[12px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition">연동 방법 보기</button>
                   </div>
-                  <input type="text" id="settings-sheet-url-mobile" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/..." className="w-full px-4 py-3 border border-slate-200 rounded-xl text-[12px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
+                  <input type="text" id="settings-sheet-url-mobile" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/..." className="w-full px-4 py-3.5 border border-slate-200 rounded-xl text-[14px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
                 </div>
-                <button onClick={() => { const k=document.getElementById('settings-api-key-mobile').value; const u=document.getElementById('settings-sheet-url-mobile').value; handleSaveSettings(k,u); }} className="w-full py-3.5 text-[13px] font-black text-white bg-[#1E3A8A] hover:bg-[#0F172A] rounded-xl shadow-md transition">설정 정보 저장</button>
+                <button onClick={() => { const k=document.getElementById('settings-api-key-mobile').value; const u=document.getElementById('settings-sheet-url-mobile').value; handleSaveSettings(k,u); }} className="w-full py-4 text-[15px] font-black text-white bg-[#1E3A8A] hover:bg-[#0F172A] rounded-xl shadow-md transition">설정 정보 저장</button>
               </div>
               <div className="rounded-[24px] p-5 flex flex-col gap-3" style={{background:'linear-gradient(135deg,#FEF2F2 0%,#FFF1F2 100%)',border:'1px solid rgba(239,68,68,0.15)'}}>
-                <div className="flex items-center gap-2"><AlertCircle size={15} className="text-red-500" /><span className="text-[12px] font-black text-red-700">기록 데이터 초기화</span></div>
-                <p className="text-[10.5px] text-red-600/70 leading-relaxed font-semibold">앱 내에 기록된 모든 강의 데이터와 API 설정값을 지우고 초기화합니다. 이 작업은 되돌릴 수 없습니다.</p>
-                <button onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){safeLocalStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} className="py-3 text-[12px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md transition">앱 전체 데이터 초기화</button>
+                <div className="flex items-center gap-2"><AlertCircle size={17} className="text-red-500" /><span className="text-[14px] font-black text-red-700">기록 데이터 초기화</span></div>
+                <p className="text-[12px] text-red-600/70 leading-relaxed font-semibold">앱 내에 기록된 모든 강의 데이터와 API 설정값을 지우고 초기화합니다. 이 작업은 되돌릴 수 없습니다.</p>
+                <button onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){safeLocalStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} className="py-3.5 text-[14px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md transition">앱 전체 데이터 초기화</button>
               </div>
               <div className="rounded-[24px] p-5 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-2 items-center text-center">
-                <div className="flex items-center gap-2"><BookOpen size={15} className="text-[#1E3A8A]" /><span className="text-[13px] font-black text-slate-800">정산비서 정보</span></div>
-                <p className="text-[9.5px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.2.2</p>
+                <div className="flex items-center gap-2"><BookOpen size={17} className="text-[#1E3A8A]" /><span className="text-[15px] font-black text-slate-800">정산비서 정보</span></div>
+                <p className="text-[11px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.2.2</p>
               </div>
             </div>
           </div>
@@ -1687,16 +1711,16 @@ function doPost(e) {
           
           <div className="flex items-center justify-around py-2 px-2">
             {[
-              {id:'home', icon:<Home size={20}/>, label:'기록'},
-              {id:'calendar', icon:<Calendar size={20}/>, label:'달력'},
-              {id:'stats', icon:<BarChart size={20}/>, label:'분석'},
-              {id:'sync', icon:<RefreshCw size={20}/>, label:'백업'},
-              {id:'settings', icon:<Settings size={20}/>, label:'설정'}
+              {id:'home', icon:<Home size={22}/>, label:'기록'},
+              {id:'calendar', icon:<Calendar size={22}/>, label:'달력'},
+              {id:'stats', icon:<BarChart size={22}/>, label:'분석'},
+              {id:'sync', icon:<RefreshCw size={22}/>, label:'백업'},
+              {id:'settings', icon:<Settings size={22}/>, label:'설정'}
             ].map(t => (
               <button
                 key={t.id}
                 onClick={() => switchTab(t.id)}
-                className="btn-press relative flex flex-col items-center gap-1 py-1.5 px-3.5 rounded-2xl"
+                className="btn-press relative flex flex-col items-center gap-1.5 py-2 px-3.5 rounded-2xl"
                 style={{
                   color: activeTab === t.id ? '#2563EB' : '#94a3b8',
                   background: activeTab === t.id ? 'rgba(37,99,235,0.06)' : 'transparent',
@@ -1708,7 +1732,7 @@ function doPost(e) {
                   {t.icon}
                 </span>
                 {/* label */}
-                <span style={{fontSize: '9px', fontWeight: activeTab === t.id ? 800 : 600, letterSpacing: activeTab === t.id ? '-0.01em' : 0, lineHeight: 1}}>{t.label}</span>
+                <span style={{fontSize: '11px', fontWeight: activeTab === t.id ? 800 : 600, letterSpacing: activeTab === t.id ? '-0.01em' : 0, lineHeight: 1}}>{t.label}</span>
                 {/* active pill indicator */}
                 {activeTab === t.id && (
                   <span style={{position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:'24px', height:'2.5px', borderRadius:'99px', background:'#2563EB'}} />
@@ -1729,7 +1753,7 @@ function doPost(e) {
           <div className="max-w-6xl mx-auto px-8 py-3.5 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               {/* 2x2 stamp SVG Logo */}
-              <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 drop-shadow-sm">
+              <svg width="38" height="38" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 drop-shadow-sm">
                 <rect width="32" height="32" rx="7" fill="#1E3A8A" />
                 <text x="8" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">정</text>
                 <text x="24" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">산</text>
@@ -1737,10 +1761,10 @@ function doPost(e) {
                 <text x="24" y="24" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">서</text>
               </svg>
               <div>
-                <h1 className="text-slate-900 font-black tracking-tight" style={{fontSize: '18px', lineHeight: 1.1}}>
+                <h1 className="text-slate-900 font-black tracking-tight" style={{fontSize: '22px', lineHeight: 1.15}}>
                   정산비서
                 </h1>
-                <p style={{fontSize: '9px', color: '#64748B', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase'}}>출강료 정산 비서</p>
+                <p style={{fontSize: '11px', color: '#64748B', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase'}}>출강료 정산 비서</p>
               </div>
             </div>
 
@@ -1782,9 +1806,9 @@ function doPost(e) {
                     institution: '',
                     role: 'Main',
                     rate: 100000,
-                    classes: 2,
+                    classes: 4,
                     transportFee: 0,
-                    month: '',
+                    month: getNextMonthString(),
                     date: '',
                     registrationDate: new Date().toISOString().slice(0, 10),
                     isPaid: false,
@@ -1981,7 +2005,7 @@ function doPost(e) {
                   <button
                     onClick={() => {
                       setEditingLecture(null);
-                      setFormData({ institution: '', role: 'Main', rate: 100000, classes: 2, transportFee: 0, month: '', date: '', registrationDate: new Date().toISOString().slice(0, 10), isPaid: false, taxRate: '8.8%', taxBase: 'LectureOnly', customTax: 0 });
+                      setFormData({ institution: '', role: 'Main', rate: 100000, classes: 4, transportFee: 0, month: getNextMonthString(), date: '', registrationDate: new Date().toISOString().slice(0, 10), isPaid: false, taxRate: '8.8%', taxBase: 'LectureOnly', customTax: 0 });
                       setIsAddModalOpen(true);
                     }}
                     className="px-4 py-2 text-xs font-bold rounded-xl transition text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm"
@@ -2149,10 +2173,10 @@ function doPost(e) {
             {/* Folder-Tab style Header: 직접 등록 / 즐겨찾기 선택 */}
             <div className="px-5 pt-4 pb-0 flex items-end justify-between bg-slate-100/80 border-b border-slate-200">
               <div className="flex gap-1">
-                <button type="button" onClick={() => setFormData(prev => ({ ...prev, _tab: 'record' }))} className="px-5 py-3 text-[11.5px] font-black rounded-t-xl transition-all border-t border-x" style={{color:(formData._tab||'record')==='record'?'#1E3A8A':'#64748B',backgroundColor:(formData._tab||'record')==='record'?'#FFFFFF':'transparent',borderColor:(formData._tab||'record')==='record'?'#CBD5E1 #CBD5E1 transparent #CBD5E1':'transparent',borderTopWidth:(formData._tab||'record')==='record'?'3px':'1px',borderTopColor:(formData._tab||'record')==='record'?'#1E3A8A':'transparent',transform:(formData._tab||'record')==='record'?'translateY(1px)':'none',zIndex:(formData._tab||'record')==='record'?10:1}}>
+                <button type="button" onClick={() => setFormData(prev => ({ ...prev, _tab: 'record' }))} className="px-5 py-3 text-[13.5px] font-black rounded-t-xl transition-all border-t border-x" style={{color:(formData._tab||'record')==='record'?'#1E3A8A':'#64748B',backgroundColor:(formData._tab||'record')==='record'?'#FFFFFF':'transparent',borderColor:(formData._tab||'record')==='record'?'#CBD5E1 #CBD5E1 transparent #CBD5E1':'transparent',borderTopWidth:(formData._tab||'record')==='record'?'3px':'1px',borderTopColor:(formData._tab||'record')==='record'?'#1E3A8A':'transparent',transform:(formData._tab||'record')==='record'?'translateY(1px)':'none',zIndex:(formData._tab||'record')==='record'?10:1}}>
                   {editingLecture ? '기록 수정 ✏️' : '직접 등록 ✍️'}
                 </button>
-                <button type="button" onClick={() => setFormData(prev => ({ ...prev, _tab: 'presets' }))} className="px-5 py-3 text-[11.5px] font-black rounded-t-xl transition-all border-t border-x" style={{color:(formData._tab||'presets')==='presets'?'#1E3A8A':'#64748B',backgroundColor:(formData._tab||'presets')==='presets'?'#FFFFFF':'transparent',borderColor:(formData._tab||'presets')==='presets'?'#CBD5E1 #CBD5E1 transparent #CBD5E1':'transparent',borderTopWidth:(formData._tab||'presets')==='presets'?'3px':'1px',borderTopColor:(formData._tab||'presets')==='presets'?'#1E3A8A':'transparent',transform:(formData._tab||'presets')==='presets'?'translateY(1px)':'none',zIndex:(formData._tab||'presets')==='presets'?10:1}}>
+                <button type="button" onClick={() => setFormData(prev => ({ ...prev, _tab: 'presets' }))} className="px-5 py-3 text-[13.5px] font-black rounded-t-xl transition-all border-t border-x" style={{color:(formData._tab||'presets')==='presets'?'#1E3A8A':'#64748B',backgroundColor:(formData._tab||'presets')==='presets'?'#FFFFFF':'transparent',borderColor:(formData._tab||'presets')==='presets'?'#CBD5E1 #CBD5E1 transparent #CBD5E1':'transparent',borderTopWidth:(formData._tab||'presets')==='presets'?'3px':'1px',borderTopColor:(formData._tab||'presets')==='presets'?'#1E3A8A':'transparent',transform:(formData._tab||'presets')==='presets'?'translateY(1px)':'none',zIndex:(formData._tab||'presets')==='presets'?10:1}}>
                   즐겨찾기 선택 ⭐
                 </button>
               </div>
@@ -2163,7 +2187,7 @@ function doPost(e) {
 
             {/* ─── TAB: 출강 기록 ─── */}
             {(formData._tab || 'record') === 'record' && (
-              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 flex flex-col gap-4.5 text-xs">
+              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto overflow-x-hidden p-5 flex flex-col gap-4.5 text-sm">
 
                 {/* 즐겨찾기 피커 */}
                 <div className="flex flex-col gap-2 p-4 rounded-2xl" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px solid rgba(30, 58, 138, 0.12)'}}>
@@ -2275,6 +2299,7 @@ function doPost(e) {
                       type="number"
                       name="rate"
                       required
+                      max="150000"
                       value={formData.rate}
                       onChange={handleInputChange}
                       readOnly={!!formData._presetLocked}
@@ -2296,7 +2321,7 @@ function doPost(e) {
                       onChange={(e) => setFormData(prev => ({ ...prev, classes: Number(e.target.value) }))}
                       className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-center font-black text-[12px] text-[#0F172A] focus:outline-none focus:border-[#1E3A8A]"
                     >
-                      {Array.from({length: 24}, (_, i) => i + 1).map(c => (
+                      {Array.from({length: 16}, (_, i) => i + 1).map(c => (
                         <option key={c} value={c}>{c}차시</option>
                       ))}
                     </select>
