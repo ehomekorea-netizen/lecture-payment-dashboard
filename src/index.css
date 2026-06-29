@@ -3,8 +3,11 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    background-color: #1F2E5B; /* FOUC Prevention Color */
+  }
   body {
-    @apply bg-slate-50 text-[#191F28] font-sans antialiased;
+    @apply bg-[#F8FAF8] text-[#1F2E5B] font-sans antialiased;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

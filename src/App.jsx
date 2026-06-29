@@ -1036,11 +1036,11 @@ function doPost(e) {
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-[#F8FAF8] p-3 rounded-xl border border-toss-border">
                     <span className="text-[9px] text-toss-textSub block">수령 완료</span>
-                    <strong className="text-xs font-bold text-toss-green">₩{formatWon(totalNet)}</strong>
+                    <strong className="text-[5vw] font-black tracking-tighter text-toss-green leading-none block mt-1">₩{formatWon(totalNet)}</strong>
                   </div>
                   <div className="bg-[#F8FAF8] p-3 rounded-xl border border-toss-border">
                     <span className="text-[9px] text-toss-textSub block">대기 중</span>
-                    <strong className="text-xs font-bold text-toss-amber">₩{formatWon(totalUnpaid)}</strong>
+                    <strong className="text-[5vw] font-black tracking-tighter text-toss-amber leading-none block mt-1">₩{formatWon(totalUnpaid)}</strong>
                   </div>
                 </div>
               </div>
@@ -1216,11 +1216,12 @@ function doPost(e) {
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-toss-border">
           <div>
-            <h1 className="text-xl font-black text-toss-textDark flex items-center gap-2">
-              <span className="bg-[#1F2E5B] text-white p-1.5 rounded-xl">
-                <TrendingUp size={20} />
+            <h1 className="text-[2.8vw] lg:text-[2vw] leading-none font-black text-toss-textDark flex items-center gap-3 tracking-tighter">
+              <span className="bg-[#1F2E5B] text-white p-2 rounded-2xl shadow-sm">
+                <TrendingUp className="w-[2.2vw] h-[2.2vw] min-w-5 min-h-5 text-[#00BCD4]" />
               </span>
-              Lectoss <span className="text-xs bg-blue-50 text-toss-blue px-2 py-0.5 rounded-full border border-blue-100 font-bold">사회복지 강사용 정산비서 (PC버전)</span>
+              <span>Lectoss</span>
+              <span className="text-xs bg-blue-50 text-toss-blue px-3 py-1 rounded-full border border-blue-100 font-bold self-center">사회복지 강사용 DX 정산비서</span>
             </h1>
             <p className="text-xs text-toss-textSub mt-1">프리랜서 강사를 위한 개인 클라우드 연동 출강료 통계 대시보드</p>
           </div>
@@ -1310,15 +1311,15 @@ function doPost(e) {
         <div className="grid grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-[24px] border border-toss-border shadow-sm">
             <span className="text-xs font-semibold text-toss-textSub block mb-1">정산 완료액 (실수령 완료)</span>
-            <div className="text-2xl font-black text-toss-textDark">₩{formatWon(totalNet)}</div>
+            <div className="text-[4vw] md:text-[2.2vw] font-black tracking-tighter text-toss-textDark leading-none mt-1">₩{formatWon(totalNet)}</div>
           </div>
           <div className="bg-white p-6 rounded-[24px] border border-toss-border shadow-sm">
             <span className="text-xs font-semibold text-toss-textSub block mb-1">총 예상 수령액 (대기 포함)</span>
-            <div className="text-2xl font-black text-toss-textDark">₩{formatWon(totalExpected)}</div>
+            <div className="text-[4vw] md:text-[2.2vw] font-black tracking-tighter text-toss-textDark leading-none mt-1">₩{formatWon(totalExpected)}</div>
           </div>
           <div className="bg-white p-6 rounded-[24px] border border-toss-border shadow-sm bg-orange-50/20 border-orange-100">
             <span className="text-xs font-semibold text-toss-textSub block mb-1">미정산(정산대기) 총액</span>
-            <div className="text-2xl font-black text-toss-amber">₩{formatWon(totalUnpaid)}</div>
+            <div className="text-[4vw] md:text-[2.2vw] font-black tracking-tighter text-toss-amber leading-none mt-1">₩{formatWon(totalUnpaid)}</div>
           </div>
         </div>
 

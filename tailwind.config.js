@@ -15,7 +15,7 @@ export default {
           indigo: '#818CF8',     // Accent Glow
           bgLight: '#F8FAF8',    // Soft Warm-grey
           bgWhite: '#FFFFFF',
-          textDark: '#0F172A',   // Dark Slate
+          textDark: '#1F2E5B',   // Dark Slate
           textMuted: '#475569',  // Medium Slate
           textSub: '#64748B',    // Muted slate
           border: '#E2E8F0',     // Light grey border
