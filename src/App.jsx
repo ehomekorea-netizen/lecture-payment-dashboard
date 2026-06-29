@@ -14,6 +14,74 @@ function formatWon(val) {
   return (Number(val) || 0).toLocaleString();
 }
 
+// 안전한 로컬 스토리지 래퍼 (모바일 사파리 사설 브라우징/인앱 브라우저 예외 방지)
+const safeLocalStorage = {
+  getItem: (key) => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn("localStorage.getItem error:", e);
+      return null;
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn("localStorage.setItem error:", e);
+    }
+  },
+  clear: () => {
+    try {
+      localStorage.clear();
+    } catch (e) {
+      console.warn("localStorage.clear error:", e);
+    }
+  }
+};
+
+// 클립보드 복사 헬퍼 (모바일 인앱 브라우저 등 navigator.clipboard 미지원 대비 fallback 제공)
+const fallbackCopy = (text, onSuccess) => {
+  try {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    const successful = document.execCommand('copy');
+    document.body.removeChild(textArea);
+    if (successful && onSuccess) {
+      onSuccess();
+    }
+  } catch (err) {
+    console.error("Fallback copy failed:", err);
+  }
+};
+
+const copyToClipboard = (text, onSuccess) => {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(() => {
+          if (onSuccess) onSuccess();
+        })
+        .catch((err) => {
+          console.error("Clipboard API writeText failed, trying fallback:", err);
+          fallbackCopy(text, onSuccess);
+        });
+    } else {
+      fallbackCopy(text, onSuccess);
+    }
+  } catch (err) {
+    console.error("Clipboard copy error, trying fallback:", err);
+    fallbackCopy(text, onSuccess);
+  }
+};
+
 // ── React Bits: BlurText Component ──
 function BlurText({ text }) {
   if (!text) return null;
@@ -61,13 +129,13 @@ export default function App() {
 
   // 자주 쓰는 프리셋 데이터 상태 (이모지 제거, 역할[role] 필드 보강)
   const [presets, setPresets] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lectoss_presets');
-      if (saved) {
+    const saved = safeLocalStorage.getItem('lectoss_presets');
+    if (saved) {
+      try {
         return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
       }
-    } catch (e) {
-      console.error(e);
     }
     return [
       { id: 'p1', name: '디지털새싹 코딩교실', role: 'Main', rate: 50000, classes: 4, transportFee: 50000, taxRate: '3.3%' },
@@ -79,7 +147,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('lectoss_presets', JSON.stringify(presets));
+    safeLocalStorage.setItem('lectoss_presets', JSON.stringify(presets));
   }, [presets]);
 
   const applyPreset = (preset) => {
@@ -200,16 +268,16 @@ export default function App() {
 
   // 강의 데이터 상태
   const [lectures, setLectures] = useState(() => {
-    try {
-      const saved = localStorage.getItem('lectures');
-      if (saved) {
+    const saved = safeLocalStorage.getItem('lectures');
+    if (saved) {
+      try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           return parsed.filter(l => l && typeof l === 'object');
         }
+      } catch (e) {
+        console.error("Failed to parse cached lectures", e);
       }
-    } catch (e) {
-      console.error("Failed to parse cached lectures", e);
     }
     return INITIAL_LECTURES;
   });
@@ -228,8 +296,8 @@ export default function App() {
 
 
   // AI 및 설정 관련 상태
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || '');
-  const [sheetUrl, setSheetUrl] = useState(() => localStorage.getItem('google_sheet_url') || '');
+  const [apiKey, setApiKey] = useState(() => safeLocalStorage.getItem('gemini_api_key') || '');
+  const [sheetUrl, setSheetUrl] = useState(() => safeLocalStorage.getItem('google_sheet_url') || '');
   const [copiedCode, setCopiedCode] = useState(false);
   
   const [aiText, setAiText] = useState('');
@@ -260,7 +328,7 @@ export default function App() {
 
   // 로컬 스토리지 데이터 동기화
   useEffect(() => {
-    localStorage.setItem('lectures', JSON.stringify(lectures));
+    safeLocalStorage.setItem('lectures', JSON.stringify(lectures));
   }, [lectures]);
 
   // Reset card swipe offsets on filter or search changes to prevent rendering anomalies (Placed safely below state initialization)
@@ -350,8 +418,8 @@ export default function App() {
 
   // 설정 저장
   const handleSaveSettings = (geminiKey, sheetApiUrl) => {
-    localStorage.setItem('gemini_api_key', geminiKey);
-    localStorage.setItem('google_sheet_url', sheetApiUrl);
+    safeLocalStorage.setItem('gemini_api_key', geminiKey);
+    safeLocalStorage.setItem('google_sheet_url', sheetApiUrl);
     setApiKey(geminiKey);
     setSheetUrl(sheetApiUrl);
     alert('설정이 저장되었습니다.');
@@ -1598,11 +1666,11 @@ function doPost(e) {
               <div className="rounded-[24px] p-5 flex flex-col gap-3" style={{background:'linear-gradient(135deg,#FEF2F2 0%,#FFF1F2 100%)',border:'1px solid rgba(239,68,68,0.15)'}}>
                 <div className="flex items-center gap-2"><AlertCircle size={15} className="text-red-500" /><span className="text-[12px] font-black text-red-700">기록 데이터 초기화</span></div>
                 <p className="text-[10.5px] text-red-600/70 leading-relaxed font-semibold">앱 내에 기록된 모든 강의 데이터와 API 설정값을 지우고 초기화합니다. 이 작업은 되돌릴 수 없습니다.</p>
-                <button onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){localStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} className="py-3 text-[12px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md transition">앱 전체 데이터 초기화</button>
+                <button onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){safeLocalStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} className="py-3 text-[12px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md transition">앱 전체 데이터 초기화</button>
               </div>
               <div className="rounded-[24px] p-5 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-2 items-center text-center">
                 <div className="flex items-center gap-2"><BookOpen size={15} className="text-[#1E3A8A]" /><span className="text-[13px] font-black text-slate-800">정산비서 정보</span></div>
-                <p className="text-[9.5px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.2</p>
+                <p className="text-[9.5px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.2.2</p>
               </div>
             </div>
           </div>
@@ -2003,9 +2071,10 @@ function doPost(e) {
             </h3>
             <button
               onClick={() => {
-                navigator.clipboard.writeText(gasTemplateCode);
-                setCopiedCode(true);
-                setTimeout(() => setCopiedCode(false), 2000);
+                copyToClipboard(gasTemplateCode, () => {
+                  setCopiedCode(true);
+                  setTimeout(() => setCopiedCode(false), 2000);
+                });
               }}
               className="text-[11px] font-bold flex items-center gap-1"
               style={{color: '#00BCD4'}}
@@ -2651,7 +2720,7 @@ function doPost(e) {
               </div>
               <div className="rounded-2xl p-4 bg-red-50 border border-red-200/60 flex flex-col gap-2">
                 <span className="text-[11px] font-black text-red-700 flex items-center gap-1.5"><AlertCircle size={13} className="text-red-500" /> 기록 데이터 초기화</span>
-                <button type="button" onClick={() => { if (window.confirm('정말 전체 초기화하시겠습니까? 등록된 모든 데이터가 삭제됩니다.')) { localStorage.clear(); setLectures([]); setApiKey(''); setSheetUrl(''); alert('초기화 완료. 새로고침합니다.'); window.location.reload(); } }} className="py-2 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-md transition text-[11px]">앱 전체 데이터 초기화</button>
+                <button type="button" onClick={() => { if (window.confirm('정말 전체 초기화하시겠습니까? 등록된 모든 데이터가 삭제됩니다.')) { safeLocalStorage.clear(); setLectures([]); setApiKey(''); setSheetUrl(''); alert('초기화 완료. 새로고침합니다.'); window.location.reload(); } }} className="py-2 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-md transition text-[11px]">앱 전체 데이터 초기화</button>
               </div>
             </div>
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
@@ -2694,7 +2763,7 @@ function doPost(e) {
               <div className="bg-slate-900 rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                   <span className="font-black text-[11px] text-sky-400">Apps Script 템플릿 코드</span>
-                  <button onClick={() => { navigator.clipboard.writeText(gasTemplateCode); setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000); }} className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px] font-black flex items-center gap-1.5 transition">
+                  <button onClick={() => { copyToClipboard(gasTemplateCode, () => { setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000); }); }} className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px] font-black flex items-center gap-1.5 transition">
                     <Copy size={11} />{copiedCode ? '복사 완료!' : '전체 복사'}
                   </button>
                 </div>
