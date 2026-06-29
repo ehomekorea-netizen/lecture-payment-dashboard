@@ -223,6 +223,7 @@ export default function App() {
   const [editingLecture, setEditingLecture] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
 
 
 
