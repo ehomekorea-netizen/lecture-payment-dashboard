@@ -1257,7 +1257,7 @@ function doPost(e) {
       </svg>
 
       {/* Main centered mobile-frame container on desktop, full screen on mobile */}
-      <div className="w-full max-w-md bg-[#F8FAF8] min-h-screen md:min-h-[88vh] md:max-h-[94vh] md:rounded-[36px] shadow-2xl relative overflow-hidden flex flex-col pb-40 md:border md:border-slate-800/10">
+      <div className="w-full max-w-md bg-[#F8FAF8] min-h-screen md:min-h-[88vh] md:max-h-[94vh] md:rounded-[36px] shadow-2xl relative overflow-hidden flex flex-col pb-0 md:border md:border-slate-800/10">
         <div className="flex-1 flex flex-col min-h-0">
         {/* App Title Header — Clean White Theme */}
         <div className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
@@ -1302,12 +1302,12 @@ function doPost(e) {
         </div>
 
         {/* Dynamic Tab Body — motion: slide direction from prevTab */}
-        <div id="tab-body-container" className="p-3 flex-1 flex flex-col gap-3 overflow-y-auto pb-20">
+        <div id="tab-body-container" className="p-3 flex-1 flex flex-col gap-3 overflow-y-auto pb-28">
           {/* invisible motion key — forces re-mount on tab change for animation */}
           
           {/* TAB 1: HOME (Lectures Card List) */}
           {activeTab === 'home' && (
-            <div key="tab-home" className={`${getSlideClass()} flex flex-col gap-3`}>
+            <div key="tab-home" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
               
               {/* 모바일 2분할 슬림 요약 위젯 */}
               <div className="grid grid-cols-2 gap-3 animate-fade-in">
@@ -1512,11 +1512,11 @@ function doPost(e) {
           {activeTab === 'calendar' && (
             <div 
               key="tab-calendar" 
-              className={`${getSlideClass()} flex flex-col gap-2 select-none overflow-hidden max-h-[calc(100vh-165px)]`}
+              className={`${getSlideClass()} flex flex-col gap-3 select-none pt-2`}
               onTouchStart={handleCalTouchStart}
               onTouchEnd={handleCalTouchEnd}
             >
-              <div className="bg-white p-4.5 rounded-[24px] border border-slate-200/60 shadow-sm overflow-hidden">
+              <div className="bg-white p-4 pb-5 rounded-[24px] border border-slate-200/60 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <button 
@@ -1561,7 +1561,7 @@ function doPost(e) {
                 </div>
                 
                 {/* 날짜 그리드 - 슬라이드 효과 적용 */}
-                <div className={`grid grid-cols-7 gap-y-3.5 gap-x-1 text-center text-xs transition-all duration-300 ${
+                <div className={`grid grid-cols-7 gap-y-4 gap-x-2 text-center text-xs transition-all duration-300 ${
                   calTransition === 'slide-left' ? 'translate-x-[-12px] opacity-0' :
                   calTransition === 'slide-right' ? 'translate-x-[12px] opacity-0' : 'translate-x-0 opacity-100'
                 }`}>
@@ -1597,7 +1597,7 @@ function doPost(e) {
                             setSelectedCalendarDate(dateStr);
                           }
                         }}
-                        className={`flex flex-col items-center justify-center relative py-1 rounded-xl transition-all ${
+                        className={`flex flex-col items-center justify-center relative py-2 rounded-xl transition-all ${
                           hasLectures 
                             ? 'cursor-pointer bg-slate-50 hover:bg-blue-50/60 border border-slate-200/60' 
                             : 'text-slate-400'
@@ -1628,8 +1628,8 @@ function doPost(e) {
           )}
 
           {/* TAB 2: STATS */}
-          {activeTab === 'stats' && (<div key="tab-stats" className={getSlideClass()}>
-            <div className="flex flex-col gap-3">
+          {activeTab === 'stats' && (
+            <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
               {/* 출강 성과 요약 */}
               <div className="bg-white p-4.5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
                 <span className="text-[15px] font-black block mb-4 text-slate-800">출강 성과 및 요약</span>
@@ -1882,14 +1882,13 @@ function doPost(e) {
                 )}
               </div>
             </div>
-          </div>
-        )}
+          )}
 
 
 
-                    {/* TAB 4: SETTINGS (merged with Sync) */}
-          {activeTab === 'settings' && (<div key="tab-settings" className={getSlideClass()}>
-            <div className="flex flex-col gap-4">
+          {/* TAB 4: SETTINGS (merged with Sync) */}
+          {activeTab === 'settings' && (
+            <div key="tab-settings" className={`${getSlideClass()} flex flex-col gap-4 pt-2`}>
               {/* API Settings Accordion */}
               <div className="rounded-[24px] bg-violet-50/10 border border-violet-200 overflow-hidden shadow-sm transition-all">
                 <button
@@ -2074,7 +2073,6 @@ function doPost(e) {
                 <p className="text-[10px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.3.0</p>
               </div>
             </div>
-          </div>
           )}
         </div>
 
@@ -2109,7 +2107,7 @@ function doPost(e) {
                       });
                       setIsAddModalOpen(true);
                     }}
-                    className="btn-press flex flex-col items-center justify-center w-[58px] h-[58px] rounded-full bg-[#2563EB] text-white shadow-lg shadow-blue-500/30 -mt-[18px] flex-shrink-0 border-[3.5px] border-white"
+                    className="btn-press flex flex-col items-center justify-center w-[52px] h-[52px] rounded-full bg-[#2563EB] text-white shadow-lg shadow-blue-500/30 -mt-[4px] flex-shrink-0 border-[3px] border-white"
                     style={{
                       transition: 'transform 200ms'
                     }}
