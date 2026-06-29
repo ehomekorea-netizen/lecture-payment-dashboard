@@ -31,6 +31,21 @@ function formatWon(val) {
 export default function App() {
   // 모바일 앱용 탭 상태 ('home', 'stats', 'sync', 'settings')
   const [activeTab, setActiveTab] = useState('home');
+  const [prevTab, setPrevTab] = useState(null); // for slide direction
+
+  // Tab order for slide direction
+  const TAB_ORDER = ['home', 'stats', 'sync', 'settings'];
+  const getSlideClass = () => {
+    if (!prevTab) return 'tab-enter-up';
+    const prevIdx = TAB_ORDER.indexOf(prevTab);
+    const currIdx = TAB_ORDER.indexOf(activeTab);
+    return currIdx > prevIdx ? 'tab-enter-right' : 'tab-enter-left';
+  };
+
+  const switchTab = (tab) => {
+    setPrevTab(activeTab);
+    setActiveTab(tab);
+  };
 
   // Scroll and mouse tracking for Google Labs DESIGN.md
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -939,12 +954,13 @@ function doPost(e) {
           </div>
         </div>
 
-        {/* Dynamic Tab Body */}
+        {/* Dynamic Tab Body — motion: slide direction from prevTab */}
         <div className="p-4 flex-1 flex flex-col gap-4 overflow-y-auto">
+          {/* invisible motion key — forces re-mount on tab change for animation */}
           
           {/* TAB 1: HOME (Lectures Card List) */}
           {activeTab === 'home' && (
-            <>
+            <div key="tab-home" className={getSlideClass()}>
               {/* Filters Box */}
               <div className="bg-white p-3 rounded-[20px] border border-toss-border shadow-sm flex flex-col gap-2">
                 <div className="relative">
@@ -985,20 +1001,33 @@ function doPost(e) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {filteredLectures.map((l) => (
-                    <div key={l.id} className="bg-white p-4.5 rounded-[22px] border border-toss-border shadow-sm flex flex-col gap-2.5">
+                  {filteredLectures.map((l, idx) => (
+                    <div
+                      key={l.id}
+                      className="card-stagger card-hover bg-white rounded-[22px] flex flex-col gap-2.5"
+                      style={{
+                        animationDelay: (idx * 55) + 'ms',
+                        border: '1px solid rgba(31,46,91,0.10)',
+                        padding: '18px',
+                        boxShadow: '0 2px 12px rgba(31,46,91,0.06)'
+                      }}
+                    >
                       <div className="flex items-start justify-between">
                         <div>
-                          <span className="text-[9px] font-bold bg-slate-100 text-toss-textSub px-2 py-0.5 rounded mb-1 inline-block">
-                            {l.month} / {l.date}
+                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg mb-1 inline-block" style={{background: 'rgba(31,46,91,0.07)', color: '#64748B'}}>
+                            {l.month} · {l.date}
                           </span>
-                          <h3 className="text-xs font-extrabold text-toss-textDark">{l.institution}</h3>
+                          <h3 style={{fontSize: '13px', fontWeight: 800, color: '#1F2E5B', letterSpacing: '-0.01em'}}>{l.institution}</h3>
                         </div>
                         <button
                           onClick={() => handleTogglePaid(l)}
-                          className={`text-[9px] font-black px-2 py-0.5 rounded-lg border ${l.isPaid ? 'bg-green-50 border-green-200 text-toss-green' : 'bg-orange-50 border-orange-200 text-toss-amber'}`}
+                          className="btn-press text-[9px] font-black px-2.5 py-1 rounded-xl"
+                          style={l.isPaid
+                            ? {background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)', color: '#10B981'}
+                            : {background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)', color: '#F59E0B'}
+                          }
                         >
-                          {l.isPaid ? '정산완료' : '정산대기'}
+                          {l.isPaid ? '✓ 완료' : '⏳ 대기'}
                         </button>
                       </div>
 
@@ -1013,16 +1042,19 @@ function doPost(e) {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between mt-1">
-                        <span className="text-[10px] font-bold text-toss-textMuted">
-                          실수령액: <strong className="text-xs font-black text-toss-blue">{l.isPaid ? `₩${formatWon(l.netAmount)}` : '-'}</strong>
-                        </span>
+                      <div className="flex items-center justify-between mt-2 pt-2" style={{borderTop: '1px dashed rgba(31,46,91,0.10)'}}>
+                        <div>
+                          <span className="text-[9px]" style={{color: '#94a3b8'}}>실수령액</span>
+                          <div style={{fontSize: '15px', fontWeight: 900, letterSpacing: '-0.02em', color: l.isPaid ? '#10B981' : '#94a3b8', lineHeight: 1}}>
+                            {l.isPaid ? ('₩' + formatWon(l.netAmount)) : '—'}
+                          </div>
+                        </div>
                         <div className="flex gap-1.5">
-                          <button onClick={() => handleEditClick(l)} className="p-1 hover:bg-slate-100 rounded text-toss-textSub">
-                            <Edit3 size={13} />
+                          <button onClick={() => handleEditClick(l)} className="btn-press p-2 rounded-xl" style={{background: 'rgba(31,46,91,0.05)', color: '#64748B'}}>
+                            <Edit3 size={12} />
                           </button>
-                          <button onClick={() => handleDelete(l.id)} className="p-1 hover:bg-red-50 rounded text-toss-red">
-                            <Trash2 size={13} />
+                          <button onClick={() => handleDelete(l.id)} className="btn-press p-2 rounded-xl" style={{background: 'rgba(239,68,68,0.07)', color: '#EF4444'}}>
+                            <Trash2 size={12} />
                           </button>
                         </div>
                       </div>
@@ -1030,11 +1062,11 @@ function doPost(e) {
                   ))}
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {/* TAB 2: STATS */}
-          {activeTab === 'stats' && (
+          {activeTab === 'stats' && (<div key="tab-stats" className={getSlideClass()}>
             <div className="flex flex-col gap-4">
               {/* DESIGN.md: Cinematic Typography stats — 6vw mobile */}
               <div className="bg-white p-4 rounded-[24px] shadow-sm" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
@@ -1077,10 +1109,13 @@ function doPost(e) {
                 )}
               </div>
             </div>
-          )}
+          </div>
+        )}
+
+
 
           {/* TAB 3: SYNC */}
-          {activeTab === 'sync' && (
+          {activeTab === 'sync' && (<div key="tab-sync" className={getSlideClass()}>
             <div className="flex flex-col gap-4">
               <div className="bg-white p-4 rounded-[20px] border border-toss-border shadow-sm flex flex-col gap-3">
                 <h3 className="text-xs font-extrabold text-toss-textDark flex items-center gap-1">
@@ -1134,10 +1169,13 @@ function doPost(e) {
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
+
+
 
           {/* TAB 4: SETTINGS */}
-          {activeTab === 'settings' && (
+          {activeTab === 'settings' && (<div key="tab-settings" className={getSlideClass()}>
             <div className="flex flex-col gap-4">
               <div className="bg-white p-4 rounded-[20px] border border-toss-border shadow-sm flex flex-col gap-3">
                 <div>
@@ -1191,28 +1229,40 @@ function doPost(e) {
                 </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
+
+
 
         </div>
 
-        {/* iOS-style Bottom Navigation Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-toss-border flex items-center justify-around py-3 px-4 z-40 shadow-lg">
-          <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-0.5 text-[9px] font-extrabold ${activeTab === 'home' ? 'text-toss-blue scale-105' : 'text-toss-textSub'}`}>
-            <Home size={18} />
-            <span>기록</span>
-          </button>
-          <button onClick={() => setActiveTab('stats')} className={`flex flex-col items-center gap-0.5 text-[9px] font-extrabold ${activeTab === 'stats' ? 'text-toss-blue scale-105' : 'text-toss-textSub'}`}>
-            <BarChart size={18} />
-            <span>정산 분석</span>
-          </button>
-          <button onClick={() => setActiveTab('sync')} className={`flex flex-col items-center gap-0.5 text-[9px] font-extrabold ${activeTab === 'sync' ? 'text-toss-blue scale-105' : 'text-toss-textSub'}`}>
-            <RefreshCw size={18} />
-            <span>연동 백업</span>
-          </button>
-          <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center gap-0.5 text-[9px] font-extrabold ${activeTab === 'settings' ? 'text-toss-blue scale-105' : 'text-toss-textSub'}`}>
-            <Settings size={18} />
-            <span>설정</span>
-          </button>
+        {/* iOS-style Bottom Navigation Bar — motion: active pill indicator */}
+        <div className="fixed bottom-0 left-0 right-0 z-40" style={{background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(31,46,91,0.08)', boxShadow: '0 -4px 20px rgba(31,46,91,0.08)', paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
+          <div className="flex items-center justify-around py-2 px-2">
+            {[{id:'home', icon:<Home size={20}/>, label:'기록'}, {id:'stats', icon:<BarChart size={20}/>, label:'분석'}, {id:'sync', icon:<RefreshCw size={20}/>, label:'백업'}, {id:'settings', icon:<Settings size={20}/>, label:'설정'}].map(t => (
+              <button
+                key={t.id}
+                onClick={() => switchTab(t.id)}
+                className="btn-press relative flex flex-col items-center gap-1 py-1.5 px-4 rounded-2xl"
+                style={{
+                  color: activeTab === t.id ? '#00BCD4' : '#94a3b8',
+                  background: activeTab === t.id ? 'rgba(0,188,212,0.08)' : 'transparent',
+                  transition: 'color 200ms, background 200ms'
+                }}
+              >
+                {/* icon */}
+                <span style={{transform: activeTab === t.id ? 'scale(1.12)' : 'scale(1)', transition: 'transform 200ms cubic-bezier(0.16,1,0.3,1)', display: 'block'}}>
+                  {t.icon}
+                </span>
+                {/* label */}
+                <span style={{fontSize: '9px', fontWeight: activeTab === t.id ? 800 : 600, letterSpacing: activeTab === t.id ? '-0.01em' : 0, lineHeight: 1}}>{t.label}</span>
+                {/* active pill indicator */}
+                {activeTab === t.id && (
+                  <span style={{position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:'24px', height:'2.5px', borderRadius:'99px', background:'#00BCD4'}} />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -1622,9 +1672,9 @@ function doPost(e) {
           [MODAL 3]: Add/Edit Lecture Modal (Desktop: centered / Mobile: Bottom Sheet)
          ======================================================== */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-[#191F28]/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-50 animate-fade-in">
-          {/* Mobile: Bottom Sheet container, Desktop: Centered card container */}
-          <div className="bg-white w-full md:max-w-md rounded-t-[32px] md:rounded-[28px] max-h-[90vh] md:max-h-none overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl transition-transform duration-300">
+        <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50" style={{background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)'}}>
+          {/* Mobile: bottom-sheet-enter spring / Desktop: centered card */}
+          <div className="bg-white w-full md:max-w-md rounded-t-[32px] md:rounded-[28px] max-h-[90vh] md:max-h-none overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl bottom-sheet-enter" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
             {/* Drag handle for mobile */}
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
             
@@ -1840,8 +1890,8 @@ function doPost(e) {
           [MODAL 4]: AI Scan Modal (Desktop: centered / Mobile: Bottom Sheet)
          ======================================================== */}
       {isAiModalOpen && (
-        <div className="fixed inset-0 bg-[#191F28]/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-50 animate-fade-in">
-          <div className="bg-white w-full md:max-w-xl rounded-t-[32px] md:rounded-[28px] max-h-[90vh] overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl transition-transform duration-300">
+        <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50" style={{background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)'}}>
+          <div className="bg-white w-full md:max-w-xl rounded-t-[32px] md:rounded-[28px] max-h-[90vh] overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl bottom-sheet-enter" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
             {/* drag handle for mobile */}
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
 
