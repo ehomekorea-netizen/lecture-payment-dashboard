@@ -188,13 +188,7 @@ export default function App() {
         console.error(e);
       }
     }
-    return [
-      { id: 'p1', name: '디지털새싹 코딩교실', role: 'Main', rate: 50000, classes: 4, transportFee: 50000, taxRate: '3.3%' },
-      { id: 'p2', name: '디지털배움터 스마트폰', role: 'Assistant', rate: 35000, classes: 6, transportFee: 20000, taxRate: '3.3%' },
-      { id: 'p3', name: '주민센터 스마트교실', role: 'Main', rate: 100000, classes: 2, transportFee: 0, taxRate: '8.8%' },
-      { id: 'p4', name: '역량강화 기업교육', role: 'Main', rate: 150000, classes: 3, transportFee: 30000, taxRate: '8.8%' },
-      { id: 'p5', name: '디지털새싹 진로특강', role: 'Assistant', rate: 50000, classes: 6, transportFee: 84000, taxRate: '3.3%' }
-    ];
+    return [];
   });
 
   useEffect(() => {
@@ -294,11 +288,7 @@ export default function App() {
   // 기관 선택 필터 및 통계 스크롤 관리
   const [selectedInstitution, setSelectedInstitution] = useState('All');
   const chartScrollRef = useRef(null);
-
-
-
-
-
+  const [statsYear, setStatsYear] = useState(new Date().getFullYear());
 
 
   // Tab order for slide direction
@@ -346,19 +336,23 @@ export default function App() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // 분석 탭 선택 시 가로 차트 스크롤 중앙 정렬 (현재 월 기준)
+  // 분석 탭 선택 or 연도 변경 시 가로 차트 스크롤 중앙 정렬 (현재 월 기준)
   useEffect(() => {
     if (activeTab === 'stats' && chartScrollRef.current) {
       const timer = setTimeout(() => {
-        const currentMonthIdx = new Date().getMonth(); // 0 ~ 11
-        const step = 500 / 11;
-        const targetX = currentMonthIdx * step;
+        const currentYear = new Date().getFullYear();
+        // 현재 연도이면 현재 월 기준 중앙, 다른 연도면 6월(중간) 기준
+        const focusMonthIdx = statsYear === currentYear ? new Date().getMonth() : 5;
+        const svgWidth = 560;
+        const step = svgWidth / 11;
+        const targetX = focusMonthIdx * step;
         const containerWidth = chartScrollRef.current.clientWidth || 320;
         chartScrollRef.current.scrollLeft = targetX - containerWidth / 2;
-      }, 100);
+      }, 120);
       return () => clearTimeout(timer);
     }
-  }, [activeTab]);
+  }, [activeTab, statsYear]);
+
 
   // 강의 데이터 상태
   const [lectures, setLectures] = useState(() => {
@@ -422,7 +416,7 @@ export default function App() {
     date: new Date().toISOString().slice(0, 10),
     registrationDate: new Date().toISOString().slice(0, 10),
     isPaid: false,
-    taxRate: '8.8%',
+    taxRate: '3.3%',
     taxBase: 'LectureOnly',
     customTax: 0
   });
@@ -611,7 +605,7 @@ export default function App() {
           date: '11월 19일',
           registrationDate: new Date().toISOString().slice(0, 10),
           isPaid: false,
-          taxRate: '8.8%',
+          taxRate: '3.3%',
           taxBase: 'LectureOnly',
           customTax: 0
         },
@@ -628,7 +622,7 @@ export default function App() {
           date: '11월 24일',
           registrationDate: new Date().toISOString().slice(0, 10),
           isPaid: false,
-          taxRate: '8.8%',
+          taxRate: '3.3%',
           taxBase: 'LectureOnly',
           customTax: 0
         }
@@ -1652,11 +1646,25 @@ function doPost(e) {
                 </div>
               </div>
 
-              {/* 월별 수입 가로 추이 차트 (1월~12월) */}
+              {/* 월별 수입 가로 추이 차트 (연도별, 1월~12월) */}
               {(() => {
+                const thisYear = new Date().getFullYear();
+                const minYear = thisYear - 3;
+                const canGoPrev = statsYear > minYear;
+                const canGoNext = statsYear < thisYear;
+
                 const fullYearMonths = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+
+                // statsYear 기준으로 lecture 필터링 (날짜에 연도 정보 없으면 전체 반영)
+                const yearLectures = lectures.filter(l => {
+                  const regDate = l.registrationDate || '';
+                  if (!regDate) return true; // 연도 정보 없으면 현재연도로 취급
+                  const yr = new Date(regDate).getFullYear();
+                  return yr === statsYear;
+                });
+
                 const fullYearData = fullYearMonths.map(m => {
-                  const monthItems = lectures.filter(l => extractMonth(l.date) === m);
+                  const monthItems = yearLectures.filter(l => extractMonth(l.date) === m);
                   const paidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? curr.netAmount : 0), 0);
                   const unpaidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
                   return {
@@ -1665,124 +1673,139 @@ function doPost(e) {
                   };
                 });
                 const maxTotal = Math.max(...fullYearData.map(d => d.total), 1);
-                
+
+                // SVG 좌우 패딩 28px, 실제 데이터 포인트는 28~532 범위
+                const SVG_W = 560;
+                const LEFT_PAD = 28;
+                const RIGHT_PAD = 28;
+                const CHART_W = SVG_W - LEFT_PAD - RIGHT_PAD;
                 const points = fullYearData.map((d, i) => ({
-                  x: i * (500 / 11),
-                  y: 145 - (maxTotal > 0 ? (d.total / maxTotal) * 105 : 0)
+                  x: LEFT_PAD + i * (CHART_W / 11),
+                  y: 148 - (maxTotal > 0 ? (d.total / maxTotal) * 108 : 0)
                 }));
                 const pathD = points.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(' ');
+                // Area fill path (closed under the line)
+                const areaD = pathD + ` L ${points[11].x} 148 L ${points[0].x} 148 Z`;
 
                 return (
-                  <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-4 animate-fade-in">
-                    <div>
-                      <h4 className="text-[15px] font-black text-slate-800">연간 월별 정산 추이 (1월~12월)</h4>
-                      <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">1월부터 12월까지의 정산 총액 가로 추이 (밀어서 보기)</p>
+                  <div className="bg-white rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-0 animate-fade-in overflow-hidden">
+                    {/* 연도 네비게이션 헤더 */}
+                    <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-[15px] font-black text-slate-800">월별 정산 추이</h4>
+                        <span className="text-[11px] font-bold text-slate-400 ml-0.5">밀어서 보기</span>
+                      </div>
+                      {/* 연도 네비게이터 */}
+                      <div className="flex items-center gap-1">
+                        {canGoPrev ? (
+                          <button
+                            onClick={() => setStatsYear(y => y - 1)}
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                            aria-label="이전 연도"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </button>
+                        ) : <span className="w-7 h-7"/>}
+                        <span className="text-[14px] font-black text-indigo-700 min-w-[42px] text-center tracking-tight">{statsYear}년</span>
+                        {canGoNext ? (
+                          <button
+                            onClick={() => setStatsYear(y => y + 1)}
+                            className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 active:bg-slate-200 transition-colors"
+                            aria-label="다음 연도"
+                          >
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </button>
+                        ) : <span className="w-7 h-7"/>}
+                      </div>
                     </div>
-                    {lectures.length === 0 ? (
-                      <div className="text-[12px] text-slate-400 text-center py-10 font-bold">출강 데이터가 없습니다.</div>
+
+                    {yearLectures.length === 0 ? (
+                      <div className="text-[12px] text-slate-400 text-center py-10 font-bold px-5 pb-5">{statsYear}년 출강 데이터가 없습니다.</div>
                     ) : (
-                      <div 
+                      <div
                         ref={chartScrollRef}
-                        className="w-full overflow-x-auto overflow-y-hidden pb-1 scrollbar-none" 
+                        className="w-full overflow-x-auto overflow-y-hidden scrollbar-none pb-4 px-0"
                         style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
                       >
-                        <div className="relative pt-2 w-[500px] h-[195px] flex-shrink-0" style={{ background: '#121216', borderRadius: '16px', padding: '16px 0px 10px 0px', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.4)' }}>
-                          <svg viewBox="0 0 500 190" width="500" height="190" className="overflow-visible">
+                        <div style={{ width: `${SVG_W}px`, flexShrink: 0 }}>
+                          <svg viewBox={`0 0 ${SVG_W} 200`} width={SVG_W} height="200" className="overflow-visible">
                             <defs>
-                              {/* Glow Filter */}
-                              <filter id="glow-orange-horiz" x="-20%" y="-20%" width="140%" height="140%">
-                                <feGaussianBlur stdDeviation="4.5" result="blur" />
-                                <feMerge>
-                                  <feMergeNode in="blur" />
-                                  <feMergeNode in="blur" />
-                                  <feMergeNode in="SourceGraphic" />
-                                </feMerge>
+                              {/* 라인 그라데이션: 인디고 → 블루 (프로젝트 디자인 톤) */}
+                              <linearGradient id="chart-line-grad" x1="0" y1="0" x2="1" y2="0">
+                                <stop offset="0%" stopColor="#6366F1"/>
+                                <stop offset="100%" stopColor="#3B82F6"/>
+                              </linearGradient>
+                              {/* 영역 채우기 그라데이션 */}
+                              <linearGradient id="chart-area-grad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#6366F1" stopOpacity="0.18"/>
+                                <stop offset="100%" stopColor="#6366F1" stopOpacity="0.01"/>
+                              </linearGradient>
+                              {/* 글로우 필터 */}
+                              <filter id="glow-indigo" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="3" result="blur"/>
+                                <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
                               </filter>
                             </defs>
-                            
-                            {/* Grid lines (Vertical Guides) */}
-                            {fullYearData.map((d, i) => {
-                              const x = i * (500 / 11);
-                              return (
-                                <g key={i} className="opacity-30">
-                                  <line 
-                                    x1={x} 
-                                    y1="20" 
-                                    x2={x} 
-                                    y2="150" 
-                                    stroke="#334155" 
-                                    strokeWidth="1" 
-                                    strokeDasharray="3 3" 
-                                  />
-                                </g>
-                              );
-                            })}
 
-                            {/* Base X Axis line */}
-                            <line x1="0" y1="150" x2="500" y2="150" stroke="#475569" strokeWidth="1.5" opacity="0.4" />
+                            {/* 수평 가이드라인 (3줄) */}
+                            {[40, 80, 120].map(y => (
+                              <line key={y} x1={LEFT_PAD} y1={y} x2={SVG_W - RIGHT_PAD} y2={y}
+                                stroke="#E2E8F0" strokeWidth="1" strokeDasharray="4 4"/>
+                            ))}
 
-                            {/* Glowing Animated Line */}
+                            {/* X축 기준선 */}
+                            <line x1={LEFT_PAD} y1="148" x2={SVG_W - RIGHT_PAD} y2="148"
+                              stroke="#CBD5E1" strokeWidth="1.5"/>
+
+                            {/* 영역 채우기 */}
                             {pathD && (
-                              <path 
-                                d={pathD} 
-                                fill="none" 
-                                stroke="#FF8A00" 
-                                strokeWidth="3.5" 
+                              <path d={areaD} fill="url(#chart-area-grad)" strokeWidth="0"/>
+                            )}
+
+                            {/* 메인 라인 */}
+                            {pathD && (
+                              <path
+                                d={pathD}
+                                fill="none"
+                                stroke="url(#chart-line-grad)"
+                                strokeWidth="3"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                filter="url(#glow-orange-horiz)"
+                                filter="url(#glow-indigo)"
                                 style={{
                                   strokeDasharray: 2000,
                                   strokeDashoffset: 2000,
-                                  animation: 'drawHorizontalLine 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards'
+                                  animation: 'drawHorizontalLine 2s cubic-bezier(0.4,0,0.2,1) forwards'
                                 }}
                               />
                             )}
 
-                            {/* Dots, Month labels & Values */}
+                            {/* 노드 + 월 라벨 + 금액 */}
                             {points.map((p, i) => {
                               const d = fullYearData[i];
                               const hasValue = d.total > 0;
                               return (
                                 <g key={i}>
-                                  {/* Node Glow */}
-                                  <circle 
-                                    cx={p.x} 
-                                    cy={p.y} 
-                                    r={hasValue ? "6" : "3"} 
-                                    fill={hasValue ? "rgba(255, 138, 0, 0.4)" : "#334155"} 
-                                    className={hasValue ? "animate-pulse" : ""}
-                                  />
-                                  {/* Node Center */}
-                                  <circle 
-                                    cx={p.x} 
-                                    cy={p.y} 
-                                    r={hasValue ? "4" : "1.5"} 
-                                    fill={hasValue ? "#FFFFFF" : "#475569"} 
-                                    stroke={hasValue ? "#FF8A00" : "none"}
-                                    strokeWidth={hasValue ? "2.5" : "0"}
-                                  />
-                                  {/* Month label below */}
-                                  <text 
-                                    x={p.x} 
-                                    y="170" 
-                                    fill="#94A3B8" 
-                                    fontSize="11.5" 
-                                    fontWeight="900"
-                                    textAnchor="middle"
-                                  >
+                                  {hasValue && (
+                                    <circle cx={p.x} cy={p.y} r="7"
+                                      fill="rgba(99,102,241,0.15)"
+                                      className="animate-pulse"/>
+                                  )}
+                                  <circle cx={p.x} cy={p.y}
+                                    r={hasValue ? "4" : "2"}
+                                    fill={hasValue ? "#fff" : "#CBD5E1"}
+                                    stroke={hasValue ? "#6366F1" : "none"}
+                                    strokeWidth={hasValue ? "2.5" : "0"}/>
+                                  {/* 월 라벨 */}
+                                  <text x={p.x} y="170" fill="#94A3B8"
+                                    fontSize="11" fontWeight="800" textAnchor="middle">
                                     {d.month}
                                   </text>
-                                  {/* Amount label above node */}
+                                  {/* 금액 라벨 (노드 위) */}
                                   {hasValue && (
-                                    <text 
-                                      x={p.x} 
-                                      y={p.y - 12} 
-                                      fill="#FF8A00" 
-                                      fontSize="9.5" 
-                                      fontWeight="900"
-                                      textAnchor="middle"
-                                    >
+                                    <text x={p.x} y={Math.max(p.y - 10, 12)}
+                                      fill="#4F46E5"
+                                      fontSize="9" fontWeight="900" textAnchor="middle">
                                       {formatWon(d.total)}
                                     </text>
                                   )}
@@ -1790,19 +1813,18 @@ function doPost(e) {
                               );
                             })}
                           </svg>
-                          <style dangerouslySetInnerHTML={{__html: `
-                            @keyframes drawHorizontalLine {
-                              to {
-                                stroke-dashoffset: 0;
-                              }
-                            }
-                          `}} />
                         </div>
+                        <style dangerouslySetInnerHTML={{__html: `
+                          @keyframes drawHorizontalLine {
+                            to { stroke-dashoffset: 0; }
+                          }
+                        `}}/>
                       </div>
                     )}
                   </div>
                 );
               })()}
+
 
               {/* 주관사(기관)별 출강 비중 */}
               <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3">
@@ -2340,24 +2362,6 @@ function doPost(e) {
                   </div>
                 </div>
 
-                {/* 게시등록일 */}
-                <div className="relative flex flex-col gap-1.5">
-                  <label className="font-bold text-slate-500 text-[11px]">게시등록일</label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      name="registrationDate"
-                      value={formData.registrationDate}
-                      onChange={handleInputChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    <div className="px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-between text-[13px] font-black text-slate-800">
-                      <span>{formatDateDisplayFull(formData.registrationDate)}</span>
-                      <Calendar size={14} className="text-slate-400" />
-                    </div>
-                  </div>
-                </div>
-
                 {/* 공제 세율 설정 (선택) */}
                 <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)', border: '1px solid rgba(30,58,138,0.08)'}}>
                   <span className="font-black text-[11px] text-slate-700">공제 세율 설정 (선택)</span>
@@ -2630,17 +2634,6 @@ function doPost(e) {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-2 mt-2">
-                        <div className="flex flex-col gap-0.5">
-                          <label className="text-[9px] text-toss-textSub">게시등록일</label>
-                          <input 
-                            type="date"
-                            value={item.registrationDate}
-                            onChange={(e) => handleParsedFieldChange(idx, 'registrationDate', e.target.value)}
-                            className="px-2 py-1.5 border border-toss-border rounded-lg bg-white focus:outline-none"
-                          />
-                        </div>
-                      </div>
 
                       <div className="flex items-center justify-between border-t border-toss-border/60 pt-2 text-[10px]">
                         <label className="flex items-center gap-1 font-bold text-toss-textMuted cursor-pointer">
