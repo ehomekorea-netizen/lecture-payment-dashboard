@@ -19,7 +19,7 @@ const cellStyle = {
   textAlign: 'center',
 };
 
-function AnimatedNumber({ value, prefix = '₩', className, style, duration = 800 }) {
+function AnimatedNumber({ value, prefix = '', suffix = '원', className, style, duration = 800 }) {
   const ref = useRef(null);
   const [hasAnimated, setHasAnimated] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -78,6 +78,7 @@ function AnimatedNumber({ value, prefix = '₩', className, style, duration = 80
           </span>
         );
       })}
+      {suffix && <span>{suffix}</span>}
     </span>
   );
 }
