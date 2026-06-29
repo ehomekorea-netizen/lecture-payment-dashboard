@@ -11,26 +11,25 @@
 /* ── DESIGN.md: FOUC Prevention Base ── */
 @layer base {
   html {
-    background-color: #1F2E5B; /* FOUC prevention — matches fouc_prevention token */
+    background-color: #2563EB; /* FOUC prevention — Royal Blue Base */
     scroll-behavior: smooth;
   }
 
   body {
     font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background-color: #F8FAF8; /* DESIGN.md: colors.background */
-    color: #1F2E5B;            /* DESIGN.md: colors.text_primary */
+    background-color: #F8FAFC; /* Modern Clean Slate bg */
+    color: #0F172A;            /* Slate 900 for high readability */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    letter-spacing: 0em;       /* DESIGN.md: body.letter_spacing */
-    line-height: 1.6;          /* DESIGN.md: body.line_height */
+    letter-spacing: 0em;
+    line-height: 1.6;
   }
 
-  /* DESIGN.md: Cinematic Typography — display text */
   h1, h2, h3 {
     font-family: 'Pretendard', 'Inter', sans-serif;
-    font-weight: 900;           /* DESIGN.md: display.weight */
-    letter-spacing: -0.02em;   /* DESIGN.md: display.letter_spacing */
-    line-height: 1.15;         /* DESIGN.md: display.line_height */
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
   }
 }
 
@@ -54,17 +53,17 @@
 
 .ledger-table th,
 .ledger-table td {
-  border: 1px solid rgba(31, 46, 91, 0.10);
+  border: 1px solid rgba(226, 232, 240, 0.8);
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .ledger-table tbody tr:hover td {
-  background-color: rgba(31, 46, 91, 0.04);
+  background-color: rgba(37, 99, 235, 0.03);
 }
 
 .ledger-table td.ledger-cell:hover {
-  background-color: rgba(31, 46, 91, 0.08) !important;
-  color: #00BCD4 !important;
+  background-color: rgba(37, 99, 235, 0.06) !important;
+  color: #2563EB !important;
 }
 
 /* ── DESIGN.md: Magnetic Scroll Index — Bezier curve animation ── */
