@@ -291,6 +291,10 @@ export default function App() {
   const moneyLottieTimeoutRef = useRef(null);
   const moneyLottieFadeTimeoutRef = useRef(null);
 
+  // 기관 선택 필터 및 통계 스크롤 관리
+  const [selectedInstitution, setSelectedInstitution] = useState('All');
+  const chartScrollRef = useRef(null);
+
 
 
 
@@ -341,6 +345,20 @@ export default function App() {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  // 분석 탭 선택 시 가로 차트 스크롤 중앙 정렬 (현재 월 기준)
+  useEffect(() => {
+    if (activeTab === 'stats' && chartScrollRef.current) {
+      const timer = setTimeout(() => {
+        const currentMonthIdx = new Date().getMonth(); // 0 ~ 11
+        const step = 500 / 11;
+        const targetX = currentMonthIdx * step;
+        const containerWidth = chartScrollRef.current.clientWidth || 320;
+        chartScrollRef.current.scrollLeft = targetX - containerWidth / 2;
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab]);
 
   // 강의 데이터 상태
   const [lectures, setLectures] = useState(() => {
@@ -428,7 +446,7 @@ export default function App() {
   }, [sheetUrl]);
 
   // 자동 완성 추천 목록
-  const uniqueInstitutions = Array.from(new Set(lectures.map(l => l?.institution).filter(Boolean)));
+  const uniqueInstitutions = Array.from(new Set(lectures.map(l => l?.institution).filter(Boolean))).sort((a, b) => a.localeCompare(b));
 
   // 고유 월 리스트 정렬
   const monthOrder = [
@@ -1154,15 +1172,21 @@ ${aiText}
 
   const filteredLectures = lectures.filter(l => {
     if (!l) return false;
-    const inst = l.institution || '';
-    const matchesSearch = inst.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesInst = selectedInstitution === 'All' || l.institution === selectedInstitution;
     const matchesMonth = selectedMonth === 'All' || extractMonth(l.date) === selectedMonth;
     const matchesStatus = 
       selectedStatus === 'All' || 
       (selectedStatus === 'Paid' && l.isPaid) || 
       (selectedStatus === 'Pending' && !l.isPaid);
     
-    return matchesSearch && matchesMonth && matchesStatus;
+    return matchesInst && matchesMonth && matchesStatus;
+  }).sort((a, b) => {
+    // 1. 대기(Pending)가 완료(Paid)보다 상단에 위치하도록 정렬
+    if (a.isPaid !== b.isPaid) {
+      return a.isPaid ? 1 : -1;
+    }
+    // 2. 최신 등록 순 정렬 (ID 내림차순)
+    return b.id.localeCompare(a.id);
   });
 
   const gasTemplateCode = `function doGet(e) {
@@ -1241,7 +1265,7 @@ function doPost(e) {
             </div>
 
             <div className="flex items-center gap-2">
-              {/* AI Button */}
+              {/* Gemini AI pill Button */}
               <button 
                 onClick={() => {
                   setAiText('');
@@ -1250,10 +1274,20 @@ function doPost(e) {
                   setIsAiVerifying(false);
                   setIsAiModalOpen(true);
                 }}
-                className="p-2 text-slate-400 hover:text-slate-600 transition hover:bg-slate-50 rounded-xl border border-slate-100 bg-white"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200/80 rounded-full transition shadow-sm active:scale-95 flex-shrink-0"
                 title="AI 일정 등록"
               >
-                <Sparkles size={13} />
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[14px] h-[14px] drop-shadow-sm">
+                  <defs>
+                    <linearGradient id="gemini-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#93C5FD" />
+                      <stop offset="50%" stopColor="#3B82F6" />
+                      <stop offset="100%" stopColor="#8B5CF6" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M12 2C12 2 12.3 8.5 4 12C12.3 12 12 22 12 22C12 22 11.7 12 20 12C11.7 8.5 12 2 12 2Z" fill="url(#gemini-logo-grad)" />
+                </svg>
+                <span className="text-[11.5px] font-black text-slate-700 tracking-tight">Gemini AI</span>
               </button>
             </div>
           </div>
@@ -1303,15 +1337,23 @@ function doPost(e) {
               {/* Filters Box */}
 
               <div className="bg-white p-3 rounded-[20px] border border-toss-border shadow-sm flex flex-col gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 text-toss-textSub" size={15} />
-                  <input 
-                    type="text" 
-                    placeholder="교육 기관명 검색..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 border border-toss-border rounded-xl text-[13px] font-medium bg-[#F8FAF8]"
-                  />
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-slate-500 font-black text-xs pointer-events-none">🏢</span>
+                  <select
+                    value={selectedInstitution}
+                    onChange={(e) => setSelectedInstitution(e.target.value)}
+                    className="w-full pl-8 pr-8 py-2 border border-toss-border rounded-xl text-[12.5px] font-black bg-[#F8FAF8] text-slate-800 focus:outline-none focus:border-[#2563EB] appearance-none"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='3 4.5 6 7.5 9 4.5'/></svg>")`,
+                      backgroundRepeat: 'no-repeat',
+                      backgroundPosition: 'right 12px center',
+                    }}
+                  >
+                    <option value="All">전체 교육기관 선택</option>
+                    {uniqueInstitutions.map(inst => (
+                      <option key={inst} value={inst}>{inst}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="flex gap-2 items-center justify-between border-t border-slate-100 pt-2.5">
                   {/* Left Side: Month list (scrollable) */}
@@ -1440,17 +1482,13 @@ function doPost(e) {
                                 </div>
                               </div>
                               <div className="flex flex-col items-end justify-center pl-2 border-l border-slate-200">
-                                <span className="text-[10px] text-slate-400 font-extrabold mb-1">최종 실수령액</span>
-                                <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                                  <span className="text-[12px] font-bold text-slate-400 line-through">
-                                    {formatWon(l.expectedAmount)}원
-                                  </span>
-                                  <span className="text-[11px] font-black text-slate-400">→</span>
-                                  <span className="text-[15.5px] font-black text-[#10B981] flex items-center">
-                                    <AnimatedNumber value={l.netAmount} className="font-black text-[#10B981]" />
-                                    <span className="text-[13px] font-black text-[#10B981] ml-0.5">원</span>
-                                  </span>
-                                </div>
+                                <span className="text-[12px] font-bold text-slate-400 line-through">
+                                  {formatWon(l.expectedAmount)}원
+                                </span>
+                                <AnimatedNumber 
+                                  value={l.netAmount} 
+                                  className="font-black text-[#10B981] text-[16.5px] mt-0.5" 
+                                />
                               </div>
                             </div>
                           )}
@@ -1576,13 +1614,13 @@ function doPost(e) {
               </div>
 
               {/* 달력 안내 안내카드 */}
-              <div className="bg-slate-50 border border-slate-200/50 p-3 rounded-[16px] text-[10px] text-slate-500 leading-normal flex flex-col gap-1 mt-0.5 shadow-sm">
-                <span className="font-extrabold text-slate-700">💡 캘린더 안내</span>
-                <p>기록일은 연하게 칠해지며, 터치 시 하단 명세가 노출됩니다.</p>
-                <div className="flex items-center gap-3 mt-0.5 font-bold text-[9.5px]">
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"/> 완료</div>
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"/> 대기</div>
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"/> 30일 경과</div>
+              <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-[16px] text-[12.5px] text-slate-600 leading-normal flex flex-col gap-1.5 mt-0.5 shadow-sm">
+                <span className="font-extrabold text-[13px] text-slate-800 flex items-center gap-1">💡 캘린더 안내</span>
+                <p className="font-semibold text-slate-500">기록일은 연하게 칠해지며, 해당 날짜 터치 시 하단에 상세 명세서가 바로 노출됩니다.</p>
+                <div className="flex items-center gap-3.5 mt-1 font-bold text-[11px]">
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"/> 완료</div>
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"/> 대기</div>
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"/> 30일 경과</div>
                 </div>
               </div>
             </div>
@@ -1629,7 +1667,7 @@ function doPost(e) {
                 const maxTotal = Math.max(...fullYearData.map(d => d.total), 1);
                 
                 const points = fullYearData.map((d, i) => ({
-                  x: i * 40 + 40,
+                  x: i * (500 / 11),
                   y: 145 - (maxTotal > 0 ? (d.total / maxTotal) * 105 : 0)
                 }));
                 const pathD = points.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(' ');
@@ -1643,9 +1681,13 @@ function doPost(e) {
                     {lectures.length === 0 ? (
                       <div className="text-[12px] text-slate-400 text-center py-10 font-bold">출강 데이터가 없습니다.</div>
                     ) : (
-                      <div className="w-full overflow-x-auto pb-1 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
-                        <div className="relative pt-2 w-[520px] h-[190px]" style={{ background: '#121216', borderRadius: '16px', padding: '16px 12px 10px 12px', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.4)' }}>
-                          <svg viewBox="0 0 520 190" width="520" height="190" className="overflow-visible">
+                      <div 
+                        ref={chartScrollRef}
+                        className="w-full overflow-x-auto overflow-y-hidden pb-1 scrollbar-none" 
+                        style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x' }}
+                      >
+                        <div className="relative pt-2 w-[500px] h-[195px] flex-shrink-0" style={{ background: '#121216', borderRadius: '16px', padding: '16px 0px 10px 0px', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.4)' }}>
+                          <svg viewBox="0 0 500 190" width="500" height="190" className="overflow-visible">
                             <defs>
                               {/* Glow Filter */}
                               <filter id="glow-orange-horiz" x="-20%" y="-20%" width="140%" height="140%">
@@ -1660,7 +1702,7 @@ function doPost(e) {
                             
                             {/* Grid lines (Vertical Guides) */}
                             {fullYearData.map((d, i) => {
-                              const x = i * 40 + 40;
+                              const x = i * (500 / 11);
                               return (
                                 <g key={i} className="opacity-30">
                                   <line 
@@ -1677,7 +1719,7 @@ function doPost(e) {
                             })}
 
                             {/* Base X Axis line */}
-                            <line x1="25" y1="150" x2="495" y2="150" stroke="#475569" strokeWidth="1.5" opacity="0.4" />
+                            <line x1="0" y1="150" x2="500" y2="150" stroke="#475569" strokeWidth="1.5" opacity="0.4" />
 
                             {/* Glowing Animated Line */}
                             {pathD && (
@@ -1820,11 +1862,11 @@ function doPost(e) {
           {activeTab === 'settings' && (<div key="tab-settings" className={getSlideClass()}>
             <div className="flex flex-col gap-4">
               {/* API Settings Accordion */}
-              <div className="rounded-[24px] bg-white border border-slate-200/60 overflow-hidden shadow-sm">
+              <div className="rounded-[24px] bg-violet-50/10 border border-violet-100/80 overflow-hidden shadow-sm transition-all">
                 <button
                   type="button"
                   onClick={() => setIsApiSettingsOpen(!isApiSettingsOpen)}
-                  className="w-full px-5 py-4.5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors border-none text-left"
+                  className="w-full px-5 py-4.5 flex items-center justify-between bg-violet-50/20 hover:bg-violet-50/40 transition-colors border-none text-left"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[16px]">⚙️</span>
@@ -1861,11 +1903,11 @@ function doPost(e) {
               </div>
 
               {/* Cloud Sync Accordion */}
-              <div className="rounded-[24px] bg-white border border-slate-200/60 overflow-hidden shadow-sm">
+              <div className="rounded-[24px] bg-sky-50/10 border border-sky-100 overflow-hidden shadow-sm transition-all">
                 <button
                   type="button"
                   onClick={() => setIsCloudBackupOpen(!isCloudBackupOpen)}
-                  className="w-full px-5 py-4.5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors border-none text-left"
+                  className="w-full px-5 py-4.5 flex items-center justify-between bg-sky-50/20 hover:bg-sky-50/40 transition-colors border-none text-left"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[16px]">☁️</span>
@@ -1938,11 +1980,11 @@ function doPost(e) {
               </div>
 
               {/* Local Export/Import Accordion */}
-              <div className="rounded-[24px] bg-white border border-slate-200/60 overflow-hidden shadow-sm">
+              <div className="rounded-[24px] bg-emerald-50/10 border border-emerald-100 overflow-hidden shadow-sm transition-all">
                 <button
                   type="button"
                   onClick={() => setIsLocalBackupOpen(!isLocalBackupOpen)}
-                  className="w-full px-5 py-4.5 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors border-none text-left"
+                  className="w-full px-5 py-4.5 flex items-center justify-between bg-emerald-50/20 hover:bg-emerald-50/40 transition-colors border-none text-left"
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[16px]">📂</span>
@@ -2008,7 +2050,7 @@ function doPost(e) {
         </div>
 
         {/* iOS-style Bottom Navigation Bar — fixed bottom-9 on mobile, absolute bottom-5 on desktop mockup */}
-        <div className="fixed bottom-9 md:absolute md:bottom-5 left-4 right-4 z-40 rounded-3xl border border-slate-200/80 shadow-2xl overflow-hidden" style={{background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: '0px'}}>
+        <div className="fixed bottom-9 md:absolute md:bottom-5 left-4 right-4 z-40 rounded-3xl border border-slate-200/80 shadow-2xl" style={{background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: '0px'}}>
           <div className="flex items-center justify-around py-2 px-2">
             {[
               {id:'home', icon:<Home size={22}/>, label:'현황'},
@@ -2038,14 +2080,13 @@ function doPost(e) {
                       });
                       setIsAddModalOpen(true);
                     }}
-                    className="btn-press flex flex-col items-center justify-center w-14 h-14 rounded-full bg-[#2563EB] text-white shadow-lg shadow-blue-500/25 -mt-4 flex-shrink-0"
+                    className="btn-press flex flex-col items-center justify-center w-[58px] h-[58px] rounded-full bg-[#2563EB] text-white shadow-lg shadow-blue-500/30 -mt-[18px] flex-shrink-0 border-[3.5px] border-white"
                     style={{
-                      border: '3px solid white',
                       transition: 'transform 200ms'
                     }}
                   >
-                    <Plus size={20} className="text-white" />
-                    <span style={{fontSize: '9.5px', fontWeight: 900, color: '#FFFFFF', lineHeight: 1, marginTop: '2px'}}>{t.label}</span>
+                    <Plus size={22} className="text-white" />
+                    <span className="text-[11px] font-black text-white leading-none mt-0.5">{t.label}</span>
                   </button>
                 );
               }
