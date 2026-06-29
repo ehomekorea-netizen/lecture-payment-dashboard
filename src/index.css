@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-[#191F28] font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom Utilities */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(229, 232, 235, 0.5);
+}
+
+.dark-glass-card {
+  background: rgba(25, 31, 40, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Custom Scrollbar for Sleek Aesthetic */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E5E8EB;
+  border-radius: 99px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #D1D6DB;
+}
+
+/* Stripe pattern style for unpaid area in charts (compatible with HTML divs) */
+.chart-unpaid-pattern {
+  background-image: linear-gradient(
+    45deg,
+    rgba(31, 46, 91, 0.08) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(31, 46, 91, 0.08) 50%,
+    rgba(31, 46, 91, 0.08) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 12px 12px;
+}
+
+/* Micro-animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.font-pretendard {
+  font-family: 'Pretendard', sans-serif;
+}
