@@ -28,7 +28,47 @@ function formatWon(val) {
   return (Number(val) || 0).toLocaleString();
 }
 
+// ── React Bits: BlurText Component ──
+function BlurText({ text }) {
+  if (!text) return null;
+  return (
+    <span className="inline-block">
+      {text.split('').map((char, idx) => (
+        <span
+          key={idx}
+          className="blur-char"
+          style={{
+            animationDelay: `${idx * 30}ms`,
+            whiteSpace: char === ' ' ? 'pre' : 'normal'
+          }}
+        >
+          {char}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+// ── React Bits: ShinyText Component ──
+function ShinyText({ text, className = '' }) {
+  return (
+    <span className={`shiny-text ${className}`}>
+      {text}
+    </span>
+  );
+}
+
+// ── React Bits: Spotlight Card Mouse Move Handler ──
+const handleCardMouseMove = (e) => {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+  e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+  e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+};
+
 export default function App() {
+
   // 모바일 앱용 탭 상태 ('home', 'stats', 'sync', 'settings')
   const [activeTab, setActiveTab] = useState('home');
   const [prevTab, setPrevTab] = useState(null); // for slide direction
@@ -905,7 +945,9 @@ function doPost(e) {
               </span>
               <div>
                 {/* DESIGN.md: Cinematic Typography — display weight 900, tracking -0.02em */}
-                <h1 style={{fontFamily: "'Pretendard', sans-serif", fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'white', fontSize: '14px'}}>Lectoss</h1>
+                <h1 style={{fontFamily: "'Pretendard', sans-serif", fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.1, color: 'white', fontSize: '14px'}}>
+                  <BlurText text="Lectoss" />
+                </h1>
                 <p style={{fontSize: '9px', color: 'rgba(0,188,212,0.80)', fontWeight: 600, letterSpacing: '0.01em'}}>강의료 정산비서</p>
               </div>
             </div>
@@ -1280,7 +1322,9 @@ function doPost(e) {
                 <TrendingUp size={22} color="#00BCD4" />
               </div>
               <div>
-                <h1 style={{fontFamily: "'Pretendard', sans-serif", fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1, color: 'white', fontSize: 'clamp(18px, 2vw, 28px)'}}>Lectoss</h1>
+                <h1 style={{fontFamily: "'Pretendard', sans-serif", fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1, color: 'white', fontSize: 'clamp(18px, 2vw, 28px)'}}>
+                  <BlurText text="Lectoss" />
+                </h1>
                 <p style={{fontSize: '10px', color: 'rgba(0,188,212,0.75)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase'}}>강의료 정산비서 · DX Edition</p>
               </div>
             </div>
@@ -1378,7 +1422,11 @@ function doPost(e) {
         {/* DESIGN.md: Statistics Widgets — Cinematic Typography 3vw scale */}
         <div className="grid grid-cols-3 gap-5">
           {/* Paid Total */}
-          <div className="rounded-[24px] p-6 relative overflow-hidden" style={{background: 'white', border: '1px solid rgba(31,46,91,0.08)', boxShadow: '0 2px 16px rgba(31,46,91,0.06)'}}>
+          <div 
+            onMouseMove={handleCardMouseMove}
+            className="spotlight-card rounded-[24px] p-6 relative overflow-hidden" 
+            style={{background: 'white', border: '1px solid rgba(31,46,91,0.08)', boxShadow: '0 2px 16px rgba(31,46,91,0.06)'}}
+          >
             <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-5" style={{background: '#10B981', transform: 'translate(30%, -30%)'}} />
             <span className="text-xs font-semibold block mb-1" style={{color: '#64748B', letterSpacing: '0.03em'}}>정산 완료 실수령액</span>
             <div className="flex items-center gap-2 mt-2">
@@ -1386,29 +1434,43 @@ function doPost(e) {
               <span style={{fontSize: '11px', color: '#10B981', fontWeight: 700}}>{lectures.filter(l=>l.isPaid).length}건 완료</span>
             </div>
             {/* DESIGN.md: Cinematic Typography — 3vw, weight 900, letter-spacing -0.03em */}
-            <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#10B981'}}>₩{formatWon(totalNet)}</div>
+            <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#10B981'}}>
+              <ShinyText text={"₩" + formatWon(totalNet)} />
+            </div>
           </div>
 
           {/* Expected Total */}
-          <div className="rounded-[24px] p-6 relative overflow-hidden" style={{background: 'white', border: '1px solid rgba(31,46,91,0.08)', boxShadow: '0 2px 16px rgba(31,46,91,0.06)'}}>
+          <div 
+            onMouseMove={handleCardMouseMove}
+            className="spotlight-card rounded-[24px] p-6 relative overflow-hidden" 
+            style={{background: 'white', border: '1px solid rgba(31,46,91,0.08)', boxShadow: '0 2px 16px rgba(31,46,91,0.06)'}}
+          >
             <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-5" style={{background: '#1F2E5B', transform: 'translate(30%, -30%)'}} />
             <span className="text-xs font-semibold block mb-1" style={{color: '#64748B', letterSpacing: '0.03em'}}>총 예상 수령액 (전체)</span>
             <div className="flex items-center gap-2 mt-2">
               <Info size={16} color="#1F2E5B" />
               <span style={{fontSize: '11px', color: '#1F2E5B', fontWeight: 700}}>{lectures.length}건 전체</span>
             </div>
-            <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#1F2E5B'}}>₩{formatWon(totalExpected)}</div>
+            <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#1F2E5B'}}>
+              <ShinyText text={"₩" + formatWon(totalExpected)} />
+            </div>
           </div>
 
           {/* Unpaid Total */}
-          <div className="rounded-[24px] p-6 relative overflow-hidden" style={{background: 'linear-gradient(135deg, #fffbeb 0%, #fffde7 100%)', border: '1px solid rgba(245,158,11,0.20)', boxShadow: '0 2px 16px rgba(245,158,11,0.08)'}}>
+          <div 
+            onMouseMove={handleCardMouseMove}
+            className="spotlight-card rounded-[24px] p-6 relative overflow-hidden" 
+            style={{background: 'linear-gradient(135deg, #fffbeb 0%, #fffde7 100%)', border: '1px solid rgba(245,158,11,0.20)', boxShadow: '0 2px 16px rgba(245,158,11,0.08)'}}
+          >
             <div className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-10" style={{background: '#F59E0B', transform: 'translate(30%, -30%)'}} />
             <span className="text-xs font-semibold block mb-1" style={{color: '#64748B', letterSpacing: '0.03em'}}>미정산 대기 총액</span>
             <div className="flex items-center gap-2 mt-2">
               <AlertCircle size={16} color="#F59E0B" />
               <span style={{fontSize: '11px', color: '#F59E0B', fontWeight: 700}}>{unpaidCount}건 대기</span>
             </div>
-            <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#F59E0B'}}>₩{formatWon(totalUnpaid)}</div>
+            <div className="stat-number mt-3" style={{fontSize: 'clamp(22px, 3vw, 40px)', color: '#F59E0B'}}>
+              <ShinyText text={"₩" + formatWon(totalUnpaid)} />
+            </div>
           </div>
         </div>
 

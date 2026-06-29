@@ -327,3 +327,69 @@
   animation: skeletonGlow 1.4s var(--ease-standard) infinite;
 }
 
+/* ── React Bits: ShinyText (Metallic Sweep) ── */
+@keyframes shinySweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+.shiny-text {
+  background: linear-gradient(
+    120deg,
+    rgba(31, 46, 91, 0.20) 30%,
+    #00BCD4 50%,
+    rgba(31, 46, 91, 0.20) 70%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shinySweep 4s linear infinite;
+  display: inline-block;
+}
+
+/* ── React Bits: BlurText (Staggered Blur Fade-in) ── */
+@keyframes blurReveal {
+  0% {
+    filter: blur(12px);
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  100% {
+    filter: blur(0px);
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.blur-char {
+  display: inline-block;
+  animation: blurReveal 0.65s var(--ease-spring) both;
+}
+
+/* ── React Bits: Spotlight Card (Radial Gradient Pointer Tracking) ── */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+}
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
+    rgba(0, 188, 212, 0.08),
+    transparent 80%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  z-index: 1;
+}
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+
