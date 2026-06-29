@@ -124,6 +124,10 @@ export default function App() {
   // 영수증 상세 아이템
   const [receiptItem, setReceiptItem] = useState(null);
 
+  // 달력 선택 날짜 (상세 모바일 바텀시트 전용)
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
+
+
   // 파일 업로드 모션 상태
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -1209,9 +1213,21 @@ function doPost(e) {
                       return diffDays >= 30;
                     });
 
+                    const hasLectures = dayLectures.length > 0;
+
                     return (
-                      <div key={day} className="flex flex-col items-center justify-center relative py-0.5 rounded-lg">
-                        <span className="font-bold text-toss-textDark">{day}</span>
+                      <div 
+                        key={day} 
+                        onClick={() => {
+                          if (hasLectures) {
+                            setSelectedCalendarDate(dateStr);
+                          }
+                        }}
+                        className={`flex flex-col items-center justify-center relative py-0.5 rounded-lg transition-colors ${
+                          hasLectures ? 'cursor-pointer hover:bg-[#00BCD4]/10' : ''
+                        }`}
+                      >
+                        <span className={`font-bold ${hasLectures ? 'text-[#1F2E5B] font-black' : 'text-toss-textDark'}`}>{day}</span>
                         {/* 도트 표시 */}
                         <div className="flex gap-0.5 justify-center mt-0.5 h-1">
                           {hasPaid && <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />}
@@ -2179,16 +2195,52 @@ function doPost(e) {
                     className="px-3 py-2 border border-toss-border rounded-xl focus:outline-none"
                   />
                 </div>
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1.5">
                   <label className="font-bold text-toss-textMuted">총 강의 시간 (차시) *</label>
-                  <input 
-                    type="number" 
-                    name="classes"
-                    required
-                    value={formData.classes}
-                    onChange={handleInputChange}
-                    className="px-3 py-2 border border-toss-border rounded-xl focus:outline-none"
-                  />
+                  
+                  {/* +/- 증감 및 입력 조절기 */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, classes: Math.max(1, prev.classes - 1) }))}
+                      className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-base rounded-xl transition flex items-center justify-center border border-slate-200"
+                    >
+                      -
+                    </button>
+                    <input 
+                      type="number" 
+                      name="classes"
+                      required
+                      value={formData.classes}
+                      onChange={handleInputChange}
+                      className="flex-1 h-10 text-center border border-toss-border rounded-xl focus:outline-none font-bold bg-white text-xs"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, classes: prev.classes + 1 }))}
+                      className="w-10 h-10 bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-base rounded-xl transition flex items-center justify-center border border-slate-200"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* 퀵 탭 스위처 차시 칩 */}
+                  <div className="flex gap-1 overflow-x-auto py-0.5 scrollbar-none">
+                    {[1, 2, 4, 8, 12].map(c => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, classes: c }))}
+                        className={`text-[10px] font-black px-3 py-1.5 rounded-lg border transition ${
+                          formData.classes === c 
+                            ? 'bg-[#1F2E5B] text-white border-[#1F2E5B]' 
+                            : 'bg-white text-toss-textSub border-toss-border/60 hover:bg-slate-50'
+                        }`}
+                      >
+                        {c}회차
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -2611,9 +2663,84 @@ function doPost(e) {
           </div>
         </div>
       )}
+
+      {/* ========================================================
+          [MODAL 7]: Calendar Date Details Bottom Sheet
+         ======================================================== */}
+      {selectedCalendarDate && (
+        <div className="fixed inset-0 flex items-end justify-center p-0 z-50 animate-fade-in md:hidden" style={{background: 'rgba(15,23,42,0.55)', backdropFilter: 'blur(6px)'}}>
+          {/* Bottom Sheet wrapper */}
+          <div className="bg-[#F8FAF8] w-full rounded-t-[32px] max-h-[75vh] flex flex-col pb-8 shadow-2xl bottom-sheet-enter overflow-hidden">
+            {/* Drag Handle */}
+            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 flex-shrink-0" />
+            
+            {/* Header */}
+            <div className="px-5 pb-3 border-b border-toss-border flex items-center justify-between">
+              <div className="flex flex-col">
+                <span className="text-[9px] font-extrabold text-[#00BCD4] uppercase tracking-wider">출강 캘린더 상세</span>
+                <h3 className="text-sm font-black text-[#1F2E5B]">{selectedCalendarDate} 강의 명세</h3>
+              </div>
+              <button 
+                onClick={() => setSelectedCalendarDate(null)} 
+                className="p-1.5 text-toss-textSub hover:bg-slate-100 rounded-lg"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            {/* Body - Lecture items list */}
+            <div className="p-4 flex-1 flex flex-col gap-3 overflow-y-auto">
+              {lectures.filter(l => l.date && l.date.replace(/\s+/g, '').includes(selectedCalendarDate.replace(/\s+/g, ''))).map((l) => (
+                <div 
+                  key={l.id} 
+                  className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-2 relative"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-extrabold text-[#1F2E5B] text-xs">{l.institution}</h4>
+                      <p className="text-[9px] text-slate-400 mt-0.5">단가 ₩{formatWon(l.rate)} × {l.classes}차시</p>
+                    </div>
+                    <button
+                      onClick={() => handleTogglePaid(l)}
+                      className="text-[9px] font-black px-2 py-0.5 rounded-lg border"
+                      style={l.isPaid
+                        ? {background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)', color: '#10B981'}
+                        : {background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)', color: '#F59E0B'}
+                      }
+                    >
+                      {l.isPaid ? '✓ 완료' : '⏳ 대기'}
+                    </button>
+                  </div>
+                  
+                  <div className="flex justify-between items-center mt-1 pt-2 border-t border-dashed border-slate-100">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9.5px] text-slate-400">실수령액:</span>
+                      <strong className="text-xs font-black text-slate-800">
+                        ₩{l.isPaid ? formatWon(l.netAmount) : formatWon(l.expectedAmount)}
+                      </strong>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setReceiptItem(l);
+                        setSelectedCalendarDate(null);
+                      }}
+                      className="text-[9px] font-bold px-2 py-0.5 rounded bg-slate-100 text-toss-textSub border border-slate-200"
+                    >
+                      영수증 보기
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ========================================================
           [MODAL 6]: Tax Receipt Modal (Premium torn paper look)
          ======================================================== */}
+
       {receiptItem && (
         <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-fade-in" style={{background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(8px)'}}>
           {/* Torn Receipt Card */}
