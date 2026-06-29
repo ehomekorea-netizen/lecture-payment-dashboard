@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, Plus, Calendar, TrendingUp, AlertCircle, 
   CheckCircle2, X, Download, Upload, Trash2, Edit3, Check, Info,
   Settings, Sparkles, Database, RefreshCw, Home, BarChart, 
-   BookOpen, Copy, Cloud
+   BookOpen, Copy, Cloud, ClipboardList
 } from 'lucide-react';
 import { INITIAL_LECTURES } from './initialData';
 import StableLottie from './components/StableLottie';
+import ConstellationView from './components/ConstellationView';
+import AnimatedNumber from './components/AnimatedNumber';
 
 
 
@@ -237,7 +239,7 @@ export default function App() {
 
 
   // Tab order for slide direction
-  const TAB_ORDER = ['calendar', 'stats', 'home', 'sync', 'settings'];
+  const TAB_ORDER = ['home', 'calendar', 'stats', 'settings'];
   const getSlideClass = () => {
     if (!prevTab) return 'tab-enter-up';
     const prevIdx = TAB_ORDER.indexOf(prevTab);
