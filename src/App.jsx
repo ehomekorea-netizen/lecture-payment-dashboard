@@ -73,6 +73,83 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [prevTab, setPrevTab] = useState(null); // for slide direction
 
+  // 자주 쓰는 프리셋 데이터 상태
+  const [presets, setPresets] = useState(() => {
+    try {
+      const saved = localStorage.getItem('lectoss_presets');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    return [
+      { id: 'p1', emoji: '🌱', name: '디지털새싹 코딩교실', rate: 50000, classes: 4, transportFee: 50000, taxRate: '3.3%' },
+      { id: 'p2', emoji: '💻', name: '디지털배움터 스마트폰교실', rate: 35000, classes: 6, transportFee: 20000, taxRate: '3.3%' },
+      { id: 'p3', emoji: '🏛️', name: '주민센터 스마트시니어', rate: 100000, classes: 2, transportFee: 0, taxRate: '8.8%' },
+      { id: 'p4', emoji: '🏢', name: 'ICT 역량강화 기업교육', rate: 150000, classes: 3, transportFee: 30000, taxRate: '8.8%' },
+      { id: 'p5', emoji: '🏫', name: '디지털새싹 진로특강(학교)', rate: 50000, classes: 6, transportFee: 84000, taxRate: '3.3%' }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lectoss_presets', JSON.stringify(presets));
+  }, [presets]);
+
+  const applyPreset = (preset) => {
+    setFormData(prev => ({
+      ...prev,
+      institution: preset.name,
+      rate: preset.rate,
+      classes: preset.classes,
+      transportFee: preset.transportFee,
+      taxRate: preset.taxRate,
+      month: prev.month || `${new Date().getMonth() + 1}월`,
+      date: prev.date || `${new Date().getMonth() + 1}월 ${new Date().getDate()}일`
+    }));
+  };
+
+  // 이번 달 캘린더용 계산 변수
+  const todayVal = new Date();
+  const currentYear = todayVal.getFullYear();
+  const currentMonth = todayVal.getMonth();
+  const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+  // 모바일 카드 스와이프 상태
+  const [swipeActiveId, setSwipeActiveId] = useState(null);
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchOffset, setTouchOffset] = useState(0);
+
+  // 영수증 상세 아이템
+  const [receiptItem, setReceiptItem] = useState(null);
+
+  // 파일 업로드 모션 상태
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // GPS 도착 감지 추천 출강 상태 및 시뮬레이터
+  const [gpsDetectedLecture, setGpsDetectedLecture] = useState(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setGpsDetectedLecture({
+        institution: '🏛️ 광주 남구 종합사회복지관',
+        rate: 100000,
+        classes: 2,
+        transportFee: 20000,
+        taxRate: '8.8%',
+        month: `${new Date().getMonth() + 1}월`,
+        date: `${new Date().getMonth() + 1}월 ${new Date().getDate()}일`
+      });
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, []);
+
+
+
+
+
   // Tab order for slide direction
   const TAB_ORDER = ['home', 'stats', 'sync', 'settings'];
   const getSlideClass = () => {
@@ -730,7 +807,48 @@ ${aiText}
     }
   };
 
+  // GPS도착감지 즉시 1초 기록 등록
+  const handleQuickGpsRegister = () => {
+    if (!gpsDetectedLecture) return;
+    
+    const rateVal = gpsDetectedLecture.rate;
+    const classVal = gpsDetectedLecture.classes;
+    const transportVal = gpsDetectedLecture.transportFee;
+    const taxRateStr = gpsDetectedLecture.taxRate;
+    
+    const baseExpected = (rateVal * classVal) + transportVal;
+    let taxVal = 0;
+    if (taxRateStr === '3.3%') {
+      taxVal = Math.floor((rateVal * classVal) * 0.033);
+    } else if (taxRateStr === '8.8%') {
+      taxVal = Math.floor((rateVal * classVal) * 0.088);
+    }
+    const netVal = baseExpected - taxVal;
+
+    const newLectureObj = {
+      id: `gps-${Date.now()}`,
+      institution: gpsDetectedLecture.institution,
+      rate: rateVal,
+      classes: classVal,
+      transportFee: transportVal,
+      expectedAmount: baseExpected,
+      deduction: taxVal,
+      netAmount: netVal,
+      month: gpsDetectedLecture.month,
+      date: gpsDetectedLecture.date,
+      registrationDate: new Date().toISOString().slice(0, 10),
+      isPaid: false,
+      taxRate: taxRateStr,
+      taxBase: 'LectureOnly',
+      customTax: 0
+    };
+
+    setLectures(prev => [newLectureObj, ...prev]);
+    setGpsDetectedLecture(null);
+  };
+
   // 수정 진입
+
   const handleEditClick = (lecture) => {
     setEditingLecture(lecture);
     setFormData({
@@ -838,6 +956,31 @@ ${aiText}
     };
     reader.readAsText(file);
   };
+
+  // 업로드 시뮬레이션용 애니메이션 함수
+  const handleAnimatedUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += Math.floor(Math.random() * 12) + 6;
+      if (progress >= 100) {
+        progress = 100;
+        clearInterval(interval);
+        setTimeout(() => {
+          setIsUploading(false);
+          setUploadProgress(0);
+          handleImportCSV(e);
+        }, 450);
+      }
+      setUploadProgress(progress);
+    }, 40);
+  };
+
 
   // 통계 계산
   const totalExpected = lectures.reduce((acc, curr) => acc + curr.expectedAmount, 0);
@@ -1002,8 +1145,92 @@ function doPost(e) {
           
           {/* TAB 1: HOME (Lectures Card List) */}
           {activeTab === 'home' && (
-            <div key="tab-home" className={getSlideClass()}>
+            <div key="tab-home" className={`${getSlideClass()} flex flex-col gap-4`}>
+              
+              {/* 월별 미정산 요약 리포트 카드 */}
+              <div 
+                className="rounded-[24px] p-5 text-white flex flex-col gap-2 relative overflow-hidden animate-fade-in" 
+                style={{
+                  background: 'linear-gradient(135deg, #1F2E5B 0%, #162348 100%)',
+                  border: '1px solid rgba(0, 188, 212, 0.20)',
+                  boxShadow: '0 8px 30px rgba(31, 46, 91, 0.15)'
+                }}
+              >
+                <div className="absolute top-0 right-0 w-28 h-28 rounded-full opacity-10" style={{background: '#00BCD4', transform: 'translate(20%, -20%)'}} />
+                <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#00BCD4]">
+                  정산 대기 현황판
+                </span>
+                <div className="flex items-baseline justify-between mt-1">
+                  <span className="stat-number text-2xl font-black text-white">
+                    <ShinyText text={"₩" + formatWon(totalUnpaid)} />
+                  </span>
+                  <span className="text-[10px] text-white/80 font-bold bg-white/10 px-2.5 py-0.5 rounded-full border border-white/10">
+                    대기 {unpaidCount}건
+                  </span>
+                </div>
+              </div>
+
+              {/* 모바일 정산 현황 미니 캘린더 */}
+              <div className="bg-white p-4 rounded-[24px]" style={{border: '1px solid rgba(31, 46, 91, 0.08)', boxShadow: '0 2px 12px rgba(31, 46, 91, 0.04)'}}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-black text-toss-textDark flex items-center gap-1">
+                    <Calendar size={14} className="text-[#00BCD4]" />
+                    이번 달 출강 캘린더
+                  </span>
+                  <span className="text-[9px] text-toss-textSub font-semibold">{currentMonth + 1}월 현황</span>
+                </div>
+                
+                {/* 캘린더 그리드 */}
+                <div className="grid grid-cols-7 gap-y-2 gap-x-1 text-center text-[10px]">
+                  {['일','월','화','수','목','금','토'].map(d => (
+                    <span key={d} className="font-extrabold text-toss-textSub text-[9px] pb-1">{d}</span>
+                  ))}
+                  
+                  {/* 시작 요일 공백 채우기 */}
+                  {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
+                    <span key={`empty-${idx}`} />
+                  ))}
+                  
+                  {/* 날짜 표시 */}
+                  {Array.from({ length: daysInMonth }).map((_, i) => {
+                    const day = i + 1;
+                    const dateStr = `${currentMonth + 1}월 ${day}일`;
+                    
+                    const dayLectures = lectures.filter(l => l.date && l.date.replace(/\s+/g, '').includes(dateStr.replace(/\s+/g, '')));
+                    const hasPaid = dayLectures.some(l => l.isPaid);
+                    const hasUnpaid = dayLectures.some(l => !l.isPaid);
+                    
+                    // 30일 경고 대상 여부
+                    const hasWarning = dayLectures.some(l => {
+                      if (l.isPaid) return false;
+                      const regDate = new Date(l.registrationDate);
+                      const diffTime = Math.abs(new Date() - regDate);
+                      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                      return diffDays >= 30;
+                    });
+
+                    return (
+                      <div key={day} className="flex flex-col items-center justify-center relative py-0.5 rounded-lg">
+                        <span className="font-bold text-toss-textDark">{day}</span>
+                        {/* 도트 표시 */}
+                        <div className="flex gap-0.5 justify-center mt-0.5 h-1">
+                          {hasPaid && <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />}
+                          {hasUnpaid && (
+                            <span className={`w-1.5 h-1.5 rounded-full bg-[#F59E0B] ${hasWarning ? 'relative' : ''}`}>
+                              {hasWarning && (
+                                <span className="absolute -inset-1 rounded-full bg-[#F59E0B]/40 animate-ping" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Filters Box */}
+
               <div className="bg-white p-3 rounded-[20px] border border-toss-border shadow-sm flex flex-col gap-2">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 text-toss-textSub" size={15} />
@@ -1043,66 +1270,138 @@ function doPost(e) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {filteredLectures.map((l, idx) => (
-                    <div
-                      key={l.id}
-                      className="card-stagger card-hover bg-white rounded-[22px] flex flex-col gap-2.5"
-                      style={{
-                        animationDelay: (idx * 55) + 'ms',
-                        border: '1px solid rgba(31,46,91,0.10)',
-                        padding: '18px',
-                        boxShadow: '0 2px 12px rgba(31,46,91,0.06)'
-                      }}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg mb-1 inline-block" style={{background: 'rgba(31,46,91,0.07)', color: '#64748B'}}>
-                            {l.month} · {l.date}
-                          </span>
-                          <h3 style={{fontSize: '13px', fontWeight: 800, color: '#1F2E5B', letterSpacing: '-0.01em'}}>{l.institution}</h3>
+                  {filteredLectures.map((l, idx) => {
+                    const isSwiped = swipeActiveId === l.id;
+                    const offset = isSwiped ? touchOffset : 0;
+                    
+                    return (
+                      <div 
+                        key={l.id} 
+                        className="relative overflow-hidden rounded-[22px]" 
+                        style={{
+                          border: '1px solid rgba(31,46,91,0.10)', 
+                          boxShadow: '0 2px 12px rgba(31,46,91,0.06)'
+                        }}
+                      >
+                        {/* 카드 뒷면 Action Buttons */}
+                        <div className="absolute inset-0 bg-[#F8FAF8] flex justify-end items-stretch z-0">
+                          <button
+                            onClick={() => {
+                              handleTogglePaid(l);
+                              setSwipeActiveId(null);
+                              setTouchOffset(0);
+                            }}
+                            className="w-16 flex flex-col items-center justify-center font-bold text-white text-[10px] transition-colors"
+                            style={{background: l.isPaid ? '#F59E0B' : '#10B981'}}
+                          >
+                            <span>{l.isPaid ? '대기' : '완료'}</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleDelete(l.id);
+                              setSwipeActiveId(null);
+                              setTouchOffset(0);
+                            }}
+                            className="w-16 flex flex-col items-center justify-center font-bold text-white text-[10px] bg-[#EF4444]"
+                          >
+                            <span>삭제</span>
+                          </button>
                         </div>
-                        <button
-                          onClick={() => handleTogglePaid(l)}
-                          className="btn-press text-[9px] font-black px-2.5 py-1 rounded-xl"
-                          style={l.isPaid
-                            ? {background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)', color: '#10B981'}
-                            : {background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)', color: '#F59E0B'}
-                          }
+
+                        {/* 카드 전면 (터치 스와이프) */}
+                        <div
+                          onTouchStart={(e) => {
+                            setTouchStart(e.touches[0].clientX);
+                            setSwipeActiveId(l.id);
+                          }}
+                          onTouchMove={(e) => {
+                            if (swipeActiveId !== l.id) return;
+                            const diff = e.touches[0].clientX - touchStart;
+                            if (diff < 0) {
+                              setTouchOffset(Math.max(-128, diff));
+                            } else if (diff > 0 && touchOffset < 0) {
+                              setTouchOffset(Math.min(0, -128 + diff));
+                            }
+                          }}
+                          onTouchEnd={() => {
+                            if (touchOffset < -50) {
+                              setTouchOffset(-128); // 고정
+                            } else {
+                              setTouchOffset(0);
+                              setSwipeActiveId(null);
+                            }
+                          }}
+                          className="card-stagger card-hover bg-white flex flex-col gap-2.5 z-10 relative transition-transform duration-150 ease-out"
+                          style={{
+                            transform: `translateX(${offset}px)`,
+                            animationDelay: (idx * 55) + 'ms',
+                            padding: '18px'
+                          }}
                         >
-                          {l.isPaid ? '✓ 완료' : '⏳ 대기'}
-                        </button>
-                      </div>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg mb-1 inline-block" style={{background: 'rgba(31,46,91,0.07)', color: '#64748B'}}>
+                                {l.month} · {l.date}
+                              </span>
+                              <h3 style={{fontSize: '13px', fontWeight: 800, color: '#1F2E5B', letterSpacing: '-0.01em'}}>{l.institution}</h3>
+                            </div>
+                            <button
+                              onClick={() => handleTogglePaid(l)}
+                              className="btn-press text-[9px] font-black px-2.5 py-1 rounded-xl"
+                              style={l.isPaid
+                                ? {background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)', color: '#10B981'}
+                                : {background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)', color: '#F59E0B'}
+                              }
+                            >
+                              {l.isPaid ? '✓ 완료' : '⏳ 대기'}
+                            </button>
+                          </div>
 
-                      <div className="grid grid-cols-2 gap-y-1.5 text-[10px] text-toss-textSub py-2 border-y border-dashed border-toss-border/60">
-                        <div className="flex justify-between pr-2">
-                          <span>단가×차시:</span>
-                          <span className="font-semibold text-toss-textDark">₩{formatWon(l.rate)}×{l.classes}</span>
-                        </div>
-                        <div className="flex justify-between pl-2 border-l border-toss-border">
-                          <span>예상수령:</span>
-                          <span className="font-bold text-toss-textDark">₩{formatWon(l.expectedAmount)}</span>
-                        </div>
-                      </div>
+                          <div className="grid grid-cols-2 gap-y-1.5 text-[10px] text-toss-textSub py-2 border-y border-dashed border-toss-border/60">
+                            <div className="flex justify-between pr-2">
+                              <span>단가×차시:</span>
+                              <span className="font-semibold text-toss-textDark">₩{formatWon(l.rate)}×{l.classes}</span>
+                            </div>
+                            <div className="flex justify-between pl-2 border-l border-toss-border">
+                              <span>예상수령:</span>
+                              <span className="font-bold text-toss-textDark">₩{formatWon(l.expectedAmount)}</span>
+                            </div>
+                          </div>
 
-                      <div className="flex items-center justify-between mt-2 pt-2" style={{borderTop: '1px dashed rgba(31,46,91,0.10)'}}>
-                        <div>
-                          <span className="text-[9px]" style={{color: '#94a3b8'}}>실수령액</span>
-                          <div style={{fontSize: '15px', fontWeight: 900, letterSpacing: '-0.02em', color: l.isPaid ? '#10B981' : '#94a3b8', lineHeight: 1}}>
-                            {l.isPaid ? ('₩' + formatWon(l.netAmount)) : '—'}
+                          <div className="flex items-center justify-between mt-2 pt-2" style={{borderTop: '1px dashed rgba(31,46,91,0.10)'}}>
+                            <div className="flex items-center gap-2">
+                              <div>
+                                <span className="text-[9px]" style={{color: '#94a3b8'}}>실수령액</span>
+                                <div style={{fontSize: '15px', fontWeight: 900, letterSpacing: '-0.02em', color: l.isPaid ? '#10B981' : '#94a3b8', lineHeight: 1}}>
+                                  {l.isPaid ? ('₩' + formatWon(l.netAmount)) : '—'}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setReceiptItem(l);
+                                }}
+                                className="btn-press text-[9px] font-extrabold px-2 py-0.5 rounded bg-slate-100 text-toss-textSub border border-slate-200"
+                              >
+                                영수증
+                              </button>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <button onClick={() => handleEditClick(l)} className="btn-press p-2 rounded-xl" style={{background: 'rgba(31,46,91,0.05)', color: '#64748B'}}>
+                                <Edit3 size={12} />
+                              </button>
+                              <button onClick={() => handleDelete(l.id)} className="btn-press p-2 rounded-xl" style={{background: 'rgba(239,68,68,0.07)', color: '#EF4444'}}>
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex gap-1.5">
-                          <button onClick={() => handleEditClick(l)} className="btn-press p-2 rounded-xl" style={{background: 'rgba(31,46,91,0.05)', color: '#64748B'}}>
-                            <Edit3 size={12} />
-                          </button>
-                          <button onClick={() => handleDelete(l.id)} className="btn-press p-2 rounded-xl" style={{background: 'rgba(239,68,68,0.07)', color: '#EF4444'}}>
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+
               )}
             </div>
           )}
@@ -1198,18 +1497,56 @@ function doPost(e) {
                 )}
               </div>
 
-              <div className="bg-white p-4 rounded-[20px] border border-toss-border shadow-sm flex flex-col gap-2.5">
-                <span className="text-xs font-extrabold text-toss-textDark">로컬 파일 내보내기/가져오기</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button onClick={handleExportCSV} className="py-2 bg-slate-100 text-toss-textDark text-[10px] font-bold rounded-xl flex items-center justify-center gap-1">
-                    <Download size={12} /> CSV 다운로드
+              {/* Collect UI: Premium Animated File Upload Card */}
+              <div className="bg-white p-5 rounded-[24px] border border-toss-border shadow-sm flex flex-col gap-3">
+                <span className="text-xs font-extrabold text-toss-textDark">로컬 데이터 내보내기 & 가져오기</span>
+                
+                <div className="grid grid-cols-1 gap-3.5">
+                  {/* CSV Export Button */}
+                  <button 
+                    onClick={handleExportCSV} 
+                    className="w-full py-3 bg-[#F8FAF8] border border-toss-border hover:border-toss-blue text-toss-textDark text-[11px] font-bold rounded-2xl flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <Download size={13} className="text-toss-blue" />
+                    현재 출강 이력 CSV로 내려받기
                   </button>
-                  <label className="py-2 bg-slate-100 text-toss-textDark text-[10px] font-bold rounded-xl flex items-center justify-center gap-1 cursor-pointer text-center">
-                    <Upload size={12} /> CSV 업로드
-                    <input type="file" accept=".csv" onChange={handleImportCSV} className="hidden" />
-                  </label>
+                  
+                  {/* Collect UI Cloud Upload Area */}
+                  <div className="relative border-2 border-dashed border-toss-border/80 rounded-2xl p-6 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
+                    <input 
+                      type="file" 
+                      accept=".csv" 
+                      onChange={handleAnimatedUpload} 
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                      disabled={isUploading}
+                    />
+                    
+                    {/* Cloud Floating animation */}
+                    <div className={`p-3 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-3 ${isUploading ? 'upload-pulse' : 'cloud-float'}`}>
+                      <Cloud size={28} className="text-toss-blue" />
+                    </div>
+                    
+                    {isUploading ? (
+                      <div className="w-full max-w-[180px] flex flex-col items-center gap-2">
+                        <span className="text-[10px] font-bold text-toss-blue">파일을 파싱하는 중...</span>
+                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-toss-blue transition-all duration-75" style={{width: `${uploadProgress}%`}} />
+                        </div>
+                        <span className="text-[9px] text-slate-400 font-extrabold">{uploadProgress}%</span>
+                      </div>
+                    ) : (
+                      <>
+                        <span className="text-[11px] font-black text-slate-800">CSV 백업 파일 가져오기</span>
+                        <p className="text-[9px] text-slate-400 mt-1 leading-normal">
+                          이곳을 탭하거나 CSV 파일을 끌어놓으세요.<br/>
+                          (이전 백업본이 현재 리스트와 병합됩니다.)
+                        </p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
+
             </div>
           </div>
         )}
@@ -1280,6 +1617,43 @@ function doPost(e) {
 
         {/* iOS-style Bottom Navigation Bar — motion: active pill indicator */}
         <div className="fixed bottom-0 left-0 right-0 z-40" style={{background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: '1px solid rgba(31,46,91,0.08)', boxShadow: '0 -4px 20px rgba(31,46,91,0.08)', paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
+          
+          {/* GPS 도착 알림 플로팅 카드 */}
+          {activeTab === 'home' && gpsDetectedLecture && (
+            <div className="absolute left-4 right-4 bottom-[72px] z-50 bg-[#1F2E5B] text-white p-4 rounded-[22px] border border-toss-blue/30 shadow-2xl flex flex-col gap-3 bottom-sheet-enter">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-[#00BCD4] flex items-center gap-1">
+                  <MapPin size={12} className="animate-bounce" />
+                  출강 장소 도착 완료 (GPS 감지)
+                </span>
+                <button 
+                  onClick={() => setGpsDetectedLecture(null)}
+                  className="text-white/40 hover:text-white"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-white">{gpsDetectedLecture.institution}</span>
+                <span className="text-[9px] text-white/70 mt-0.5">단가 ₩{formatWon(gpsDetectedLecture.rate)} / {gpsDetectedLecture.classes}차시 / 교통비 ₩{formatWon(gpsDetectedLecture.transportFee)} 지원</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setGpsDetectedLecture(null)}
+                  className="flex-1 py-2 rounded-xl text-[10px] font-bold bg-white/10 text-white/90 hover:bg-white/20 transition"
+                >
+                  나중에 등록
+                </button>
+                <button
+                  onClick={handleQuickGpsRegister}
+                  className="flex-1 py-2 rounded-xl text-[10px] font-bold bg-[#00BCD4] text-[#1F2E5B] hover:bg-[#00acc1] transition shadow-md btn-teal-glow"
+                >
+                  1초 빠른 기록
+                </button>
+              </div>
+            </div>
+          )}
+          
           <div className="flex items-center justify-around py-2 px-2">
             {[{id:'home', icon:<Home size={20}/>, label:'기록'}, {id:'stats', icon:<BarChart size={20}/>, label:'분석'}, {id:'sync', icon:<RefreshCw size={20}/>, label:'백업'}, {id:'settings', icon:<Settings size={20}/>, label:'설정'}].map(t => (
               <button
@@ -2237,6 +2611,103 @@ function doPost(e) {
           </div>
         </div>
       )}
+      {/* ========================================================
+          [MODAL 6]: Tax Receipt Modal (Premium torn paper look)
+         ======================================================== */}
+      {receiptItem && (
+        <div className="fixed inset-0 flex items-center justify-center p-4 z-50 animate-fade-in" style={{background: 'rgba(15,23,42,0.65)', backdropFilter: 'blur(8px)'}}>
+          {/* Torn Receipt Card */}
+          <div className="bg-white w-full max-w-sm rounded-t-2xl shadow-2xl relative overflow-hidden flex flex-col bottom-sheet-enter">
+            {/* Header pattern */}
+            <div className="h-2 bg-[#00BCD4] w-full" />
+            
+            <div className="p-6 flex flex-col gap-4 text-xs font-mono text-slate-800">
+              <div className="text-center pb-2 border-b border-dashed border-slate-300">
+                <span className="text-[10px] text-toss-textSub font-bold tracking-wider">LECTOSS BILLING SERVICE</span>
+                <h3 className="text-base font-black text-slate-900 mt-0.5">{receiptItem.institution}</h3>
+                <span className="text-[9px] text-slate-400 block mt-1">{receiptItem.month} · {receiptItem.date} 출강건</span>
+              </div>
+              
+              {/* Billing Info */}
+              <div className="flex flex-col gap-2 py-1">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">기본 강의료:</span>
+                  <span className="font-bold text-slate-900">₩{formatWon(receiptItem.rate * receiptItem.classes)}</span>
+                </div>
+                <div className="text-[10px] text-slate-400 flex justify-between pl-3">
+                  <span>(₩{formatWon(receiptItem.rate)} × {receiptItem.classes}시간)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">추가 교통비:</span>
+                  <span className="font-bold text-slate-900">₩{formatWon(receiptItem.transportFee)}</span>
+                </div>
+                <div className="flex justify-between border-t border-slate-100 pt-2 font-extrabold text-slate-900">
+                  <span>합계 총액:</span>
+                  <span>₩{formatWon(receiptItem.expectedAmount)}</span>
+                </div>
+              </div>
+
+              {/* Tax Deduction Details */}
+              <div className="flex flex-col gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex justify-between font-bold text-slate-700">
+                  <span>공제 세율 ({receiptItem.taxRate}):</span>
+                  <span>- ₩{formatWon(receiptItem.expectedAmount - receiptItem.netAmount)}</span>
+                </div>
+                {receiptItem.taxRate !== 'None' && (
+                  <div className="flex flex-col gap-1 text-[10px] text-slate-500 pl-2 mt-1 border-l border-slate-200">
+                    <div className="flex justify-between">
+                      <span>소득세 (원천세):</span>
+                      <span>₩{formatWon(Math.floor((receiptItem.expectedAmount - receiptItem.netAmount) * 0.909))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>지방소득세 (주민세):</span>
+                      <span>₩{formatWon(Math.floor((receiptItem.expectedAmount - receiptItem.netAmount) * 0.091))}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Net Amount Receipt */}
+              <div className="text-center pt-3 pb-1 border-t border-dashed border-slate-300">
+                <span className="text-[10px] text-slate-400 block font-bold">실 수 령 액</span>
+                <span className="text-2xl font-black text-[#10B981] tracking-tight block mt-1">
+                  ₩{formatWon(receiptItem.netAmount)}
+                </span>
+              </div>
+
+              {/* Decorative Barcode */}
+              <div className="flex flex-col items-center gap-1 mt-1 opacity-70">
+                <div className="h-8 w-44 bg-slate-800" style={{
+                  backgroundImage: 'repeating-linear-gradient(90deg, #1e293b, #1e293b 2px, transparent 2px, transparent 6px, #1e293b 6px, #1e293b 7px, transparent 7px, transparent 10px)'
+                }} />
+                <span className="text-[8px] text-slate-400">LECTOSS-VERIFIED-TAX-RECEIPT</span>
+              </div>
+            </div>
+            
+            {/* Torn Zigzag bottom border */}
+            <div className="h-4 w-full bg-white relative z-20" style={{
+              backgroundImage: 'linear-gradient(-45deg, transparent 4px, white 4px), linear-gradient(45deg, transparent 4px, white 4px)',
+              backgroundSize: '8px 12px',
+              backgroundPosition: 'left bottom',
+              transform: 'translateY(-2px)'
+            }} />
+
+            {/* Back to billing list button */}
+            <div className="px-5 pb-5">
+              <button 
+                type="button" 
+                onClick={() => setReceiptItem(null)} 
+                className="w-full py-3 bg-[#1F2E5B] hover:bg-[#172346] text-white font-extrabold text-xs rounded-xl shadow-lg btn-press flex items-center justify-center gap-1.5"
+              >
+                영수증 닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* ── SETTINGS MODAL ── */}
+
 
     </div>
   );

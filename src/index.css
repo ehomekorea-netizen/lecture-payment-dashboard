@@ -392,4 +392,23 @@
   opacity: 1;
 }
 
+/* ── Collect UI: File Upload Cloud Animation ── */
+@keyframes cloudFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+.cloud-float {
+  animation: cloudFloat 2.6s ease-in-out infinite;
+}
+
+@keyframes uploadPulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 188, 212, 0.4); }
+  70% { box-shadow: 0 0 0 12px rgba(0, 188, 212, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 188, 212, 0); }
+}
+.upload-pulse {
+  animation: uploadPulse 1.8s infinite;
+}
+
+
 
