@@ -82,12 +82,6 @@ export default function App() {
     localStorage.setItem('lectoss_presets', JSON.stringify(presets));
   }, [presets]);
 
-  // Reset card swipe offsets on filter or search changes to prevent rendering anomalies
-  useEffect(() => {
-    setSwipeActiveId(null);
-    setTouchOffset(0);
-  }, [searchQuery, selectedMonth]);
-
   const applyPreset = (preset) => {
     setFormData(prev => ({
       ...prev,
@@ -267,6 +261,12 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('lectures', JSON.stringify(lectures));
   }, [lectures]);
+
+  // Reset card swipe offsets on filter or search changes to prevent rendering anomalies (Placed safely below state initialization)
+  useEffect(() => {
+    setSwipeActiveId(null);
+    setTouchOffset(0);
+  }, [searchQuery, selectedMonth]);
 
   // 최초 로드 시 시트 연동 되어있으면 백그라운드 데이터 풀
   useEffect(() => {
