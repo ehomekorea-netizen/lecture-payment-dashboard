@@ -6,6 +6,7 @@ import {
    BookOpen, Copy, Cloud
 } from 'lucide-react';
 import { INITIAL_LECTURES } from './initialData';
+import StableLottie from './components/StableLottie';
 
 
 
@@ -169,7 +170,6 @@ export default function App() {
       classes: preset.classes,
       transportFee: preset.transportFee,
       taxRate: preset.taxRate,
-      month: prev.month || `${new Date().getMonth() + 1}월`,
       date: prev.date || `${new Date().getMonth() + 1}월 ${new Date().getDate()}일`
     }));
   };
@@ -301,6 +301,7 @@ export default function App() {
   const [editingLecture, setEditingLecture] = useState(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [isMockParseResult, setIsMockParseResult] = useState(false);
   const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
   const [activeMenuCardId, setActiveMenuCardId] = useState(null);
 
@@ -321,6 +322,9 @@ export default function App() {
   const [syncLoading, setSyncLoading] = useState(false);
   const [syncMessage, setSyncMessage] = useState(null);
 
+  // 카드 토글 상태
+  const [toggledCardIds, setToggledCardIds] = useState(new Set());
+
   // 모달 폼 상태
   const [formData, setFormData] = useState({
     institution: '',
@@ -328,7 +332,6 @@ export default function App() {
     rate: 100000,
     classes: 4,
     transportFee: 0,
-    month: getNextMonthString(),
     date: '',
     registrationDate: new Date().toISOString().slice(0, 10),
     isPaid: false,
@@ -362,7 +365,13 @@ export default function App() {
   const monthOrder = [
     '25/10월', '25/11월', '25/12월', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'
   ];
-  const uniqueMonths = Array.from(new Set(lectures.map(l => l?.month).filter(Boolean))).sort((a, b) => {
+  const extractMonth = (dateStr) => {
+    if (!dateStr) return '';
+    const m = dateStr.match(/(\d+)월/);
+    return m ? `${m[1]}월` : '';
+  };
+
+  const uniqueMonths = Array.from(new Set(lectures.map(l => extractMonth(l?.date)).filter(Boolean))).sort((a, b) => {
     const indexA = monthOrder.indexOf(a);
     const indexB = monthOrder.indexOf(b);
     if (indexA === -1 && indexB === -1) return (a || '').localeCompare(b || '');
@@ -528,6 +537,7 @@ export default function App() {
       ];
       setParsedLectures(mockParsed);
       setIsAiVerifying(true);
+      setIsMockParseResult(true);
       setAiLoading(false);
     }, 1000);
   };
@@ -775,13 +785,6 @@ ${aiText}
       return;
     }
 
-    if (!formData.month) {
-      alert('정산 예정 달을 선택해 주세요.');
-      const el = document.querySelector('select[name="month"]');
-      if (el) el.focus();
-      return;
-    }
-
     const { expectedAmount, deduction, netAmount } = calculateFees(
       Number(formData.rate),
       Number(formData.classes),
@@ -793,7 +796,6 @@ ${aiText}
     );
 
     const now = new Date();
-    const monthVal = formData.month || `${now.getMonth() + 1}월`;
     const dateVal = formData.date || `${now.getMonth() + 1}월 ${now.getDate()}일`;
 
     const newLecture = {
@@ -806,7 +808,6 @@ ${aiText}
       transportFee: Number(formData.transportFee),
       deduction,
       netAmount,
-      month: monthVal,
       date: dateVal,
       registrationDate: formData.registrationDate || new Date().toISOString().slice(0, 10),
       isPaid: formData.isPaid,
@@ -832,7 +833,6 @@ ${aiText}
       rate: 100000,
       classes: 4,
       transportFee: 0,
-      month: getNextMonthString(),
       date: '',
       registrationDate: new Date().toISOString().slice(0, 10),
       isPaid: false,
@@ -1041,7 +1041,7 @@ ${aiText}
 
   // 차트 집계
   const chartData = uniqueMonths.map(m => {
-    const monthItems = lectures.filter(l => l.month === m);
+    const monthItems = lectures.filter(l => extractMonth(l.date) === m);
     const paidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? curr.netAmount : 0), 0);
     const unpaidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
     const hoursTotal = monthItems.reduce((acc, curr) => acc + (Number(curr.classes) || 0), 0);
@@ -1060,7 +1060,7 @@ ${aiText}
     if (!l) return false;
     const inst = l.institution || '';
     const matchesSearch = inst.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesMonth = selectedMonth === 'All' || l.month === selectedMonth;
+    const matchesMonth = selectedMonth === 'All' || extractMonth(l.date) === selectedMonth;
     const matchesStatus = 
       selectedStatus === 'All' || 
       (selectedStatus === 'Paid' && l.isPaid) || 
@@ -1136,14 +1136,8 @@ function doPost(e) {
         <div className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
           <div className="flex items-center justify-between px-4 py-2.5">
             <div className="flex items-center gap-2">
-              {/* 2x2 stamp SVG Logo */}
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 drop-shadow-sm">
-                <rect width="32" height="32" rx="7" fill="#1E3A8A" />
-                <text x="8" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">정</text>
-                <text x="24" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">산</text>
-                <text x="8" y="24" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">비</text>
-                <text x="24" y="24" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">서</text>
-              </svg>
+              {/* 3D Coin Lottie Logo */}
+              <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[32px] h-[32px] drop-shadow-sm flex-shrink-0" />
               <div>
                 <h1 className="text-[#0F172A] text-[16px] font-black tracking-tight" style={{lineHeight: 1.15}}>
                   정산비서
@@ -1285,39 +1279,65 @@ function doPost(e) {
                         className="relative overflow-hidden rounded-[22px]"
                         style={{border:'1px solid rgba(31,46,91,0.10)',boxShadow:'0 2px 12px rgba(31,46,91,0.06)'}}
                       >
-                        <div className="card-hover bg-white flex flex-col gap-2.5 relative" style={{animationDelay:(idx*55)+'ms',padding:'18px'}}>
-                          <div className="flex items-start justify-between">
+                        <div className="card-hover bg-white flex flex-col relative" style={{animationDelay:(idx*55)+'ms',padding:'18px'}}>
+                          {l.isPaid && (
+                            <div className="absolute -bottom-2 -right-4 opacity-40 pointer-events-none" style={{width: '90px', height: '90px'}}>
+                              <StableLottie path="/lottie/Money stack.json" speed={1.2} />
+                            </div>
+                          )}
+                          <div className="flex items-start justify-between mb-2">
                             <div>
                               <div className="flex items-center gap-1.5 mb-1.5">
-                                <span className="text-[13px] font-black px-3 py-1 rounded-lg inline-block" style={{background:'rgba(30,58,138,0.07)',color:'#1E3A8A'}}>{l.month} {l.date}</span>
+                                <span className="text-[13px] font-black px-3 py-1 rounded-lg inline-block" style={{background:'rgba(30,58,138,0.07)',color:'#1E3A8A'}}>{l.date || '날짜 미지정'}</span>
                                 {l.role === 'Assistant' && <span className="text-[11px] font-black text-slate-400 border border-slate-200 px-1.5 rounded">보조</span>}
                               </div>
-                              <h3 className="text-[17.5px] font-black text-[#0F172A] leading-tight tracking-tight">{l.institution}</h3>
+                              <h3 className="text-[17.5px] font-black text-[#0F172A] leading-tight tracking-tight relative z-10">{l.institution}</h3>
                             </div>
-                            <button onClick={() => handleTogglePaid(l)} className="btn-press text-[13px] font-black px-3.5 py-1.5 rounded-xl transition" style={l.isPaid?{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.25)',color:'#10B981'}:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',color:'#F59E0B'}}>
-                              {l.isPaid ? '✓ 완료' : '⏳ 대기'}
-                            </button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-y-1.5 text-[14px] text-slate-500 py-3 border-y border-dashed border-slate-200">
-                            <div className="flex justify-between pr-3.5"><span className="font-bold">단가:</span><span className="font-extrabold text-slate-800">₩{formatWon(l.rate)} × {l.classes}차시</span></div>
-                            <div className="flex justify-between pl-3.5 border-l border-slate-200"><span className="font-bold">총액:</span><span className="font-black text-[#1E3A8A]">₩{formatWon(l.expectedAmount)}</span></div>
-                          </div>
-                          <div className="flex items-center justify-between mt-2 pt-2.5" style={{borderTop:'1px dashed rgba(31,46,91,0.08)'}}>
-                            <div className="flex items-center gap-2">
-                              <div>
-                                <span className="text-[13px] font-extrabold text-slate-400">실수령액</span>
-                                <div className="text-[20px] font-black tracking-tight" style={{color:l.isPaid?'#10B981':'#64748B',lineHeight:1.1}}>{l.isPaid?('₩'+formatWon(l.netAmount)):'⏳ 대기'}</div>
-                              </div>
-                              <button type="button" onClick={(e) => {e.stopPropagation();setReceiptItem(l);}} className="btn-press text-[13px] font-black px-3.5 py-1.5 rounded-xl bg-slate-100 text-slate-600 border border-slate-200">영수증</button>
-                            </div>
-                            <div className="relative">
-                              <button onClick={(e) => {e.stopPropagation();setActiveMenuCardId(activeMenuCardId===l.id?null:l.id);}} className="btn-press p-2 rounded-xl hover:bg-slate-100 transition">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                            <div className="flex items-center gap-2 relative z-10">
+                              <button onClick={() => handleTogglePaid(l)} className="btn-press text-[13px] font-black px-3.5 py-1.5 rounded-xl transition" style={l.isPaid?{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.25)',color:'#10B981'}:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',color:'#F59E0B'}}>
+                                {l.isPaid ? '✓ 완료' : '대기'}
                               </button>
-                              {activeMenuCardId === l.id && (
-                                <div className="absolute right-0 bottom-9 bg-white border border-slate-200 shadow-xl rounded-xl z-20 py-1.5 px-1.5 flex flex-col gap-1 w-24">
-                                  <button onClick={(e) => {e.stopPropagation();handleEditClick(l);setActiveMenuCardId(null);}} className="w-full text-left py-1.5 px-2 text-[11px] font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-1.5"><Edit3 size={11} className="text-slate-400" />수정하기</button>
-                                  <button onClick={(e) => {e.stopPropagation();if(confirm('이 강의 기록을 정말 삭제하시겠습니까?')){handleDelete(l.id);}setActiveMenuCardId(null);}} className="w-full text-left py-1.5 px-2 text-[11px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1.5"><Trash2 size={11} className="text-red-400" />삭제하기</button>
+                              <div className="relative">
+                                <button onClick={(e) => {e.stopPropagation();setActiveMenuCardId(activeMenuCardId===l.id?null:l.id);}} className="btn-press p-2 rounded-xl hover:bg-slate-100 transition">
+                                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                                </button>
+                                {activeMenuCardId === l.id && (
+                                  <div className="absolute right-0 top-10 bg-white border border-slate-200 shadow-xl rounded-xl z-20 py-1.5 px-1.5 flex flex-col gap-1 w-24">
+                                    <button onClick={(e) => {e.stopPropagation();handleEditClick(l);setActiveMenuCardId(null);}} className="w-full text-left py-1.5 px-2 text-[11px] font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-1.5"><Edit3 size={11} className="text-slate-400" />수정하기</button>
+                                    <button onClick={(e) => {e.stopPropagation();if(confirm('이 강의 기록을 정말 삭제하시겠습니까?')){handleDelete(l.id);}setActiveMenuCardId(null);}} className="w-full text-left py-1.5 px-2 text-[11px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1.5"><Trash2 size={11} className="text-red-400" />삭제하기</button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-[60%_40%] gap-y-1.5 text-[14px] text-slate-500 py-3 border-t border-dashed border-slate-200 relative z-10">
+                            <div className="flex items-center">
+                              <span className="font-bold mr-1">단가:</span>
+                              <span className="font-extrabold text-slate-800 text-[13px]">₩{formatWon(l.rate)}×{l.classes}h</span>
+                            </div>
+                            <div className="flex flex-col items-end justify-center pl-2 border-l border-slate-200">
+                              {l.isPaid ? (
+                                <button 
+                                  onClick={() => setToggledCardIds(prev => { const n = new Set(prev); if(n.has(l.id)) n.delete(l.id); else n.add(l.id); return n; })}
+                                  className="flex flex-col items-end text-right transition-transform active:scale-95"
+                                >
+                                  {toggledCardIds.has(l.id) ? (
+                                    <>
+                                      <span className="text-[11px] font-extrabold text-slate-400 mb-0.5">실정산액</span>
+                                      <span className="font-black text-[#10B981] text-[15px] leading-tight">₩{formatWon(l.netAmount)}</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="text-[11px] font-extrabold text-slate-400 mb-0.5">총액 보기 (클릭)</span>
+                                      <span className="font-black text-[#1E3A8A] text-[15px] leading-tight">₩{formatWon(l.expectedAmount)}</span>
+                                    </>
+                                  )}
+                                </button>
+                              ) : (
+                                <div className="flex flex-col items-end text-right">
+                                  <span className="text-[11px] font-extrabold text-slate-400 mb-0.5">총액</span>
+                                  <span className="font-black text-slate-400 text-[15px] leading-tight">₩{formatWon(l.expectedAmount)}</span>
                                 </div>
                               )}
                             </div>
@@ -1460,16 +1480,15 @@ function doPost(e) {
           {activeTab === 'stats' && (<div key="tab-stats" className={getSlideClass()}>
             <div className="flex flex-col gap-4">
               {/* DESIGN.md: Cinematic Typography stats — 6vw mobile */}
-              <div className="bg-white p-4 rounded-[24px] shadow-sm" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
-                <span className="text-[10px] font-bold block mb-3" style={{color: '#64748B', letterSpacing: '0.05em', textTransform: 'uppercase'}}>정산 누적액</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-3 rounded-2xl" style={{background: 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(16,185,129,0.02))', border: '1px solid rgba(16,185,129,0.15)'}}>
-                    <span className="text-[9px] font-semibold block mb-1" style={{color: '#10B981'}}>✓ 수령 완료</span>
-                    {/* DESIGN.md: Cinematic Typography — stat-number class, 6vw, weight 900 */}
+              <div className="bg-white p-5 rounded-[24px] shadow-sm" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
+                <span className="text-[15px] font-black block mb-4 text-slate-800">정산 누적액</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 rounded-2xl" style={{background: 'linear-gradient(135deg, rgba(16,185,129,0.06), rgba(16,185,129,0.02))', border: '1px solid rgba(16,185,129,0.15)'}}>
+                    <span className="text-[13px] font-black block mb-1.5" style={{color: '#10B981'}}>수령 완료</span>
                     <strong className="stat-number block" style={{fontSize: '6vw', color: '#10B981'}}>₩{formatWon(totalNet)}</strong>
                   </div>
-                  <div className="p-3 rounded-2xl" style={{background: 'linear-gradient(135deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02))', border: '1px solid rgba(245,158,11,0.15)'}}>
-                    <span className="text-[9px] font-semibold block mb-1" style={{color: '#F59E0B'}}>⏳ 대기 중</span>
+                  <div className="p-4 rounded-2xl" style={{background: 'linear-gradient(135deg, rgba(245,158,11,0.06), rgba(245,158,11,0.02))', border: '1px solid rgba(245,158,11,0.15)'}}>
+                    <span className="text-[13px] font-black block mb-1.5" style={{color: '#F59E0B'}}>대기 중</span>
                     <strong className="stat-number block" style={{fontSize: '6vw', color: '#F59E0B'}}>₩{formatWon(totalUnpaid)}</strong>
                   </div>
                 </div>
@@ -1752,14 +1771,8 @@ function doPost(e) {
         <header className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
           <div className="max-w-6xl mx-auto px-8 py-3.5 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              {/* 2x2 stamp SVG Logo */}
-              <svg width="38" height="38" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0 drop-shadow-sm">
-                <rect width="32" height="32" rx="7" fill="#1E3A8A" />
-                <text x="8" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">정</text>
-                <text x="24" y="12" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">산</text>
-                <text x="8" y="24" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">비</text>
-                <text x="24" y="24" fill="#FFFFFF" fontSize="9" fontWeight="900" fontFamily="sans-serif" textAnchor="middle" dominantBaseline="middle">서</text>
-              </svg>
+              {/* 3D Coin Lottie Logo */}
+              <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[38px] h-[38px] drop-shadow-sm flex-shrink-0" />
               <div>
                 <h1 className="text-slate-900 font-black tracking-tight" style={{fontSize: '22px', lineHeight: 1.15}}>
                   정산비서
@@ -2005,7 +2018,7 @@ function doPost(e) {
                   <button
                     onClick={() => {
                       setEditingLecture(null);
-                      setFormData({ institution: '', role: 'Main', rate: 100000, classes: 4, transportFee: 0, month: getNextMonthString(), date: '', registrationDate: new Date().toISOString().slice(0, 10), isPaid: false, taxRate: '8.8%', taxBase: 'LectureOnly', customTax: 0 });
+                      setFormData({ institution: '', role: 'Main', rate: 100000, classes: 4, transportFee: 0, date: '', registrationDate: new Date().toISOString().slice(0, 10), isPaid: false, taxRate: '8.8%', taxBase: 'LectureOnly', customTax: 0 });
                       setIsAddModalOpen(true);
                     }}
                     className="px-4 py-2 text-xs font-bold rounded-xl transition text-white bg-[#2563EB] hover:bg-[#1D4ED8] shadow-sm"
@@ -2213,7 +2226,6 @@ function doPost(e) {
                           rate: preset.rate,
                           transportFee: preset.transportFee || 0,
                           taxRate: preset.taxRate || '8.8%',
-                          month: prev.month || `${new Date().getMonth() + 1}월`,
                           date: prev.date || `${new Date().getMonth() + 1}월 ${new Date().getDate()}일`
                         }));
                       }
@@ -2341,33 +2353,17 @@ function doPost(e) {
                   />
                 </div>
 
-                {/* 정산 예정 달 & 구체적 날짜 */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-bold text-slate-600 text-[11.5px]">정산 예정 달 <span className="text-red-500 font-extrabold">*</span></label>
-                    <select
-                      name="month"
-                      value={formData.month}
-                      onChange={handleInputChange}
-                      className="px-3 py-2.5 border border-slate-200 rounded-xl bg-white text-[11px] font-bold focus:outline-none focus:border-[#1E3A8A]"
-                    >
-                      <option value="">선택</option>
-                      {['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'].map(m => (
-                        <option key={m} value={m}>{m}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-bold text-slate-500 text-[11px]">출강 날짜 (선택)</label>
-                    <input
-                      type="text"
-                      name="date"
-                      placeholder={`${new Date().getMonth()+1}월 ${new Date().getDate()}일`}
-                      value={formData.date}
-                      onChange={handleInputChange}
-                      className="px-3 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[11px] font-semibold bg-white"
-                    />
-                  </div>
+                {/* 구체적 날짜 */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-slate-500 text-[11px]">출강 날짜 (선택)</label>
+                  <input
+                    type="text"
+                    name="date"
+                    placeholder={`${new Date().getMonth()+1}월 ${new Date().getDate()}일`}
+                    value={formData.date}
+                    onChange={handleInputChange}
+                    className="px-3 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[11px] font-semibold bg-white"
+                  />
                 </div>
 
                 {/* 게시등록일 */}
@@ -2514,8 +2510,10 @@ function doPost(e) {
 
             <div className="p-5 border-b border-toss-border flex items-center justify-between bg-slate-50/50">
               <h3 className="text-sm font-extrabold text-toss-textDark flex items-center gap-1.5">
-                <Sparkles size={16} className="text-indigo-600 animate-pulse" />
-                {isAiVerifying ? 'AI 파싱 결과 검토 (이게 맞습니까?)' : 'AI 카톡 일정 등록'}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-indigo-600 animate-pulse">
+                  <path d="M12.0001 2.5293C11.9682 7.64332 7.84279 11.7779 2.70898 11.8398C7.84279 11.9017 11.9682 16.0363 12.0001 21.1503C12.032 16.0363 16.1574 11.9017 21.2912 11.8398C16.1574 11.7779 12.032 7.64332 12.0001 2.5293Z" fill="currentColor"/>
+                </svg>
+                {isAiVerifying ? 'AI 파싱 결과 검토' : 'AI 카톡 일정 등록'}
               </h3>
               <button 
                 onClick={() => {
@@ -2652,16 +2650,7 @@ function doPost(e) {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex flex-col gap-0.5">
-                          <label className="text-[9px] text-toss-textSub">정산 월</label>
-                          <input 
-                            type="text"
-                            value={item.month}
-                            onChange={(e) => handleParsedFieldChange(idx, 'month', e.target.value)}
-                            className="px-2 py-1.5 border border-toss-border rounded-lg bg-white focus:outline-none"
-                          />
-                        </div>
+                      <div className="flex flex-col gap-2 mt-2">
                         <div className="flex flex-col gap-0.5">
                           <label className="text-[9px] text-toss-textSub">게시등록일</label>
                           <input 
@@ -2694,18 +2683,25 @@ function doPost(e) {
                   <button
                     type="button"
                     onClick={() => setIsAiVerifying(false)}
-                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-toss-textMuted font-bold rounded-xl"
+                    className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-toss-textMuted font-bold rounded-xl w-full"
                   >
                     이전으로
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveParsedLectures}
-                    className="flex-1 py-2.5 bg-[#1F2E5B] hover:bg-[#172346] text-white font-bold rounded-xl shadow-md"
-                  >
-                    데이터 일괄 등록
-                  </button>
+                  {!isMockParseResult && (
+                    <button
+                      type="button"
+                      onClick={handleSaveParsedLectures}
+                      className="flex-1 py-2.5 bg-[#1F2E5B] hover:bg-[#172346] text-white font-bold rounded-xl shadow-md"
+                    >
+                      데이터 일괄 등록
+                    </button>
+                  )}
                 </div>
+                {isMockParseResult && (
+                  <div className="text-center mt-2 text-[11px] font-bold text-indigo-600 bg-indigo-50 py-2 rounded-lg border border-indigo-100">
+                    ※ 목업 테스트용 가상 데이터입니다. 확인 후 이전으로 돌아가주세요.
+                  </div>
+                )}
               </div>
             )}
 
