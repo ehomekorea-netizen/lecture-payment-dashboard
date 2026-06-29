@@ -1320,6 +1320,11 @@ ${aiText}
 
   const maxChartValue = Math.max(...chartData.map(d => d.total), 100000);
 
+  // 연도 네비게이션 공통 계산 (TDZ 방지용 호이스팅)
+  const _thisYearNow = new Date().getFullYear();
+  const homeCanGoPrev = statsYear > (_thisYearNow - 3);
+  const homeCanGoNext = statsYear < _thisYearNow;
+
   const filteredLectures = homeYearLectures.filter(l => {
     if (!l) return false;
     const matchesInst = selectedInstitution === 'All' || l.institution === selectedInstitution;
@@ -1477,32 +1482,27 @@ function doPost(e) {
           {/* invisible motion key — forces re-mount on tab change for animation */}
           
           {/* TAB 1: HOME (Lectures Card List) */}
-          {activeTab === 'home' && (() => {
-            const thisYear = new Date().getFullYear();
-            const minYear = thisYear - 3;
-            const canGoPrev = statsYear > minYear;
-            const canGoNext = statsYear < thisYear;
-            return (
-              <div key="tab-home" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
-                
-                {/* 연도 조작 셀렉터 - 심플 가로 중앙 정렬 */}
-                <div className="flex items-center justify-center gap-4 py-1.5 animate-fade-in">
-                  {canGoPrev ? (
-                    <button onClick={() => setStatsYear(y => y - 1)}
-                      className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
-                      aria-label="이전 연도">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </button>
-                  ) : <span className="w-8 h-8"/>}
-                  <span className="text-[15.5px] font-black text-slate-800 tracking-tight">{statsYear}년</span>
-                  {canGoNext ? (
-                    <button onClick={() => setStatsYear(y => y + 1)}
-                      className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
-                      aria-label="다음 연도">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </button>
-                  ) : <span className="w-8 h-8"/>}
-                </div>
+          {activeTab === 'home' && (
+            <div key="tab-home" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
+              
+              {/* 연도 조작 셀렉터 - 심플 가로 중앙 정렬 */}
+              <div className="flex items-center justify-center gap-4 py-1.5 animate-fade-in">
+                {homeCanGoPrev ? (
+                  <button onClick={() => setStatsYear(y => y - 1)}
+                    className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                    aria-label="이전 연도">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </button>
+                ) : <span className="w-8 h-8"/>}
+                <span className="text-[15.5px] font-black text-slate-800 tracking-tight">{statsYear}년</span>
+                {homeCanGoNext ? (
+                  <button onClick={() => setStatsYear(y => y + 1)}
+                    className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                    aria-label="다음 연도">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </button>
+                ) : <span className="w-8 h-8"/>}
+              </div>
 
               {/* 모바일 2분할 슬림 요약 위젯 */}
               <div className="grid grid-cols-2 gap-3 animate-fade-in">
@@ -1702,8 +1702,7 @@ function doPost(e) {
                 </div>
               )}
             </div>
-          );
-        })()}
+          )}
           {/* TAB 1.5: CALENDAR */}
           {activeTab === 'calendar' && (
             <div 
