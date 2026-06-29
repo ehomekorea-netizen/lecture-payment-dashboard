@@ -1185,132 +1185,47 @@ function doPost(e) {
               ) : (
                 <div className="flex flex-col gap-3">
                   {filteredLectures.map((l, idx) => {
-                    const isSwiped = swipeActiveId === l.id;
-                    const offset = isSwiped ? touchOffset : 0;
-                    
                     return (
-                      <div 
-                        key={l.id} 
-                        className="relative overflow-hidden rounded-[22px]" 
-                        style={{
-                          border: '1px solid rgba(31,46,91,0.10)', 
-                          boxShadow: '0 2px 12px rgba(31,46,91,0.06)'
-                        }}
+                      <div
+                        key={l.id}
+                        className="relative overflow-hidden rounded-[22px]"
+                        style={{border:'1px solid rgba(31,46,91,0.10)',boxShadow:'0 2px 12px rgba(31,46,91,0.06)'}}
                       >
-                        {/* 카드 뒷면 Action Buttons — Only display when active offset occurs to prevent visual flickering */}
-                        <div 
-                          className="absolute inset-0 bg-slate-50 flex justify-end items-stretch z-0"
-                          style={{ display: offset < -2 ? 'flex' : 'none' }}
-                        >
-                          <button
-                            onClick={() => {
-                              handleTogglePaid(l);
-                              setSwipeActiveId(null);
-                              setTouchOffset(0);
-                            }}
-                            className="w-16 flex flex-col items-center justify-center font-bold text-white text-[10px] transition-colors"
-                            style={{background: l.isPaid ? '#F59E0B' : '#10B981'}}
-                          >
-                            <span>{l.isPaid ? '대기' : '완료'}</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleDelete(l.id);
-                              setSwipeActiveId(null);
-                              setTouchOffset(0);
-                            }}
-                            className="w-16 flex flex-col items-center justify-center font-bold text-white text-[10px] bg-[#EF4444]"
-                          >
-                            <span>삭제</span>
-                          </button>
-                        </div>
-
-                        {/* 카드 전면 (터치 스와이프) */}
-                        <div
-                          onTouchStart={(e) => {
-                            setTouchStart(e.touches[0].clientX);
-                            setSwipeActiveId(l.id);
-                          }}
-                          onTouchMove={(e) => {
-                            if (swipeActiveId !== l.id) return;
-                            const diff = e.touches[0].clientX - touchStart;
-                            if (diff < 0) {
-                              setTouchOffset(Math.max(-128, diff));
-                            } else if (diff > 0 && touchOffset < 0) {
-                              setTouchOffset(Math.min(0, -128 + diff));
-                            }
-                          }}
-                          onTouchEnd={() => {
-                            if (touchOffset < -50) {
-                              setTouchOffset(-128); // 고정
-                            } else {
-                              setTouchOffset(0);
-                              setSwipeActiveId(null);
-                            }
-                          }}
-                          className="card-hover bg-white flex flex-col gap-2.5 z-10 relative transition-transform duration-150 ease-out"
-                          style={{
-                            transform: `translateX(${offset}px)`,
-                            animationDelay: (idx * 55) + 'ms',
-                            padding: '18px'
-                          }}
-                        >
+                        <div className="card-hover bg-white flex flex-col gap-2.5 relative" style={{animationDelay:(idx*55)+'ms',padding:'18px'}}>
                           <div className="flex items-start justify-between">
                             <div>
-                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-lg mb-1 inline-block" style={{background: 'rgba(31,46,91,0.07)', color: '#64748B'}}>
-                                {l.month} · {l.date}
-                              </span>
-                              <h3 style={{fontSize: '13px', fontWeight: 800, color: '#1F2E5B', letterSpacing: '-0.01em'}}>{l.institution}</h3>
+                              <div className="flex items-center gap-1.5 mb-1">
+                                <span className="text-[11px] font-black px-2.5 py-0.5 rounded-lg inline-block" style={{background:'rgba(30,58,138,0.07)',color:'#1E3A8A'}}>{l.month}월 {l.date}일</span>
+                                {l.role === 'Assistant' && <span className="text-[9px] font-black text-slate-400 border border-slate-200 px-1.5 rounded">보조</span>}
+                              </div>
+                              <h3 className="text-[15.5px] font-black text-[#0F172A] leading-tight tracking-tight">{l.institution}</h3>
                             </div>
-                            <button
-                              onClick={() => handleTogglePaid(l)}
-                              className="btn-press text-[9px] font-black px-2.5 py-1 rounded-xl"
-                              style={l.isPaid
-                                ? {background: 'rgba(16,185,129,0.10)', border: '1px solid rgba(16,185,129,0.25)', color: '#10B981'}
-                                : {background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.25)', color: '#F59E0B'}
-                              }
-                            >
+                            <button onClick={() => handleTogglePaid(l)} className="btn-press text-[11.5px] font-black px-3 py-1 rounded-xl transition" style={l.isPaid?{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.25)',color:'#10B981'}:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',color:'#F59E0B'}}>
                               {l.isPaid ? '✓ 완료' : '⏳ 대기'}
                             </button>
                           </div>
-
-                          <div className="grid grid-cols-2 gap-y-1.5 text-[10px] text-toss-textSub py-2 border-y border-dashed border-toss-border/60">
-                            <div className="flex justify-between pr-2">
-                              <span>단가×차시:</span>
-                              <span className="font-semibold text-toss-textDark">₩{formatWon(l.rate)}×{l.classes}</span>
-                            </div>
-                            <div className="flex justify-between pl-2 border-l border-toss-border">
-                              <span>예상수령:</span>
-                              <span className="font-bold text-toss-textDark">₩{formatWon(l.expectedAmount)}</span>
-                            </div>
+                          <div className="grid grid-cols-2 gap-y-1.5 text-[12px] text-slate-500 py-2.5 border-y border-dashed border-slate-200">
+                            <div className="flex justify-between pr-3.5"><span className="font-semibold">단가:</span><span className="font-extrabold text-slate-800">₩{formatWon(l.rate)} × {l.classes}차시</span></div>
+                            <div className="flex justify-between pl-3.5 border-l border-slate-200"><span className="font-semibold">총액:</span><span className="font-black text-[#1E3A8A]">₩{formatWon(l.expectedAmount)}</span></div>
                           </div>
-
-                          <div className="flex items-center justify-between mt-2 pt-2" style={{borderTop: '1px dashed rgba(31,46,91,0.10)'}}>
+                          <div className="flex items-center justify-between mt-2 pt-2.5" style={{borderTop:'1px dashed rgba(31,46,91,0.08)'}}>
                             <div className="flex items-center gap-2">
                               <div>
-                                <span className="text-[9px]" style={{color: '#94a3b8'}}>실수령액</span>
-                                <div style={{fontSize: '15px', fontWeight: 900, letterSpacing: '-0.02em', color: l.isPaid ? '#10B981' : '#94a3b8', lineHeight: 1}}>
-                                  {l.isPaid ? ('₩' + formatWon(l.netAmount)) : '—'}
-                                </div>
+                                <span className="text-[11px] font-bold text-slate-400">실수령액</span>
+                                <div className="text-[18px] font-black tracking-tight" style={{color:l.isPaid?'#10B981':'#64748B',lineHeight:1.1}}>{l.isPaid?('₩'+formatWon(l.netAmount)):'⏳ 대기'}</div>
                               </div>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setReceiptItem(l);
-                                }}
-                                className="btn-press text-[9px] font-extrabold px-2 py-0.5 rounded bg-slate-100 text-toss-textSub border border-slate-200"
-                              >
-                                영수증
-                              </button>
+                              <button type="button" onClick={(e) => {e.stopPropagation();setReceiptItem(l);}} className="btn-press text-[11px] font-black px-3 py-1 rounded-xl bg-slate-100 text-slate-600 border border-slate-200">영수증</button>
                             </div>
-                            <div className="flex gap-1.5">
-                              <button onClick={() => handleEditClick(l)} className="btn-press p-2 rounded-xl" style={{background: 'rgba(31,46,91,0.05)', color: '#64748B'}}>
-                                <Edit3 size={12} />
+                            <div className="relative">
+                              <button onClick={(e) => {e.stopPropagation();setActiveMenuCardId(activeMenuCardId===l.id?null:l.id);}} className="btn-press p-2 rounded-xl hover:bg-slate-100 transition">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
                               </button>
-                              <button onClick={() => handleDelete(l.id)} className="btn-press p-2 rounded-xl" style={{background: 'rgba(239,68,68,0.07)', color: '#EF4444'}}>
-                                <Trash2 size={12} />
-                              </button>
+                              {activeMenuCardId === l.id && (
+                                <div className="absolute right-0 bottom-9 bg-white border border-slate-200 shadow-xl rounded-xl z-20 py-1.5 px-1.5 flex flex-col gap-1 w-24">
+                                  <button onClick={(e) => {e.stopPropagation();handleEditClick(l);setActiveMenuCardId(null);}} className="w-full text-left py-1.5 px-2 text-[11px] font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-1.5"><Edit3 size={11} className="text-slate-400" />수정하기</button>
+                                  <button onClick={(e) => {e.stopPropagation();if(confirm('이 강의 기록을 정말 삭제하시겠습니까?')){handleDelete(l.id);}setActiveMenuCardId(null);}} className="w-full text-left py-1.5 px-2 text-[11px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-1.5"><Trash2 size={11} className="text-red-400" />삭제하기</button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1661,112 +1576,36 @@ function doPost(e) {
           {/* TAB 4: SETTINGS */}
           {activeTab === 'settings' && (<div key="tab-settings" className={getSlideClass()}>
             <div className="flex flex-col gap-5">
-
-              {/* API 연동 섹션 (Stylish Contrast Card) */}
-              <div className="rounded-[24px] overflow-hidden" style={{background: 'linear-gradient(145deg, #1E293B 0%, #0F172A 100%)', boxShadow: '0 4px 24px rgba(15,23,42,0.25)'}}>
-                <div className="p-5 flex flex-col gap-5">
-                  <div className="flex items-center gap-2">
-                    <Database size={16} className="text-sky-400" />
-                    <h3 className="text-[13px] font-black text-white tracking-tight">API 연동 설정</h3>
+              <div className="rounded-[24px] bg-white border border-slate-200/60 p-5 flex flex-col gap-5 shadow-sm">
+                <div className="flex items-center gap-2"><Database size={16} className="text-[#1E3A8A]" /><h3 className="text-[13px] font-black text-slate-800 tracking-tight">API 연동 설정</h3></div>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-[11px] font-black text-slate-600">Gemini AI API Key</label>
+                    <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[10px] font-black">?</span></button>
                   </div>
-
-                  {/* Gemini API Key */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-300">Gemini AI API Key</label>
-                      <button
-                        type="button"
-                        onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 API Key를 발급받을 수 있습니다.\n\n1. aistudio.google.com 접속\n2. 좌측 메뉴에서 "Get API Key" 클릭\n3. "Create API Key" 버튼 클릭\n4. 생성된 키를 복사하여 이곳에 붙여넣기\n\n이 키는 출강 공지 텍스트를 AI로 자동 분석할 때 사용됩니다.')}
-                        className="w-5 h-5 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
-                      >
-                        <span className="text-[10px] font-black text-sky-400">?</span>
-                      </button>
-                    </div>
-                    <input 
-                      type="password"
-                      id="settings-api-key-mobile"
-                      defaultValue={apiKey}
-                      placeholder="AIzaSy..."
-                      className="w-full px-4 py-3.5 rounded-xl text-[12px] font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-sky-500/40"
-                      style={{background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', color: '#E2E8F0'}}
-                    />
-                  </div>
-
-                  {/* Google Sheet URL */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <label className="text-[11px] font-bold text-slate-300">구글 시트 웹 앱 URL</label>
-                      <button
-                        type="button"
-                        onClick={() => alert('구글 스프레드시트를 백업 DB로 사용하려면 다음 절차를 따르세요:\n\n1. Google 스프레드시트를 하나 새로 생성\n2. 상단 메뉴 → 확장 프로그램 → Apps Script\n3. 이 앱의 [백업 탭 → Apps Script 코드] 영역에 있는 코드를 복사하여 Apps Script 편집기에 붙여넣기\n4. 저장 후 [배포 → 새 배포] 클릭\n5. 유형: "웹 앱" 선택\n6. 액세스: "모든 사용자" 선택\n7. 배포 후 생성된 URL을 복사하여 이곳에 붙여넣기\n\n이 URL을 통해 출강 데이터를 구글 시트로 자동 백업/복원할 수 있습니다.')}
-                        className="w-5 h-5 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
-                      >
-                        <span className="text-[10px] font-black text-sky-400">?</span>
-                      </button>
-                    </div>
-                    <input 
-                      type="text"
-                      id="settings-sheet-url-mobile"
-                      defaultValue={sheetUrl}
-                      placeholder="https://script.google.com/macros/s/..."
-                      className="w-full px-4 py-3.5 rounded-xl text-[12px] font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-sky-500/40"
-                      style={{background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', color: '#E2E8F0'}}
-                    />
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      const geminiKey = document.getElementById('settings-api-key-mobile').value;
-                      const sheetApiUrl = document.getElementById('settings-sheet-url-mobile').value;
-                      handleSaveSettings(geminiKey, sheetApiUrl);
-                    }}
-                    className="w-full py-3.5 text-[12px] font-black text-white rounded-xl transition-all"
-                    style={{background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)', boxShadow: '0 2px 12px rgba(37,99,235,0.35)'}}
-                  >
-                    설정 저장
-                  </button>
+                  <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="w-full px-4 py-3 border border-slate-200 rounded-xl text-[12px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
                 </div>
-              </div>
-
-              {/* 위험 구역 */}
-              <div className="rounded-[24px] p-5 flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #FEF2F2 0%, #FFF1F2 100%)', border: '1px solid rgba(239,68,68,0.15)'}}>
-                <div className="flex items-center gap-2">
-                  <AlertCircle size={15} className="text-red-500" />
-                  <span className="text-[12px] font-black text-red-700">위험 구역</span>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-[11px] font-black text-slate-600">구글 시트 웹 앱 URL</label>
+                    <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[10px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition">연동 방법 보기</button>
+                  </div>
+                  <input type="text" id="settings-sheet-url-mobile" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/..." className="w-full px-4 py-3 border border-slate-200 rounded-xl text-[12px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
                 </div>
-                <p className="text-[10px] text-red-600/70 leading-relaxed font-medium">
-                  브라우저에 보관된 모든 설정과 출강 내역을 삭제하고 기본 빈 상태로 리셋합니다. 이 작업은 되돌릴 수 없습니다.
-                </p>
-                <button
-                  onClick={() => {
-                    if (window.confirm('정말 전체 리셋하시겠습니까? 모든 데이터가 영구 삭제됩니다.')) {
-                      localStorage.clear();
-                      setLectures([]);
-                      setApiKey('');
-                      setSheetUrl('');
-                      alert('리셋되었습니다.');
-                    }
-                  }}
-                  className="py-3 text-[11px] font-black text-white rounded-xl transition-all"
-                  style={{background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', boxShadow: '0 2px 12px rgba(239,68,68,0.25)'}}
-                >
-                  기기 데이터 전체 삭제
-                </button>
+                <button onClick={() => { const k=document.getElementById('settings-api-key-mobile').value; const u=document.getElementById('settings-sheet-url-mobile').value; handleSaveSettings(k,u); }} className="w-full py-3.5 text-[13px] font-black text-white bg-[#1E3A8A] hover:bg-[#0F172A] rounded-xl shadow-md transition">설정 정보 저장</button>
               </div>
-
-              {/* 앱 정보 */}
+              <div className="rounded-[24px] p-5 flex flex-col gap-3" style={{background:'linear-gradient(135deg,#FEF2F2 0%,#FFF1F2 100%)',border:'1px solid rgba(239,68,68,0.15)'}}>
+                <div className="flex items-center gap-2"><AlertCircle size={15} className="text-red-500" /><span className="text-[12px] font-black text-red-700">기록 데이터 초기화</span></div>
+                <p className="text-[10.5px] text-red-600/70 leading-relaxed font-semibold">앱 내에 기록된 모든 강의 데이터와 API 설정값을 지우고 초기화합니다. 이 작업은 되돌릴 수 없습니다.</p>
+                <button onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){localStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} className="py-3 text-[12px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md transition">앱 전체 데이터 초기화</button>
+              </div>
               <div className="rounded-[24px] p-5 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-2 items-center text-center">
-                <div className="flex items-center gap-2">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                  <span className="text-[13px] font-black text-slate-800">강의정산</span>
-                </div>
-                <p className="text-[9px] text-slate-400 font-semibold">출강료 정산 비서 v1.0</p>
+                <div className="flex items-center gap-2"><BookOpen size={15} className="text-[#1E3A8A]" /><span className="text-[13px] font-black text-slate-800">정산비서 정보</span></div>
+                <p className="text-[9.5px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.2</p>
               </div>
             </div>
           </div>
-        )}
+          )}
 
 
 
@@ -2237,39 +2076,17 @@ function doPost(e) {
             {/* Drag handle */}
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
 
-            {/* Folder-Tab style Header: 기록 / 즐겨찾기 편집 */}
-            <div className="px-5 pt-3.5 pb-0 flex items-end justify-between bg-slate-50 border-b border-slate-200">
-              <div className="flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, _tab: 'record' }))}
-                  className="px-4.5 py-3 text-[11px] font-black rounded-t-xl transition-all border-t border-x"
-                  style={{
-                    color: (formData._tab || 'record') === 'record' ? '#1E3A8A' : '#94A3B8',
-                    backgroundColor: (formData._tab || 'record') === 'record' ? '#FFFFFF' : 'transparent',
-                    borderColor: (formData._tab || 'record') === 'record' ? '#E2E8F0 #E2E8F0 transparent #E2E8F0' : 'transparent',
-                    transform: (formData._tab || 'record') === 'record' ? 'translateY(1px)' : 'none',
-                    zIndex: (formData._tab || 'record') === 'record' ? 10 : 1
-                  }}
-                >
-                  {editingLecture ? '기록 수정' : '출강 기록 *'}
+            {/* Folder-Tab style Header: 직접 등록 / 즐겨찾기 선택 */}
+            <div className="px-5 pt-4 pb-0 flex items-end justify-between bg-slate-100/80 border-b border-slate-200">
+              <div className="flex gap-1">
+                <button type="button" onClick={() => setFormData(prev => ({ ...prev, _tab: 'record' }))} className="px-5 py-3 text-[11.5px] font-black rounded-t-xl transition-all border-t border-x" style={{color:(formData._tab||'record')==='record'?'#1E3A8A':'#64748B',backgroundColor:(formData._tab||'record')==='record'?'#FFFFFF':'transparent',borderColor:(formData._tab||'record')==='record'?'#CBD5E1 #CBD5E1 transparent #CBD5E1':'transparent',borderTopWidth:(formData._tab||'record')==='record'?'3px':'1px',borderTopColor:(formData._tab||'record')==='record'?'#1E3A8A':'transparent',transform:(formData._tab||'record')==='record'?'translateY(1px)':'none',zIndex:(formData._tab||'record')==='record'?10:1}}>
+                  {editingLecture ? '기록 수정 ✏️' : '직접 등록 ✍️'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, _tab: 'presets' }))}
-                  className="px-4.5 py-3 text-[11px] font-black rounded-t-xl transition-all border-t border-x"
-                  style={{
-                    color: (formData._tab || 'record') === 'presets' ? '#1E3A8A' : '#94A3B8',
-                    backgroundColor: (formData._tab || 'record') === 'presets' ? '#FFFFFF' : 'transparent',
-                    borderColor: (formData._tab || 'record') === 'presets' ? '#E2E8F0 #E2E8F0 transparent #E2E8F0' : 'transparent',
-                    transform: (formData._tab || 'record') === 'presets' ? 'translateY(1px)' : 'none',
-                    zIndex: (formData._tab || 'record') === 'presets' ? 10 : 1
-                  }}
-                >
-                  즐겨찾기 편집
+                <button type="button" onClick={() => setFormData(prev => ({ ...prev, _tab: 'presets' }))} className="px-5 py-3 text-[11.5px] font-black rounded-t-xl transition-all border-t border-x" style={{color:(formData._tab||'presets')==='presets'?'#1E3A8A':'#64748B',backgroundColor:(formData._tab||'presets')==='presets'?'#FFFFFF':'transparent',borderColor:(formData._tab||'presets')==='presets'?'#CBD5E1 #CBD5E1 transparent #CBD5E1':'transparent',borderTopWidth:(formData._tab||'presets')==='presets'?'3px':'1px',borderTopColor:(formData._tab||'presets')==='presets'?'#1E3A8A':'transparent',transform:(formData._tab||'presets')==='presets'?'translateY(1px)':'none',zIndex:(formData._tab||'presets')==='presets'?10:1}}>
+                  즐겨찾기 선택 ⭐
                 </button>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-xl mb-2 transition">
+              <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 rounded-xl mb-2.5 transition">
                 <X size={18} />
               </button>
             </div>
@@ -2551,100 +2368,38 @@ function doPost(e) {
 
             {/* ─── TAB: 즐겨찾기 편집 ─── */}
             {(formData._tab || 'record') === 'presets' && (
-              <div className="flex-1 overflow-y-auto overflow-x-hidden p-5 flex flex-col gap-4 text-xs">
-                <p className="text-[10px] text-slate-400 font-semibold">기관별 기본값 세트를 등록하면, 출강 기록 시 원터치로 불러올 수 있습니다.</p>
-
-                {/* 기존 프리셋 목록 */}
+              <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4 text-xs">
+                <p className="text-[10px] text-slate-400 font-semibold">자주 출강하는 기관 정보를 등록해두면 원터치로 빠르게 채워집니다.</p>
                 <div className="flex flex-col gap-2.5">
-                  {presets.map((p, idx) => (
+                  {presets.map((p) => (
                     <div key={p.id} className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-slate-200/60 shadow-sm">
                       <div className="flex-1 min-w-0">
-                        <div className="font-black text-[11.5px] text-[#0F172A] truncate">{p.name}</div>
-                        <div className="text-[9.5px] text-[#475569] mt-0.5 font-semibold">
-                          {p.role === 'Assistant' ? '보조강사' : '주강사'} · ₩{formatWon(p.rate)}/h · 교통비 ₩{formatWon(p.transportFee || 0)} · {p.taxRate}
-                        </div>
+                        <div className="font-black text-[12px] text-[#0F172A] truncate">{p.name}</div>
+                        <div className="text-[10px] text-[#475569] mt-0.5 font-semibold">{p.role === 'Assistant' ? '보조강사' : '주강사'} | ₩{formatWon(p.rate)}/시간 | 세율 {p.taxRate}</div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (window.confirm(`"${p.name}" 프리셋을 삭제하시겠습니까?`)) {
-                            setPresets(prev => prev.filter(x => x.id !== p.id));
-                          }
-                        }}
-                        className="ml-3 p-2 text-red-400 hover:bg-red-50 rounded-xl transition flex-shrink-0"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <button type="button" onClick={() => { if (window.confirm(`"${p.name}" 즐겨찾기를 삭제하시겠습니까?`)) setPresets(prev => prev.filter(x => x.id !== p.id)); }} className="ml-3 p-2 text-red-400 hover:bg-red-50 rounded-xl transition flex-shrink-0"><Trash2 size={14} /></button>
                     </div>
                   ))}
                 </div>
-
-                {/* 새 프리셋 등록 폼 */}
-                <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px dashed rgba(30, 58, 138, 0.25)'}}>
-                  <span className="font-black text-[11px] text-[#1E3A8A]">+ 새 즐겨찾기 등록</span>
-                  <input
-                    type="text"
-                    placeholder="기관명 / 교육장명"
-                    value={formData._newPresetName || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, _newPresetName: e.target.value }))}
-                    className="px-4 py-2.5 border border-blue-200 rounded-xl bg-white text-[11px] font-semibold focus:outline-none focus:border-[#1E3A8A]"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      value={formData._newPresetRole || 'Main'}
-                      onChange={e => setFormData(prev => ({ ...prev, _newPresetRole: e.target.value }))}
-                      className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"
-                    >
-                      <option value="Main">주강사</option>
-                      <option value="Assistant">보조강사</option>
-                    </select>
-                    <input
-                      type="number"
-                      placeholder="시간당 단가"
-                      value={formData._newPresetRate || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, _newPresetRate: e.target.value }))}
-                      className="px-3 py-2 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none"
-                    />
+                <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px dashed rgba(30,58,138,0.25)'}}>
+                  <span className="font-black text-[11.5px] text-[#1E3A8A]">⭐ 새 즐겨찾기 추가</span>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, _showEmojiPicker: !prev._showEmojiPicker }))} className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center text-lg shadow-sm flex-shrink-0">{formData._newPresetEmoji || '🏫'}</button>
+                    <input type="text" placeholder="기관명 입력" value={formData._newPresetName || ''} onChange={e => setFormData(prev => ({ ...prev, _newPresetName: e.target.value }))} className="flex-1 px-3 py-2 border border-blue-200 rounded-xl bg-white text-[11px] font-bold focus:outline-none focus:border-[#1E3A8A]" />
                   </div>
+                  {formData._showEmojiPicker && (
+                    <div className="bg-white border border-slate-200 shadow-xl rounded-2xl p-3 grid grid-cols-5 gap-1.5">
+                      {['🏫','🎓','🏢','💼','💻','💡','🤖','📚','✏️','✨','⭐','🔥','🌍','🚀','🎨','🧩','📈','🎯','📢','🏛️'].map(e => (
+                        <button key={e} type="button" onClick={() => setFormData(prev => ({ ...prev, _newPresetEmoji: e, _showEmojiPicker: false }))} className="w-8 h-8 rounded-lg hover:bg-blue-50 flex items-center justify-center text-lg">{e}</button>
+                      ))}
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="number"
-                      placeholder="교통비 (원)"
-                      value={formData._newPresetTransport || ''}
-                      onChange={e => setFormData(prev => ({ ...prev, _newPresetTransport: e.target.value }))}
-                      className="px-3 py-2 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none"
-                    />
-                    <select
-                      value={formData._newPresetTax || '8.8%'}
-                      onChange={e => setFormData(prev => ({ ...prev, _newPresetTax: e.target.value }))}
-                      className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"
-                    >
-                      <option value="8.8%">8.8%</option>
-                      <option value="3.3%">3.3%</option>
-                      <option value="None">0%</option>
-                    </select>
+                    <select value={formData._newPresetRole || 'Main'} onChange={e => setFormData(prev => ({ ...prev, _newPresetRole: e.target.value }))} className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"><option value="Main">주강사</option><option value="Assistant">보조강사</option></select>
+                    <input type="number" placeholder="시간당 단가(원)" value={formData._newPresetRate || ''} onChange={e => setFormData(prev => ({ ...prev, _newPresetRate: e.target.value }))} className="px-3 py-2 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none" />
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const name = (formData._newPresetName || '').trim();
-                      if (!name) { alert('기관명을 입력해 주세요.'); return; }
-                      setPresets(prev => [...prev, {
-                        id: `p-${Date.now()}`,
-                        name,
-                        role: formData._newPresetRole || 'Main',
-                        rate: Number(formData._newPresetRate) || 100000,
-                        classes: 2,
-                        transportFee: Number(formData._newPresetTransport) || 0,
-                        taxRate: formData._newPresetTax || '8.8%'
-                      }]);
-                      setFormData(prev => ({ ...prev, _newPresetName: '', _newPresetRate: '', _newPresetTransport: '', _newPresetRole: 'Main', _newPresetTax: '8.8%' }));
-                      alert('즐겨찾기가 등록되었습니다!');
-                    }}
-                    className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11px] shadow-sm transition-all"
-                  >
-                    즐겨찾기에 추가
-                  </button>
+                  <select value={formData._newPresetTax || '8.8%'} onChange={e => setFormData(prev => ({ ...prev, _newPresetTax: e.target.value }))} className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"><option value="8.8%">공제세율 8.8% (기본)</option><option value="3.3%">공제세율 3.3%</option><option value="None">공제 없음 (0%)</option></select>
+                  <button type="button" onClick={() => { const name=(formData._newPresetName||'').trim(); if(!name){alert('기관명을 입력해 주세요.');return;} const emoji=formData._newPresetEmoji||'🏫'; setPresets(prev=>[...prev,{id:`p-${Date.now()}`,name:`[${emoji}] ${name}`,role:formData._newPresetRole||'Main',rate:Number(formData._newPresetRate)||100000,classes:2,transportFee:0,taxRate:formData._newPresetTax||'8.8%'}]); setFormData(prev=>({...prev,_newPresetName:'',_newPresetRate:'',_newPresetRole:'Main',_newPresetTax:'8.8%',_newPresetEmoji:'🏫',_showEmojiPicker:false})); alert('즐겨찾기가 저장되었습니다!'); }} className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11.5px] shadow-sm transition">새 즐겨찾기 추가 저장</button>
                 </div>
               </div>
             )}
@@ -2871,112 +2626,82 @@ function doPost(e) {
           <div className="bg-white w-full max-w-md rounded-[28px] border border-slate-200 shadow-2xl overflow-hidden flex flex-col modal-zoom-in">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h3 className="text-xs font-black text-slate-800 flex items-center gap-1.5">
-                <Settings size={15} className="text-[#2563EB]" />
+                <Settings size={15} className="text-[#1E3A8A]" />
                 대시보드 환경 설정 (PC)
               </h3>
-              <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-xl transition">
+              <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-xl transition">
                 <X size={18} />
               </button>
             </div>
-
-            <div className="p-6 flex flex-col gap-6 text-xs" style={{background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)'}}>
-              {/* API 설정 카드 */}
-              <div className="rounded-2xl p-5 flex flex-col gap-4 text-white" style={{background: 'linear-gradient(145deg, #1E293B 0%, #0F172A 100%)'}}>
-                <span className="font-black text-[11px] text-sky-400 flex items-center gap-1.5">
-                  <Database size={14} /> API 연동
-                </span>
-
+            <div className="p-6 flex flex-col gap-5 text-xs overflow-y-auto">
+              <div className="rounded-2xl p-5 bg-white border border-slate-200 shadow-sm flex flex-col gap-4">
+                <span className="font-black text-[11.5px] text-[#1E3A8A] flex items-center gap-1.5"><Database size={14} /> API 연동</span>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-slate-600">Gemini AI API Key</label>
+                  <input type="password" id="settings-api-key-desktop" defaultValue={apiKey} placeholder="AIzaSy..." className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#1E3A8A]" />
+                </div>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-1.5">
-                    <label className="font-bold text-slate-300">Gemini AI API Key</label>
-                    <button
-                      type="button"
-                      onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 API Key를 발급받을 수 있습니다.\n\n1. aistudio.google.com 접속\n2. 좌측 메뉴에서 "Get API Key" 클릭\n3. "Create API Key" 버튼 클릭\n4. 생성된 키를 복사하여 이곳에 붙여넣기\n\n이 키는 출강 공지 텍스트를 AI로 자동 분석할 때 사용됩니다.')}
-                      className="w-5 h-5 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
-                    >
-                      <span className="text-[10px] font-black text-sky-400">?</span>
-                    </button>
+                    <label className="font-bold text-slate-600">구글 시트 웹 앱 URL</label>
+                    <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[10px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition">연동 방법</button>
                   </div>
-                  <input 
-                    type="password"
-                    id="settings-api-key-desktop"
-                    defaultValue={apiKey}
-                    placeholder="AIzaSy..."
-                    className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/40 text-[11px] font-semibold"
-                    style={{background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', color: '#E2E8F0'}}
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-1.5">
-                    <label className="font-bold text-slate-300">구글 시트 웹 앱 URL</label>
-                    <button
-                      type="button"
-                      onClick={() => alert('구글 스프레드시트를 백업 DB로 사용하려면 다음 절차를 따르세요:\n\n1. Google 스프레드시트를 하나 새로 생성\n2. 상단 메뉴 → 확장 프로그램 → Apps Script\n3. 이 앱의 [백업 탭 → Apps Script 코드] 영역에 있는 코드를 복사하여 Apps Script 편집기에 붙여넣기\n4. 저장 후 [배포 → 새 배포] 클릭\n5. 유형: "웹 앱" 선택\n6. 액세스: "모든 사용자" 선택\n7. 배포 후 생성된 URL을 복사하여 이곳에 붙여넣기\n\n이 URL을 통해 출강 데이터를 구글 시트로 자동 백업/복원할 수 있습니다.')}
-                      className="w-5 h-5 rounded-full bg-slate-700 hover:bg-slate-600 flex items-center justify-center transition"
-                    >
-                      <span className="text-[10px] font-black text-sky-400">?</span>
-                    </button>
-                  </div>
-                  <input 
-                    type="text"
-                    id="settings-sheet-url-desktop"
-                    defaultValue={sheetUrl}
-                    placeholder="https://script.google.com/macros/s/..."
-                    className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500/40 text-[11px] font-semibold"
-                    style={{background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.10)', color: '#E2E8F0'}}
-                  />
+                  <input type="text" id="settings-sheet-url-desktop" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/..." className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#1E3A8A]" />
                 </div>
               </div>
-
-              {/* 위험 구역 */}
-              <div className="rounded-2xl p-4 bg-red-50 border border-red-200/60 flex flex-col gap-2.5">
-                <span className="font-black text-[11px] text-red-700 flex items-center gap-1.5">
-                  <AlertCircle size={14} className="text-red-500" /> 데이터 초기화
-                </span>
-                <p className="text-[10px] text-red-600/70 leading-relaxed font-semibold">
-                  기기에 저장된 모든 출강 기록과 API 설정값을 삭제합니다.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('정말 전체 데이터를 초기화하시겠습니까?')) {
-                      localStorage.clear();
-                      setLectures([]);
-                      setApiKey('');
-                      setSheetUrl('');
-                      setIsSettingsOpen(false);
-                      alert('초기화 완료');
-                    }
-                  }}
-                  className="w-full py-2.5 text-center font-bold bg-[#EF4444] hover:bg-[#DC2626] text-white rounded-xl transition-all shadow-sm"
-                >
-                  전체 삭제 실행
-                </button>
+              <div className="rounded-2xl p-4 bg-red-50 border border-red-200/60 flex flex-col gap-2">
+                <span className="text-[11px] font-black text-red-700 flex items-center gap-1.5"><AlertCircle size={13} className="text-red-500" /> 기록 데이터 초기화</span>
+                <button type="button" onClick={() => { if (window.confirm('정말 전체 초기화하시겠습니까? 등록된 모든 데이터가 삭제됩니다.')) { localStorage.clear(); setLectures([]); setApiKey(''); setSheetUrl(''); alert('초기화 완료. 새로고침합니다.'); window.location.reload(); } }} className="py-2 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-md transition text-[11px]">앱 전체 데이터 초기화</button>
               </div>
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
+              <button type="button" onClick={() => setIsSettingsOpen(false)} className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl transition">닫기</button>
+              <button type="button" onClick={() => { const k=document.getElementById('settings-api-key-desktop').value; const u=document.getElementById('settings-sheet-url-desktop').value; handleSaveSettings(k,u); setIsSettingsOpen(false); }} className="w-full py-2.5 bg-[#1E3A8A] text-white font-black rounded-xl shadow-md hover:bg-[#0F172A] transition">설정 저장</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-              {/* 푸터 액션 */}
-              <div className="flex gap-2.5 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsSettingsOpen(false)}
-                  className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl"
-                >
-                  닫기
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const geminiKey = document.getElementById('settings-api-key-desktop').value;
-                    const sheetApiUrl = document.getElementById('settings-sheet-url-desktop').value;
-                    handleSaveSettings(geminiKey, sheetApiUrl);
-                    setIsSettingsOpen(false);
-                  }}
-                  className="flex-[2] py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-black rounded-xl shadow-md transition-all"
-                >
-                  설정 저장
-                </button>
+      {/* ========================================================
+          [MODAL 4.5]: Apps Script & Device Sync Helper Modal
+         ======================================================== */}
+      {isScriptModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 backdrop-blur-fade">
+          <div className="bg-white w-full md:max-w-xl rounded-t-[32px] md:rounded-[28px] max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5"><Database size={15} className="text-[#1E3A8A]" /> Apps Script 연동 가이드</h3>
+              <button onClick={() => setIsScriptModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-xl transition"><X size={18} /></button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5 text-xs text-slate-700">
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                <p className="font-black text-[#1E3A8A] text-[11px] mb-1">Q. PC와 스마트폰 데이터가 따로 노는 이유?</p>
+                <p className="text-slate-600 font-semibold leading-relaxed">본 앱은 브라우저 로컬 저장소에 데이터를 보관하므로, PC와 폰은 자동 동기화되지 않습니다.</p>
+                <p className="font-black text-emerald-600 text-[11px] mt-2 mb-1">A. 구글 시트 URL로 수동 동기화 가능!</p>
+                <p className="text-slate-600 font-semibold leading-relaxed">양쪽 기기에 동일한 구글 시트 URL을 등록 후, <strong>[Push]</strong>로 업로드, <strong>[Pull]</strong>로 다운로드하세요.</p>
               </div>
+              <div className="flex flex-col gap-2">
+                <h4 className="font-black text-sm text-[#0F172A]">⚙️ 구글 스프레드시트 연동 방법</h4>
+                <ol className="list-decimal pl-5 flex flex-col gap-1.5 text-slate-500 font-semibold leading-relaxed">
+                  <li>Google 스프레드시트를 새로 만듭니다.</li>
+                  <li>상단 메뉴 <strong>[확장 프로그램] → [Apps Script]</strong> 클릭</li>
+                  <li>기존 코드 삭제 후 아래 코드 붙여넣기</li>
+                  <li><strong>[배포] → [새 배포]</strong> 클릭</li>
+                  <li>유형: <strong>"웹 앱"</strong>, 액세스: <strong>"모든 사용자"</strong> 설정 후 배포</li>
+                  <li>발급된 URL을 설정 탭에 입력</li>
+                </ol>
+              </div>
+              <div className="bg-slate-900 rounded-2xl p-4 flex flex-col gap-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-black text-[11px] text-sky-400">Apps Script 템플릿 코드</span>
+                  <button onClick={() => { navigator.clipboard.writeText(gasTemplateCode); setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000); }} className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px] font-black flex items-center gap-1.5 transition">
+                    <Copy size={11} />{copiedCode ? '복사 완료!' : '전체 복사'}
+                  </button>
+                </div>
+                <pre className="p-3 bg-slate-950 text-indigo-200 rounded-xl overflow-x-auto text-[10px] font-mono leading-relaxed max-h-[160px] overflow-y-auto">{gasTemplateCode}</pre>
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50">
+              <button onClick={() => setIsScriptModalOpen(false)} className="w-full py-3 bg-[#1E3A8A] text-white font-black rounded-xl text-xs hover:bg-[#0F172A] transition">가이드 읽기 완료</button>
             </div>
           </div>
         </div>
