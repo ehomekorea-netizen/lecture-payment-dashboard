@@ -1723,12 +1723,26 @@ function doPost(e) {
             </div>
           )}
 
-          {/* TAB 2: STATS */}
           {activeTab === 'stats' && (() => {
+            const thisYear = new Date().getFullYear();
+            const minYear = thisYear - 3;
+            const canGoPrev = statsYear > minYear;
+            const canGoNext = statsYear < thisYear;
+
+            // statsYear 기준으로 lectures 필터링 (날짜에 연도 정보 없으면 현재연도로 취급)
+            const yearLectures = lectures.filter(l => {
+              const regDate = l.registrationDate || '';
+              if (!regDate) return true;
+              const yr = new Date(regDate).getFullYear();
+              return yr === statsYear;
+            });
+
+            const yearUniqueMonths = Array.from(new Set(yearLectures.map(l => l.month))).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
+
             const mostFrequentInstitution = (() => {
-              if (lectures.length === 0) return '없음';
+              if (yearLectures.length === 0) return '없음';
               const counts = {};
-              lectures.forEach(l => {
+              yearLectures.forEach(l => {
                 if (l.institution) {
                   counts[l.institution] = (counts[l.institution] || 0) + 1;
                 }
@@ -1746,47 +1760,67 @@ function doPost(e) {
 
             return (
               <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
+                {/* 연도 조작 셀렉터 - 최상위 배치 */}
+                <div className="flex items-center justify-between bg-white border border-slate-200/60 p-3.5 rounded-[24px] shadow-sm animate-fade-in">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[10px] text-slate-400 font-extrabold tracking-wider uppercase">조회 연도 설정</span>
+                    <span className="text-[14px] font-black text-slate-800">{statsYear}년 출강 리포트</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {canGoPrev ? (
+                      <button
+                        onClick={() => setStatsYear(y => y - 1)}
+                        className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/65 flex items-center justify-center text-slate-650 hover:bg-slate-100 transition-colors"
+                        aria-label="이전 연도"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    ) : <span className="w-8 h-8"/>}
+                    <span className="text-[14.5px] font-black text-indigo-700 min-w-[48px] text-center tracking-tight">{statsYear}년</span>
+                    {canGoNext ? (
+                      <button
+                        onClick={() => setStatsYear(y => y + 1)}
+                        className="w-8 h-8 rounded-full bg-slate-50 border border-slate-200/65 flex items-center justify-center text-slate-650 hover:bg-slate-100 transition-colors"
+                        aria-label="다음 연도"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    ) : <span className="w-8 h-8"/>}
+                  </div>
+                </div>
+
                 {/* 출강 성과 요약 */}
                 <div className="bg-white p-5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
                   <span className="text-[15px] font-black block mb-4 text-slate-800">출강 성과 및 요약</span>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
-                      <span className="text-[11px] font-bold text-slate-400">총 출강 횟수</span>
-                      <AnimatedNumber value={lectures.length} suffix="건" className="text-[18px] font-black text-slate-800" />
+                  {yearLectures.length === 0 ? (
+                    <div className="text-[12px] text-slate-400 text-center py-8 font-bold">집계할 출강 데이터가 없습니다.</div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
+                        <span className="text-[11px] font-bold text-slate-400">총 출강 횟수</span>
+                        <AnimatedNumber value={yearLectures.length} suffix="건" className="text-[18px] font-black text-slate-800" />
+                      </div>
+                      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
+                        <span className="text-[11px] font-bold text-slate-400">총 출강 시간</span>
+                        <AnimatedNumber value={yearLectures.reduce((sum, l) => sum + (l.classes || 0), 0)} suffix="시간" className="text-[18px] font-black text-indigo-600" />
+                      </div>
+                      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
+                        <span className="text-[11px] font-bold text-slate-400">월별 출강 평균 횟수</span>
+                        <AnimatedNumber value={Math.round(yearLectures.length / (yearUniqueMonths.length || 1))} suffix="건" className="text-[18px] font-black text-slate-800" />
+                      </div>
+                      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5 min-w-0">
+                        <span className="text-[11px] font-bold text-slate-400">최다 출강 교육기관</span>
+                        <span className="text-[13.5px] font-black text-slate-800 truncate block mt-0.5" title={mostFrequentInstitution}>
+                          {mostFrequentInstitution}
+                        </span>
+                      </div>
                     </div>
-                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
-                      <span className="text-[11px] font-bold text-slate-400">총 출강 시간</span>
-                      <AnimatedNumber value={lectures.reduce((sum, l) => sum + (l.classes || 0), 0)} suffix="시간" className="text-[18px] font-black text-indigo-600" />
-                    </div>
-                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
-                      <span className="text-[11px] font-bold text-slate-400">월별 출강 평균 횟수</span>
-                      <AnimatedNumber value={lectures.length > 0 ? Math.round(lectures.length / (uniqueMonths.length || 1)) : 0} suffix="건" className="text-[18px] font-black text-slate-800" />
-                    </div>
-                    <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5 min-w-0">
-                      <span className="text-[11px] font-bold text-slate-400">최다 출강 교육기관</span>
-                      <span className="text-[13.5px] font-black text-slate-800 truncate block mt-0.5" title={mostFrequentInstitution}>
-                        {mostFrequentInstitution}
-                      </span>
-                    </div>
-                  </div>
+                  )}
                 </div>
 
               {/* 월별 수입 가로 추이 차트 (연도별, 1월~12월) */}
               {(() => {
-                const thisYear = new Date().getFullYear();
-                const minYear = thisYear - 3;
-                const canGoPrev = statsYear > minYear;
-                const canGoNext = statsYear < thisYear;
-
                 const fullYearMonths = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
-
-                // statsYear 기준으로 lecture 필터링 (날짜에 연도 정보 없으면 전체 반영)
-                const yearLectures = lectures.filter(l => {
-                  const regDate = l.registrationDate || '';
-                  if (!regDate) return true; // 연도 정보 없으면 현재연도로 취급
-                  const yr = new Date(regDate).getFullYear();
-                  return yr === statsYear;
-                });
 
                 const fullYearData = fullYearMonths.map(m => {
                   const monthItems = yearLectures.filter(l => extractMonth(l.date) === m);
@@ -1819,28 +1853,6 @@ function doPost(e) {
                       <div className="flex items-center gap-2">
                         <h4 className="text-[15px] font-black text-slate-800">월별 정산 추이</h4>
                         <span className="text-[11px] font-bold text-slate-400 ml-0.5">밀어서 보기</span>
-                      </div>
-                      {/* 연도 네비게이터 */}
-                      <div className="flex items-center gap-1">
-                        {canGoPrev ? (
-                          <button
-                            onClick={() => setStatsYear(y => y - 1)}
-                            className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 active:bg-slate-200 transition-colors"
-                            aria-label="이전 연도"
-                          >
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                          </button>
-                        ) : <span className="w-7 h-7"/>}
-                        <span className="text-[14px] font-black text-indigo-700 min-w-[42px] text-center tracking-tight">{statsYear}년</span>
-                        {canGoNext ? (
-                          <button
-                            onClick={() => setStatsYear(y => y + 1)}
-                            className="w-7 h-7 rounded-full flex items-center justify-center text-slate-500 hover:bg-slate-100 active:bg-slate-200 transition-colors"
-                            aria-label="다음 연도"
-                          >
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                          </button>
-                        ) : <span className="w-7 h-7"/>}
                       </div>
                     </div>
 
@@ -1957,7 +1969,7 @@ function doPost(e) {
                   <h4 className="text-[15px] font-black text-slate-800">주요 주관사별 비중</h4>
                   <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">매출 기여도 기준 정렬</p>
                 </div>
-                {lectures.length === 0 ? (
+                {yearLectures.length === 0 ? (
                   <div className="text-[12px] text-slate-400 text-center py-10 font-bold">데이터가 없습니다.</div>
                 ) : (
                   <div className="flex flex-col gap-3">
@@ -1965,7 +1977,7 @@ function doPost(e) {
                       // 기관별 총액 집계
                       const instMap = {};
                       let overallTotal = 0;
-                      lectures.forEach(l => {
+                      yearLectures.forEach(l => {
                         const amt = l.expectedAmount || 0;
                         instMap[l.institution] = (instMap[l.institution] || 0) + amt;
                         overallTotal += amt;
