@@ -32,6 +32,37 @@ export default function App() {
   // 모바일 앱용 탭 상태 ('home', 'stats', 'sync', 'settings')
   const [activeTab, setActiveTab] = useState('home');
 
+  // Scroll and mouse tracking for Google Labs DESIGN.md
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [mouseY, setMouseY] = useState(0);
+  const [isNearIndex, setIsNearIndex] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const totalHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (totalHeight > 0) {
+        setScrollProgress(window.scrollY / totalHeight);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const width = window.innerWidth;
+      const xThreshold = width - 60; // 60px near right edge
+      if (e.clientX >= xThreshold) {
+        setIsNearIndex(true);
+        setMouseY(e.clientY);
+      } else {
+        setIsNearIndex(false);
+      }
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
   // 강의 데이터 상태
   const [lectures, setLectures] = useState(() => {
     try {
@@ -1363,44 +1394,44 @@ function doPost(e) {
               <div className="py-20 text-center text-xs text-toss-textSub">검색 결과가 없습니다.</div>
             ) : (
               <div className="overflow-x-auto max-h-[350px] overflow-y-auto">
-                <table className="w-full text-left text-xs border-collapse">
+                <table className="w-full text-left text-xs border-collapse border border-[#1F2E5B]/10">
                   <thead>
-                    <tr className="border-b border-toss-border bg-slate-50/20 text-toss-textSub font-bold">
-                      <th className="px-4 py-3">교육 기관명</th>
-                      <th className="px-3 py-3 text-right">단가 × 시간</th>
-                      <th className="px-3 py-3 text-right">예상액</th>
-                      <th className="px-3 py-3 text-right">교통비</th>
-                      <th className="px-3 py-3 text-right">공제</th>
-                      <th className="px-3 py-3 text-right">실수령액</th>
-                      <th className="px-3 py-3 text-center">출강 기간 (월)</th>
-                      <th className="px-4 py-3 text-center">정산상태</th>
-                      <th className="px-4 py-3 text-center">관리</th>
+                    <tr className="border-b border-[#1F2E5B]/10 bg-[#1F2E5B]/5 text-toss-textSub font-bold">
+                      <th className="border border-[#1F2E5B]/10 px-4 py-3">교육 기관명</th>
+                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-right">단가 × 시간</th>
+                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-right">예상액</th>
+                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-right">교통비</th>
+                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-right">공제</th>
+                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-right">실수령액</th>
+                      <th className="border border-[#1F2E5B]/10 px-3 py-3 text-center">출강 기간 (월)</th>
+                      <th className="border border-[#1F2E5B]/10 px-4 py-3 text-center">정산상태</th>
+                      <th className="border border-[#1F2E5B]/10 px-4 py-3 text-center">관리</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-toss-border">
+                  <tbody className="divide-y divide-[#1F2E5B]/10">
                     {filteredLectures.map((lecture) => (
-                      <tr key={lecture.id} className="hover:bg-slate-50/40 transition">
-                        <td className="px-4 py-3 font-bold text-toss-textDark">{lecture.institution}</td>
-                        <td className="px-3 py-3 text-right font-medium text-toss-textSub">
+                      <tr key={lecture.id} className="hover:bg-[#1F2E5B]/5 transition-colors">
+                        <td className="border border-[#1F2E5B]/10 px-4 py-3 font-bold text-toss-textDark hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">{lecture.institution}</td>
+                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-right font-medium text-toss-textSub hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
                           ₩{formatWon(lecture.rate)} × {lecture.classes}h
                         </td>
-                        <td className="px-3 py-3 text-right font-semibold text-toss-textMuted">
+                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-right font-semibold text-toss-textMuted hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
                           ₩{formatWon(lecture.expectedAmount)}
                         </td>
-                        <td className="px-3 py-3 text-right text-toss-textSub">
-                          {lecture.transportFee > 0 ? `₩${formatWon(lecture.transportFee)}` : '-'}
+                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-right text-toss-textSub hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
+                          {lecture.transportFee > 0 ? "₩" + formatWon(lecture.transportFee) : '-'}
                         </td>
-                        <td className="px-3 py-3 text-right text-toss-red font-medium">
-                          {lecture.isPaid && lecture.deduction !== 0 ? `₩${formatWon(lecture.deduction)}` : '-'}
+                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-right text-toss-red font-medium hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
+                          {lecture.isPaid && lecture.deduction !== 0 ? "₩" + formatWon(lecture.deduction) : '-'}
                         </td>
-                        <td className="px-3 py-3 text-right font-bold text-toss-blue">
-                          {lecture.isPaid ? `₩${formatWon(lecture.netAmount)}` : '-'}
+                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-right font-bold text-toss-blue hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
+                          {lecture.isPaid ? "₩" + formatWon(lecture.netAmount) : '-'}
                         </td>
-                        <td className="px-3 py-3 text-center">
-                          <div className="font-semibold text-toss-textMuted">{lecture.month}</div>
-                          <div className="text-[10px] text-toss-textSub mt-0.5">{lecture.date}</div>
+                        <td className="border border-[#1F2E5B]/10 px-3 py-3 text-center hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
+                          <div className="font-semibold">{lecture.month}</div>
+                          <div className="text-[10px] mt-0.5">{lecture.date}</div>
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="border border-[#1F2E5B]/10 px-4 py-3 text-center hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
                           <button
                             onClick={() => handleTogglePaid(lecture)}
                             className={`text-[10px] font-bold px-2.5 py-1.5 rounded-lg border ${lecture.isPaid ? 'bg-green-50 border-green-200 text-toss-green' : 'bg-orange-50 border-orange-200 text-toss-amber'}`}
@@ -1408,7 +1439,7 @@ function doPost(e) {
                             {lecture.isPaid ? '정산완료' : '정산대기'}
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-center">
+                        <td className="border border-[#1F2E5B]/10 px-4 py-3 text-center hover:bg-[#1F2E5B]/10 hover:text-[#00BCD4] transition-all duration-150">
                           <div className="flex items-center justify-center gap-1.5">
                             <button onClick={() => handleEditClick(lecture)} className="p-1 hover:bg-slate-100 rounded text-toss-textSub">
                               <Edit3 size={13} />
@@ -1449,6 +1480,29 @@ function doPost(e) {
             {gasTemplateCode}
           </pre>
         </div>
+      </div>
+
+      {/* Scroll-Linked Interactive Index Line (Desktop only) */}
+      <div className="hidden md:block fixed right-0 top-0 bottom-0 w-8 z-50 pointer-events-none">
+        <svg className="w-full h-full">
+          {/* Base track */}
+          <line x1="16" y1="0" x2="16" y2="100%" stroke="#1F2E5B" strokeWidth="3" strokeOpacity="0.08" />
+          
+          {/* Progress line */}
+          <path
+            d={
+              isNearIndex
+                ? "M 16 0 L 16 " + Math.max(0, mouseY - 60) + " Q " + (16 - 20) + " " + mouseY + " 16 " + (mouseY + 60) + " L 16 100%"
+                : "M 16 0 L 16 100%"
+            }
+            fill="none"
+            stroke="#00BCD4"
+            strokeWidth="3"
+            strokeDasharray="1000"
+            strokeDashoffset={1000 - (scrollProgress * 1000)}
+            className="transition-all duration-75 ease-out"
+          />
+        </svg>
       </div>
 
       {/* ========================================================
