@@ -1325,6 +1325,40 @@ ${aiText}
   const homeCanGoPrev = statsYear > (_thisYearNow - 3);
   const homeCanGoNext = statsYear < _thisYearNow;
 
+  // --- Stats tab hoisted vars (TDZ fix) ---
+  const _sNow = new Date().getFullYear();
+  const statsCanGoPrev = statsYear > (_sNow - 3);
+  const statsCanGoNext = statsYear < _sNow;
+  const statsYearLectures = lectures.filter(l => {
+    const rd = l.registrationDate || '';
+    if (!rd) return true;
+    return new Date(rd).getFullYear() === statsYear;
+  });
+  const statsYearUniqueMonths = Array.from(new Set(statsYearLectures.map(l => l.month))).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
+  const statsMostFreqInst = (() => {
+    if (statsYearLectures.length === 0) return '없음';
+    const _c = {};
+    statsYearLectures.forEach(l => { if (l.institution) _c[l.institution] = (_c[l.institution] || 0) + 1; });
+    return Object.entries(_c).reduce((b, [k, v]) => v > b[1] ? [k, v] : b, ['없음', 0])[0];
+  })();
+  const _sFYM = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const statsFullYearData = _sFYM.map(m => {
+    const _it = statsYearLectures.filter(l => extractMonth(l.date) === m);
+    const _p = _it.reduce((s, l) => s + (l.isPaid ? l.netAmount : 0), 0);
+    const _u = _it.reduce((s, l) => s + (l.isPaid ? 0 : l.expectedAmount), 0);
+    return { month: m, total: _p + _u };
+  });
+  const _sMax = Math.max(...statsFullYearData.map(d => d.total), 1);
+  const _sSW = 560; const _sSLP = 28; const _sSCW = _sSW - _sSLP - 28;
+  const statsChartPoints = statsFullYearData.map((d, i) => ({
+    x: _sSLP + i * (_sSCW / 11),
+    y: 148 - (_sMax > 0 ? (d.total / _sMax) * 108 : 0)
+  }));
+  const statsPathD = statsChartPoints.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(' ');
+  const statsAreaD = statsPathD + ` L ${statsChartPoints[11].x} 148 L ${statsChartPoints[0].x} 148 Z`;
+  const _sIM = {}; let _sOT = 0;
+  statsYearLectures.forEach(l => { const a = l.expectedAmount || 0; _sIM[l.institution] = (_sIM[l.institution] || 0) + a; _sOT += a; });
+  const statsSortedInsts = Object.entries(_sIM).map(([n, v]) => ({ name: n, val: v, pct: _sOT > 0 ? (v / _sOT) * 100 : 0 })).sort((a, b) => b.val - a.val).slice(0, 5);
   const filteredLectures = homeYearLectures.filter(l => {
     if (!l) return false;
     const matchesInst = selectedInstitution === 'All' || l.institution === selectedInstitution;
@@ -1822,46 +1856,12 @@ function doPost(e) {
             </div>
           )}
 
-          {activeTab === 'stats' && (() => {
-            const thisYear = new Date().getFullYear();
-            const minYear = thisYear - 3;
-            const canGoPrev = statsYear > minYear;
-            const canGoNext = statsYear < thisYear;
-
-            // statsYear 기준으로 lectures 필터링 (날짜에 연도 정보 없으면 현재연도로 취급)
-            const yearLectures = lectures.filter(l => {
-              const regDate = l.registrationDate || '';
-              if (!regDate) return true;
-              const yr = new Date(regDate).getFullYear();
-              return yr === statsYear;
-            });
-
-            const yearUniqueMonths = Array.from(new Set(yearLectures.map(l => l.month))).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
-
-            const mostFrequentInstitution = (() => {
-              if (yearLectures.length === 0) return '없음';
-              const counts = {};
-              yearLectures.forEach(l => {
-                if (l.institution) {
-                  counts[l.institution] = (counts[l.institution] || 0) + 1;
-                }
-              });
-              let maxCount = 0;
-              let maxInst = '없음';
-              Object.entries(counts).forEach(([inst, count]) => {
-                if (count > maxCount) {
-                  maxCount = count;
-                  maxInst = inst;
-                }
-              });
-              return maxInst;
-            })();
-
-            return (
+          {activeTab === 'stats' && (
+            <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
               <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
                 {/* 연도 조작 셀렉터 - 심플 가로 중앙 정렬 */}
                 <div className="flex items-center justify-center gap-4 py-1.5 animate-fade-in">
-                  {canGoPrev ? (
+                  {statsCanGoPrev ? (
                     <button onClick={() => setStatsYear(y => y - 1)}
                       className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
                       aria-label="이전 연도">
@@ -1869,7 +1869,7 @@ function doPost(e) {
                     </button>
                   ) : <span className="w-8 h-8"/>}
                   <span className="text-[15.5px] font-black text-slate-800 tracking-tight">{statsYear}년</span>
-                  {canGoNext ? (
+                  {statsCanGoNext ? (
                     <button onClick={() => setStatsYear(y => y + 1)}
                       className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
                       aria-label="다음 연도">
@@ -1881,26 +1881,26 @@ function doPost(e) {
                 {/* 출강 성과 요약 */}
                 <div className="bg-white p-5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
                   <span className="text-[15px] font-black block mb-4 text-slate-800">출강 성과 및 요약</span>
-                  {yearLectures.length === 0 ? (
+                  {statsYearLectures.length === 0 ? (
                     <div className="text-[12px] text-slate-400 text-center py-8 font-bold">집계할 출강 데이터가 없습니다.</div>
                   ) : (
                     <div className="grid grid-cols-2 gap-3">
                       <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
                         <span className="text-[11px] font-bold text-slate-400">총 출강 횟수</span>
-                        <AnimatedNumber value={yearLectures.length} suffix="건" className="text-[18px] font-black text-slate-800" />
+                        <AnimatedNumber value={statsYearLectures.length} suffix="건" className="text-[18px] font-black text-slate-800" />
                       </div>
                       <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
                         <span className="text-[11px] font-bold text-slate-400">총 출강 시간</span>
-                        <AnimatedNumber value={yearLectures.reduce((sum, l) => sum + (l.classes || 0), 0)} suffix="시간" className="text-[18px] font-black text-indigo-600" />
+                        <AnimatedNumber value={statsYearLectures.reduce((sum, l) => sum + (l.classes || 0), 0)} suffix="시간" className="text-[18px] font-black text-indigo-600" />
                       </div>
                       <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
                         <span className="text-[11px] font-bold text-slate-400">월별 출강 평균 횟수</span>
-                        <AnimatedNumber value={Math.round(yearLectures.length / (yearUniqueMonths.length || 1))} suffix="건" className="text-[18px] font-black text-slate-800" />
+                        <AnimatedNumber value={Math.round(yearLectures.length / (statsYearUniqueMonths.length || 1))} suffix="건" className="text-[18px] font-black text-slate-800" />
                       </div>
                       <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5 min-w-0">
                         <span className="text-[11px] font-bold text-slate-400">최다 출강 교육기관</span>
-                        <span className="text-[13.5px] font-black text-slate-800 truncate block mt-0.5" title={mostFrequentInstitution}>
-                          {mostFrequentInstitution}
+                        <span className="text-[13.5px] font-black text-slate-800 truncate block mt-0.5" title={statsMostFreqInst}>
+                          {statsMostFreqInst}
                         </span>
                       </div>
                     </div>
@@ -1908,34 +1908,7 @@ function doPost(e) {
                 </div>
 
               {/* 월별 수입 가로 추이 차트 (연도별, 1월~12월) */}
-              {(() => {
-                const fullYearMonths = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
-
-                const fullYearData = fullYearMonths.map(m => {
-                  const monthItems = yearLectures.filter(l => extractMonth(l.date) === m);
-                  const paidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? curr.netAmount : 0), 0);
-                  const unpaidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
-                  return {
-                    month: m,
-                    total: paidTotal + unpaidTotal
-                  };
-                });
-                const maxTotal = Math.max(...fullYearData.map(d => d.total), 1);
-
-                // SVG 좌우 패딩 28px, 실제 데이터 포인트는 28~532 범위
-                const SVG_W = 560;
-                const LEFT_PAD = 28;
-                const RIGHT_PAD = 28;
-                const CHART_W = SVG_W - LEFT_PAD - RIGHT_PAD;
-                const points = fullYearData.map((d, i) => ({
-                  x: LEFT_PAD + i * (CHART_W / 11),
-                  y: 148 - (maxTotal > 0 ? (d.total / maxTotal) * 108 : 0)
-                }));
-                const pathD = points.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(' ');
-                // Area fill path (closed under the line)
-                const areaD = pathD + ` L ${points[11].x} 148 L ${points[0].x} 148 Z`;
-
-                return (
+              {(
                   <div className="bg-white rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-0 animate-fade-in overflow-hidden">
                     {/* 연도 네비게이션 헤더 */}
                     <div className="flex items-center justify-between px-5 pt-5 pb-3">
@@ -1946,7 +1919,7 @@ function doPost(e) {
                       <span className="text-[10px] text-slate-400 font-extrabold">(단위: 만원)</span>
                     </div>
 
-                    {yearLectures.length === 0 ? (
+                    {statsYearLectures.length === 0 ? (
                       <div className="text-[12px] text-slate-400 text-center py-10 font-bold px-5 pb-5">{statsYear}년 출강 데이터가 없습니다.</div>
                     ) : (
                       <div
@@ -1954,8 +1927,8 @@ function doPost(e) {
                         className="w-full overflow-x-auto overflow-y-hidden scrollbar-none pb-4 px-0"
                         style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-x pan-y' }}
                       >
-                        <div style={{ width: `${SVG_W}px`, flexShrink: 0 }}>
-                          <svg viewBox={`0 0 ${SVG_W} 200`} width={SVG_W} height="200" className="overflow-visible">
+                        <div style={{ width: `${_sSW}px`, flexShrink: 0 }}>
+                          <svg viewBox={`0 0 ${_sSW} 200`} width={_sSW} height="200" className="overflow-visible">
                             <defs>
                               {/* 라인 그라데이션: 인디고 → 블루 (프로젝트 디자인 톤) */}
                               <linearGradient id="chart-line-grad" x1="0" y1="0" x2="1" y2="0">
@@ -1986,13 +1959,13 @@ function doPost(e) {
 
                             {/* 영역 채우기 */}
                             {pathD && (
-                              <path d={areaD} fill="url(#chart-area-grad)" strokeWidth="0"/>
+                              <path d={statsAreaD} fill="url(#chart-area-grad)" strokeWidth="0"/>
                             )}
 
                             {/* 메인 라인 */}
                             {pathD && (
                               <path
-                                d={pathD}
+                                d={statsPathD}
                                 fill="none"
                                 stroke="url(#chart-line-grad)"
                                 strokeWidth="3"
@@ -2049,8 +2022,7 @@ function doPost(e) {
                       </div>
                     )}
                   </div>
-                );
-              })()}
+              )}
 
 
               {/* 주관사(기관)별 출강 비중 */}
@@ -2059,26 +2031,11 @@ function doPost(e) {
                   <h4 className="text-[15px] font-black text-slate-800">주요 주관사별 비중</h4>
                   <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">매출 기여도 기준 정렬</p>
                 </div>
-                {yearLectures.length === 0 ? (
+                {statsYearLectures.length === 0 ? (
                   <div className="text-[12px] text-slate-400 text-center py-10 font-bold">데이터가 없습니다.</div>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    {(() => {
-                      // 기관별 총액 집계
-                      const instMap = {};
-                      let overallTotal = 0;
-                      yearLectures.forEach(l => {
-                        const amt = l.expectedAmount || 0;
-                        instMap[l.institution] = (instMap[l.institution] || 0) + amt;
-                        overallTotal += amt;
-                      });
-
-                      const sortedInsts = Object.entries(instMap)
-                        .map(([name, val]) => ({ name, val, pct: overallTotal > 0 ? (val / overallTotal) * 100 : 0 }))
-                        .sort((a, b) => b.val - a.val)
-                        .slice(0, 5); // TOP 5
-
-                      return sortedInsts.map((inst, i) => {
+                    {statsSortedInsts.map((inst, i) => {
                         const isPreset = presets.some(p => p.name === inst.name);
                         return (
                           <div key={i} className="flex flex-col gap-1.5">
@@ -2089,21 +2046,20 @@ function doPost(e) {
                               )}
                             </div>
                             <div className="w-full h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                              <div 
-                                className="h-full bg-indigo-500 rounded-full" 
-                                style={{ width: `${inst.pct}%`, opacity: 1 - (i * 0.15) }} 
+                              <div
+                                className="h-full bg-indigo-500 rounded-full"
+                                style={{ width: `${inst.pct}%`, opacity: 1 - (i * 0.15) }}
                               />
                             </div>
                           </div>
                         );
-                      });
-                    })()}
+                      })}
                   </div>
                 )}
               </div>
             </div>
-          );
-        })()}
+            </div>
+          )}
 
 
 
