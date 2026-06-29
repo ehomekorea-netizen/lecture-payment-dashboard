@@ -285,6 +285,7 @@ export default function App() {
   // 실정산액 직접 편집을 위한 상태
   const [editingNetCardId, setEditingNetCardId] = useState(null);
   const [editingNetValue, setEditingNetValue] = useState('');
+  const [isNetEditModalOpen, setIsNetEditModalOpen] = useState(false);
 
   // Lottie 애니메이션 타임아웃 참조
   const moneyLottieTimeoutRef = useRef(null);
@@ -1398,7 +1399,23 @@ function doPost(e) {
                                 </button>
                                 {activeMenuCardId === l.id && (
                                   <div className="absolute right-0 bottom-full mb-2 bg-white border border-slate-200 shadow-xl rounded-xl z-20 py-1.5 px-1.5 flex flex-col gap-1 w-32">
-                                    <button onClick={(e) => {e.stopPropagation();handleEditClick(l);setActiveMenuCardId(null);}} className="w-full text-left py-2.5 px-3 text-[13px] font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2"><Edit3 size={14} className="text-slate-400" />수정하기</button>
+                                    <button 
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         if (l.isPaid) {
+                                           setEditingNetCardId(l.id);
+                                           setEditingNetValue(String(l.netAmount));
+                                           setIsNetEditModalOpen(true);
+                                         } else {
+                                           handleEditClick(l);
+                                         }
+                                         setActiveMenuCardId(null);
+                                       }} 
+                                       className="w-full text-left py-2.5 px-3 text-[13px] font-bold text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2"
+                                     >
+                                       <Edit3 size={14} className="text-slate-400" />
+                                       {l.isPaid ? '금액 수정' : '수정하기'}
+                                     </button>
                                     <button onClick={(e) => {e.stopPropagation();if(confirm('이 강의 기록을 정말 삭제하시겠습니까?')){handleDelete(l.id);}setActiveMenuCardId(null);}} className="w-full text-left py-2.5 px-3 text-[13px] font-bold text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2"><Trash2 size={14} className="text-red-400" />삭제하기</button>
                                   </div>
                                 )}
@@ -1423,65 +1440,17 @@ function doPost(e) {
                                 </div>
                               </div>
                               <div className="flex flex-col items-end justify-center pl-2 border-l border-slate-200">
-                                {editingNetCardId === l.id ? (
-                                  <div className="flex flex-col items-end justify-center w-full">
-                                    <span className="text-[9.5px] text-slate-400 font-bold block mb-1">실정산액 직접 입력</span>
-                                    <div className="flex items-center gap-1 w-full justify-end">
-                                      <input 
-                                        type="number" 
-                                        value={editingNetValue} 
-                                        onChange={(e) => setEditingNetValue(e.target.value)}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="w-20 px-1.5 py-0.5 text-right border border-slate-300 rounded-lg text-xs font-black text-slate-800 focus:outline-none focus:border-[#10B981]"
-                                        autoFocus
-                                      />
-                                      <span className="text-[11px] font-black text-slate-500">원</span>
-                                    </div>
-                                    <div className="flex gap-1 mt-1.5">
-                                      <button 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setLectures(prev => prev.map(item => item.id === l.id ? { ...item, netAmount: Number(editingNetValue) } : item));
-                                          setEditingNetCardId(null);
-                                        }}
-                                        className="px-2 py-0.5 bg-[#10B981] text-white text-[9.5px] font-black rounded-md hover:bg-emerald-600 transition"
-                                      >
-                                        저장
-                                      </button>
-                                      <button 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditingNetCardId(null);
-                                        }}
-                                        className="px-2 py-0.5 bg-slate-200 text-slate-600 text-[9.5px] font-black rounded-md hover:bg-slate-300 transition"
-                                      >
-                                        취소
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col items-end text-right">
-                                    <span className="text-[9.5px] font-extrabold text-slate-400">총 예상수령액</span>
-                                    <span className="text-[12px] font-bold text-slate-400/80 line-through mt-0.5">
-                                      {formatWon(l.expectedAmount)}원
-                                    </span>
-                                    <button 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingNetCardId(l.id);
-                                        setEditingNetValue(l.netAmount);
-                                      }}
-                                      className="btn-press flex items-center gap-1 mt-1 text-[#10B981] hover:opacity-85 transition"
-                                      title="실정산액 직접 수정"
-                                    >
-                                      <span className="text-[10px] font-black">⬇️</span>
-                                      <span className="text-[15px] font-black tracking-tight border-b border-dashed border-[#10B981]/50 pb-0.5">
-                                        <AnimatedNumber value={l.netAmount} className="font-black text-[#10B981]" />
-                                      </span>
-                                      <Edit3 size={11} className="text-[#10B981]/70 ml-0.5" />
-                                    </button>
-                                  </div>
-                                )}
+                                <span className="text-[10px] text-slate-400 font-extrabold mb-1">최종 실수령액</span>
+                                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                  <span className="text-[12px] font-bold text-slate-400 line-through">
+                                    {formatWon(l.expectedAmount)}원
+                                  </span>
+                                  <span className="text-[11px] font-black text-slate-400">→</span>
+                                  <span className="text-[15.5px] font-black text-[#10B981] flex items-center">
+                                    <AnimatedNumber value={l.netAmount} className="font-black text-[#10B981]" />
+                                    <span className="text-[13px] font-black text-[#10B981] ml-0.5">원</span>
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           )}
@@ -1497,7 +1466,7 @@ function doPost(e) {
           {activeTab === 'calendar' && (
             <div 
               key="tab-calendar" 
-              className={`${getSlideClass()} flex flex-col gap-4 select-none`}
+              className={`${getSlideClass()} flex flex-col gap-3 select-none overflow-hidden max-h-[calc(100vh-175px)]`}
               onTouchStart={handleCalTouchStart}
               onTouchEnd={handleCalTouchEnd}
             >
@@ -1607,13 +1576,13 @@ function doPost(e) {
               </div>
 
               {/* 달력 안내 안내카드 */}
-              <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-[20px] text-[10.5px] text-slate-500 leading-relaxed flex flex-col gap-1.5">
+              <div className="bg-slate-50 border border-slate-200/50 p-3 rounded-[16px] text-[10px] text-slate-500 leading-normal flex flex-col gap-1 mt-0.5 shadow-sm">
                 <span className="font-extrabold text-slate-700">💡 캘린더 안내</span>
-                <p>일정이 등록된 날짜는 연하게 칠해지며, 터치 시 하단 시트(Bottom Sheet)에서 상세 정산내역을 바로 확인할 수 있습니다.</p>
-                <div className="flex items-center gap-3 mt-1 font-bold">
-                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500"/> 완료</div>
-                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500"/> 미정산 대기</div>
-                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"/> 30일 초과 연체</div>
+                <p>기록일은 연하게 칠해지며, 터치 시 하단 명세가 노출됩니다.</p>
+                <div className="flex items-center gap-3 mt-0.5 font-bold text-[9.5px]">
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"/> 완료</div>
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500"/> 대기</div>
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"/> 30일 경과</div>
                 </div>
               </div>
             </div>
@@ -1645,7 +1614,7 @@ function doPost(e) {
                 </div>
               </div>
 
-              {/* 월별 수입 및 시간 세로 추이 차트 (1월~12월) */}
+              {/* 월별 수입 가로 추이 차트 (1월~12월) */}
               {(() => {
                 const fullYearMonths = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
                 const fullYearData = fullYearMonths.map(m => {
@@ -1660,8 +1629,8 @@ function doPost(e) {
                 const maxTotal = Math.max(...fullYearData.map(d => d.total), 1);
                 
                 const points = fullYearData.map((d, i) => ({
-                  x: 55 + (d.total / maxTotal) * 190,
-                  y: i * 35 + 25
+                  x: i * 40 + 40,
+                  y: 145 - (maxTotal > 0 ? (d.total / maxTotal) * 105 : 0)
                 }));
                 const pathD = points.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(' ');
 
@@ -1669,113 +1638,124 @@ function doPost(e) {
                   <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-4 animate-fade-in">
                     <div>
                       <h4 className="text-[15px] font-black text-slate-800">연간 월별 정산 추이 (1월~12월)</h4>
-                      <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">1월부터 12월까지의 정산 총액 추이 (세로 흐름)</p>
+                      <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">1월부터 12월까지의 정산 총액 가로 추이 (밀어서 보기)</p>
                     </div>
                     {lectures.length === 0 ? (
                       <div className="text-[12px] text-slate-400 text-center py-10 font-bold">출강 데이터가 없습니다.</div>
                     ) : (
-                      <div className="relative pt-2" style={{ background: '#121216', borderRadius: '16px', padding: '16px 12px 16px 8px', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.4)' }}>
-                        <svg viewBox="0 0 320 440" width="100%" height="440" className="overflow-visible">
-                          <defs>
-                            {/* Glow Filter */}
-                            <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
-                              <feGaussianBlur stdDeviation="4.5" result="blur" />
-                              <feMerge>
-                                <feMergeNode in="blur" />
-                                <feMergeNode in="blur" />
-                                <feMergeNode in="SourceGraphic" />
-                              </feMerge>
-                            </filter>
-                          </defs>
-                          
-                          {/* Grid lines & Month Labels */}
-                          {fullYearData.map((d, i) => {
-                            const y = i * 35 + 25;
-                            return (
-                              <g key={i} className="opacity-40">
-                                <line 
-                                  x1="55" 
-                                  y1={y} 
-                                  x2="300" 
-                                  y2={y} 
-                                  stroke="#334155" 
-                                  strokeWidth="1" 
-                                  strokeDasharray="3 3" 
-                                />
-                                <text 
-                                  x="15" 
-                                  y={y + 4} 
-                                  fill="#94A3B8" 
-                                  fontSize="11.5" 
-                                  fontWeight="900"
-                                >
-                                  {d.month}
-                                </text>
-                              </g>
-                            );
-                          })}
+                      <div className="w-full overflow-x-auto pb-1 scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+                        <div className="relative pt-2 w-[520px] h-[190px]" style={{ background: '#121216', borderRadius: '16px', padding: '16px 12px 10px 12px', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.4)' }}>
+                          <svg viewBox="0 0 520 190" width="520" height="190" className="overflow-visible">
+                            <defs>
+                              {/* Glow Filter */}
+                              <filter id="glow-orange-horiz" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="4.5" result="blur" />
+                                <feMerge>
+                                  <feMergeNode in="blur" />
+                                  <feMergeNode in="blur" />
+                                  <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                              </filter>
+                            </defs>
+                            
+                            {/* Grid lines (Vertical Guides) */}
+                            {fullYearData.map((d, i) => {
+                              const x = i * 40 + 40;
+                              return (
+                                <g key={i} className="opacity-30">
+                                  <line 
+                                    x1={x} 
+                                    y1="20" 
+                                    x2={x} 
+                                    y2="150" 
+                                    stroke="#334155" 
+                                    strokeWidth="1" 
+                                    strokeDasharray="3 3" 
+                                  />
+                                </g>
+                              );
+                            })}
 
-                          {/* Glowing Animated Line */}
-                          {pathD && (
-                            <path 
-                              d={pathD} 
-                              fill="none" 
-                              stroke="#FF8A00" 
-                              strokeWidth="3.5" 
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              filter="url(#glow-orange)"
-                              style={{
-                                strokeDasharray: 2000,
-                                strokeDashoffset: 2000,
-                                animation: 'drawVerticalLine 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards'
-                              }}
-                            />
-                          )}
+                            {/* Base X Axis line */}
+                            <line x1="25" y1="150" x2="495" y2="150" stroke="#475569" strokeWidth="1.5" opacity="0.4" />
 
-                          {/* Dots & Values */}
-                          {points.map((p, i) => {
-                            const d = fullYearData[i];
-                            const hasValue = d.total > 0;
-                            return (
-                              <g key={i}>
-                                <circle 
-                                  cx={p.x} 
-                                  cy={p.y} 
-                                  r={hasValue ? "6" : "3"} 
-                                  fill={hasValue ? "rgba(255, 138, 0, 0.4)" : "#334155"} 
-                                  className={hasValue ? "animate-pulse" : ""}
-                                />
-                                <circle 
-                                  cx={p.x} 
-                                  cy={p.y} 
-                                  r={hasValue ? "4" : "1.5"} 
-                                  fill={hasValue ? "#FFFFFF" : "#475569"} 
-                                  stroke={hasValue ? "#FF8A00" : "none"}
-                                  strokeWidth={hasValue ? "2.5" : "0"}
-                                />
-                                {hasValue && (
+                            {/* Glowing Animated Line */}
+                            {pathD && (
+                              <path 
+                                d={pathD} 
+                                fill="none" 
+                                stroke="#FF8A00" 
+                                strokeWidth="3.5" 
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                filter="url(#glow-orange-horiz)"
+                                style={{
+                                  strokeDasharray: 2000,
+                                  strokeDashoffset: 2000,
+                                  animation: 'drawHorizontalLine 2.2s cubic-bezier(0.4, 0, 0.2, 1) forwards'
+                                }}
+                              />
+                            )}
+
+                            {/* Dots, Month labels & Values */}
+                            {points.map((p, i) => {
+                              const d = fullYearData[i];
+                              const hasValue = d.total > 0;
+                              return (
+                                <g key={i}>
+                                  {/* Node Glow */}
+                                  <circle 
+                                    cx={p.x} 
+                                    cy={p.y} 
+                                    r={hasValue ? "6" : "3"} 
+                                    fill={hasValue ? "rgba(255, 138, 0, 0.4)" : "#334155"} 
+                                    className={hasValue ? "animate-pulse" : ""}
+                                  />
+                                  {/* Node Center */}
+                                  <circle 
+                                    cx={p.x} 
+                                    cy={p.y} 
+                                    r={hasValue ? "4" : "1.5"} 
+                                    fill={hasValue ? "#FFFFFF" : "#475569"} 
+                                    stroke={hasValue ? "#FF8A00" : "none"}
+                                    strokeWidth={hasValue ? "2.5" : "0"}
+                                  />
+                                  {/* Month label below */}
                                   <text 
-                                    x={p.x > 210 ? p.x - 72 : p.x + 10} 
-                                    y={p.y + 4} 
-                                    fill="#FF8A00" 
-                                    fontSize="10" 
+                                    x={p.x} 
+                                    y="170" 
+                                    fill="#94A3B8" 
+                                    fontSize="11.5" 
                                     fontWeight="900"
+                                    textAnchor="middle"
                                   >
-                                    {formatWon(d.total)}원
+                                    {d.month}
                                   </text>
-                                )}
-                              </g>
-                            );
-                          })}
-                        </svg>
-                        <style dangerouslySetInnerHTML={{__html: `
-                          @keyframes drawVerticalLine {
-                            to {
-                              stroke-dashoffset: 0;
+                                  {/* Amount label above node */}
+                                  {hasValue && (
+                                    <text 
+                                      x={p.x} 
+                                      y={p.y - 12} 
+                                      fill="#FF8A00" 
+                                      fontSize="9.5" 
+                                      fontWeight="900"
+                                      textAnchor="middle"
+                                    >
+                                      {formatWon(d.total)}
+                                    </text>
+                                  )}
+                                </g>
+                              );
+                            })}
+                          </svg>
+                          <style dangerouslySetInnerHTML={{__html: `
+                            @keyframes drawHorizontalLine {
+                              to {
+                                stroke-dashoffset: 0;
+                              }
                             }
-                          }
-                        `}} />
+                          `}} />
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1856,22 +1836,26 @@ function doPost(e) {
                   />
                 </button>
                 {isApiSettingsOpen && (
-                  <div className="px-5 pb-5 pt-3 flex flex-col gap-5 border-t border-slate-100">
+                  <div className="px-5 pb-5 pt-3 flex flex-col gap-4 border-t border-slate-100">
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center gap-1.5">
                         <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
                         <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
                       </div>
-                      <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="w-full px-4 py-3.5 border border-slate-200 rounded-xl text-[14px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <label className="text-[13px] font-black text-slate-600">구글 시트 웹 앱 URL</label>
-                        <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[12px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition">연동 방법 보기</button>
+                      <div className="flex gap-2">
+                        <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
+                        <button 
+                          onClick={() => {
+                            const k = document.getElementById('settings-api-key-mobile').value;
+                            handleSaveSettings(k, sheetUrl);
+                            alert('Gemini API Key가 저장되었습니다.');
+                          }}
+                          className="px-4 py-3 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[13px] transition shadow-sm"
+                        >
+                          저장
+                        </button>
                       </div>
-                      <input type="text" id="settings-sheet-url-mobile" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/..." className="w-full px-4 py-3.5 border border-slate-200 rounded-xl text-[14px] font-semibold focus:outline-none focus:border-[#1E3A8A] bg-[#F8FAFC] text-slate-800" />
                     </div>
-                    <button onClick={() => { const k=document.getElementById('settings-api-key-mobile').value; const u=document.getElementById('settings-sheet-url-mobile').value; handleSaveSettings(k,u); }} className="w-full py-4 text-[15px] font-black text-white bg-[#1E3A8A] hover:bg-[#0F172A] rounded-xl shadow-md transition">설정 정보 저장</button>
                   </div>
                 )}
               </div>
@@ -1893,29 +1877,61 @@ function doPost(e) {
                   />
                 </button>
                 {isCloudBackupOpen && (
-                  <div className="px-5 pb-5 pt-3 flex flex-col gap-3 border-t border-slate-100">
+                  <div className="px-5 pb-5 pt-3 flex flex-col gap-4 border-t border-slate-100">
+                    <div className="p-3 bg-blue-50 border border-blue-100 text-[#1E3A8A] rounded-xl font-semibold leading-relaxed flex flex-col gap-1.5 text-[10.5px]">
+                      <p className="font-black text-[11px] flex items-center gap-1">☁️ 클라우드 동기화 안내</p>
+                      <p className="text-slate-500">구글 스프레드시트 배포 URL을 연동하면 모바일과 PC 등 다른 기기들과 출강 데이터를 동일하게 백업/복원(동기화)할 수 있습니다.</p>
+                      <div>
+                        <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[10px] font-black text-white bg-[#1E3A8A] px-2.5 py-1.5 rounded-lg hover:bg-[#0F172A] transition">구글 시트 연동 방법 보기</button>
+                      </div>
+                    </div>
+
+                    {/* 구글 시트 URL 입력 및 저장란 */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[13px] font-black text-slate-600">구글 시트 웹 앱 URL</label>
+                      <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          id="settings-sheet-url-mobile" 
+                          defaultValue={sheetUrl} 
+                          placeholder="https://script.google.com/macros/s/..." 
+                          className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800" 
+                        />
+                        <button 
+                          onClick={() => {
+                            const u = document.getElementById('settings-sheet-url-mobile').value;
+                            handleSaveSettings(apiKey, u);
+                            alert('구글 시트 연동 URL이 저장되었습니다.');
+                          }}
+                          className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm"
+                        >
+                          저장
+                        </button>
+                      </div>
+                    </div>
+
                     {!sheetUrl ? (
-                      <div className="p-4 bg-orange-50 border border-orange-200 text-amber-700 rounded-xl text-[12px] font-semibold leading-relaxed">
-                        상단 API 설정에 <strong>구글 시트 웹 앱 URL</strong>을 연동하면 클라우드 백업이 활성화됩니다.
+                      <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl font-semibold text-center text-[10.5px]">
+                        구글 시트 웹 앱 URL을 입력하고 저장하시면 클라우드 백업/복원 단추가 활성화됩니다.
                       </div>
                     ) : (
-                      <>
+                      <div className="flex flex-col gap-2 mt-1">
                         {syncMessage && (
                           <div className={`p-3 rounded-xl border text-[12px] font-semibold ${syncMessage.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
                             {syncMessage.text}
                           </div>
                         )}
-                        <div className="flex flex-col gap-2 mt-1">
-                          <button onClick={fetchFromGoogleSheet} disabled={syncLoading} className="w-full py-3.5 text-[13px] font-black bg-blue-50 border border-blue-100 text-[#2563EB] rounded-xl flex items-center justify-center gap-1 hover:bg-blue-100 transition">
-                            {syncLoading ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
-                            시트 데이터 불러오기
+                        <div className="grid grid-cols-2 gap-2">
+                          <button onClick={fetchFromGoogleSheet} disabled={syncLoading} className="w-full py-3.5 text-[12.5px] font-black bg-blue-50 border border-blue-100 text-[#2563EB] rounded-xl flex items-center justify-center gap-1 hover:bg-blue-100 transition">
+                            {syncLoading ? <RefreshCw size={13} className="animate-spin" /> : <Download size={13} />}
+                            가져오기 (Pull)
                           </button>
-                          <button onClick={() => syncToGoogleSheet(lectures)} disabled={syncLoading} className="w-full py-3.5 text-[13px] font-black bg-[#1F2E5B] text-white rounded-xl flex items-center justify-center gap-1 hover:bg-[#172346] transition">
-                            {syncLoading ? <RefreshCw size={14} className="animate-spin" /> : <Upload size={14} />}
-                            시트에 데이터 백업하기
+                          <button onClick={() => syncToGoogleSheet(lectures)} disabled={syncLoading} className="w-full py-3.5 text-[12.5px] font-black bg-[#1F2E5B] text-white rounded-xl flex items-center justify-center gap-1 hover:bg-[#172346] transition">
+                            {syncLoading ? <RefreshCw size={13} className="animate-spin" /> : <Upload size={13} />}
+                            백업하기 (Push)
                           </button>
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
                 )}
@@ -1972,22 +1988,27 @@ function doPost(e) {
               </div>
 
               {/* Danger zone */}
-              <div className="rounded-[24px] p-5 flex flex-col gap-3" style={{background:'linear-gradient(135deg,#FEF2F2 0%,#FFF1F2 100%)',border:'1px solid rgba(239,68,68,0.15)'}}>
-                <div className="flex items-center gap-2"><AlertCircle size={17} className="text-red-500" /><span className="text-[14px] font-black text-red-700">기록 데이터 초기화</span></div>
-                <p className="text-[12px] text-red-600/70 leading-relaxed font-semibold">앱 내에 기록된 모든 강의 데이터와 API 설정값을 지우고 초기화합니다. 이 작업은 되돌릴 수 없습니다.</p>
-                <button onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){safeLocalStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} className="py-3.5 text-[14px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md transition">앱 전체 데이터 초기화</button>
+              <div className="rounded-[24px] p-4 flex flex-col gap-2 shadow-sm" style={{background:'linear-gradient(135deg,#FEF2F2 0%,#FFF1F2 100%)',border:'1px solid rgba(239,68,68,0.12)'}}>
+                <div className="flex items-center gap-2"><AlertCircle size={15} className="text-red-500" /><span className="text-[13px] font-black text-red-700">기록 데이터 초기화</span></div>
+                <p className="text-[11px] text-red-600/70 leading-relaxed font-semibold">모든 출강기록과 API 연동 키를 삭제하며, 복구할 수 없습니다.</p>
+                <button onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){safeLocalStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} className="py-2.5 text-[12px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl transition shadow-sm">앱 전체 데이터 초기화</button>
               </div>
-              <div className="rounded-[24px] p-5 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-2 items-center text-center">
-                <div className="flex items-center gap-2"><BookOpen size={17} className="text-[#1E3A8A]" /><span className="text-[15px] font-black text-slate-800">출강바이브 정보</span></div>
-                <p className="text-[11px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.3.0</p>
+              
+              {/* Information footer */}
+              <div className="rounded-[24px] py-3.5 px-4 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-1 items-center text-center">
+                <div className="flex items-center justify-center gap-1.5">
+                  <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[18px] h-[18px] drop-shadow-sm flex-shrink-0" />
+                  <span className="text-[13.5px] font-black text-slate-800">출강바이브 정보</span>
+                </div>
+                <p className="text-[10px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.3.0</p>
               </div>
             </div>
           </div>
           )}
         </div>
 
-        {/* iOS-style Bottom Navigation Bar — fixed bottom-16 on mobile (above browser bar), absolute bottom-8 on desktop mockup */}
-        <div className="fixed bottom-16 md:absolute md:bottom-8 left-4 right-4 z-40 rounded-3xl border border-slate-200/80 shadow-2xl overflow-hidden" style={{background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: '0px'}}>
+        {/* iOS-style Bottom Navigation Bar — fixed bottom-9 on mobile, absolute bottom-5 on desktop mockup */}
+        <div className="fixed bottom-9 md:absolute md:bottom-5 left-4 right-4 z-40 rounded-3xl border border-slate-200/80 shadow-2xl overflow-hidden" style={{background: 'rgba(255,255,255,0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', paddingBottom: '0px'}}>
           <div className="flex items-center justify-around py-2 px-2">
             {[
               {id:'home', icon:<Home size={22}/>, label:'현황'},
@@ -2892,6 +2913,51 @@ function doPost(e) {
               loop={false}
             />
             <span className="text-[14px] font-black text-[#10B981] mt-2 block animate-pulse">정산 완료 처리가 되었습니다! 💸</span>
+          </div>
+        </div>
+      )}
+
+      {/* 실수령액 직접 편집 모달 */}
+      {isNetEditModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-fade">
+          <div className="bg-white w-full max-w-sm rounded-[24px] border border-slate-200 shadow-2xl overflow-hidden flex flex-col modal-zoom-in">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5">
+                💰 최종 정산액 수정
+              </h3>
+              <button onClick={() => setIsNetEditModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-xl transition">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 flex flex-col gap-4">
+              <p className="text-[11.5px] text-slate-500 font-semibold leading-relaxed">
+                이 강의의 최종 실수령 금액만 변경합니다. 기본 정보(단가, 차시)는 고정되며, 덮어쓴 금액이 통계와 전체 로직에 동일하게 반영됩니다.
+              </p>
+              <div className="flex flex-col gap-2">
+                <label className="text-[12.5px] font-black text-slate-600">실 수령 금액 (원)</label>
+                <input 
+                  type="number" 
+                  value={editingNetValue} 
+                  onChange={(e) => setEditingNetValue(e.target.value)} 
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-[15px] font-bold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800" 
+                  placeholder="금액 입력"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
+              <button type="button" onClick={() => setIsNetEditModalOpen(false)} className="w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-600 font-bold rounded-xl transition text-[13px]">취소</button>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setLectures(prev => prev.map(item => item.id === editingNetCardId ? { ...item, netAmount: Number(editingNetValue) } : item));
+                  setIsNetEditModalOpen(false);
+                }} 
+                className="w-full py-3 bg-[#2563EB] text-white font-black rounded-xl shadow-md hover:bg-blue-700 transition text-[13px]"
+              >
+                저장 완료
+              </button>
+            </div>
           </div>
         </div>
       )}
