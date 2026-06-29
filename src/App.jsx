@@ -959,6 +959,7 @@ ${aiText}
       deduction,
       netAmount,
       date: dateVal,
+      month: extractMonth(dateVal),
       registrationDate: formData.registrationDate || new Date().toISOString().slice(0, 10),
       isPaid: formData.isPaid,
       taxRate: formData.taxRate,
@@ -1122,8 +1123,7 @@ ${aiText}
   };
 
   // CSV 가져오기
-  const handleImportCSV = (e) => {
-    const file = e.target.files[0];
+  const handleImportCSV = (file) => {
     if (!file) return;
 
     const reader = new FileReader();
@@ -1149,9 +1149,9 @@ ${aiText}
         const expected = Number(cleanFields[4]) || 0;
         const transport = Number(cleanFields[5]) || 0;
         const deduction = Number(cleanFields[6]) || 0;
-        const month = cleanFields[7];
-        const net = cleanFields[8] ? Number(cleanFields[8]) : 0;
         const date = cleanFields[9] || '';
+        const month = cleanFields[7] && cleanFields[7] !== 'undefined' ? cleanFields[7] : extractMonth(date);
+        const net = cleanFields[8] ? Number(cleanFields[8]) : 0;
         const regDate = cleanFields[10] || new Date().toISOString().slice(0, 10);
         const isPaid = cleanFields[11] === '정산완료' || net > 0;
 
@@ -1201,7 +1201,7 @@ ${aiText}
         setTimeout(() => {
           setIsUploading(false);
           setUploadProgress(0);
-          handleImportCSV(e);
+          handleImportCSV(file);
         }, 450);
       }
       setUploadProgress(progress);
