@@ -2043,7 +2043,7 @@ function doPost(e) {
               </div>
 
               {/* Card List */}
-              {filteredLectures.length === 0 ? (
+              {listItems.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center py-20 text-center">
                   <Calendar size={36} className="text-toss-textSub mb-2" />
                   <span className="text-xs font-bold text-toss-textDark">기록된 출강 건이 없습니다.</span>
@@ -2092,14 +2092,15 @@ function doPost(e) {
                     return (
                       <div
                         key={l.id}
-                        className={`relative bg-white rounded-[22px] ${isRecentlyPaid ? 'animate-emerald-glow' : ''}`}
+                        className={`card-hover relative bg-white rounded-[22px] flex flex-col ${isRecentlyPaid ? 'animate-emerald-glow' : ''}`}
                         style={{
                           border: l.isPaid ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid rgba(245,158,11,0.35)',
                           boxShadow: l.isPaid ? '0 4px 14px rgba(16,185,129,0.06)' : '0 4px 14px rgba(245,158,11,0.06)',
-                          zIndex: activeMenuCardId === l.id ? 30 : 1
+                          zIndex: activeMenuCardId === l.id ? 30 : 1,
+                          animationDelay: (idx * 55) + 'ms',
+                          padding: '18px'
                         }}
                       >
-                        <div className="card-hover bg-white flex flex-col relative rounded-[22px]" style={{animationDelay:(idx*55)+'ms',padding:'18px'}}>
                           <div className="flex items-start justify-between mb-2 gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 mb-1.5">
@@ -2170,9 +2171,8 @@ function doPost(e) {
                             </div>
                           )}
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               )}
             </div>
