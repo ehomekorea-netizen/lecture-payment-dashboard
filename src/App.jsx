@@ -2748,33 +2748,30 @@ function doPost(e) {
                         </button>
 
                         {/* AI 바로가기 버튼 삼분할 */}
-                        <div className="grid grid-cols-3 gap-2 mt-1">
+                        <div className="grid grid-cols-3 gap-2 mt-1.5">
                           <a
                             href="https://chatgpt.com/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 transition active:scale-95 no-underline cursor-pointer"
+                            className="py-3 px-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer"
                           >
-                            <img src="/images/chatgpt.png" alt="ChatGPT" className="w-[18px] h-[18px] object-contain" />
-                            <span className="text-[11px] font-black text-slate-700">ChatGPT</span>
+                            <img src="/images/chatgpt.png" alt="ChatGPT" className="h-[26px] max-w-[95%] object-contain" />
                           </a>
                           <a
                             href="https://claude.ai/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 transition active:scale-95 no-underline cursor-pointer"
+                            className="py-3 px-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer"
                           >
-                            <img src="/images/claude.png" alt="Claude" className="w-[18px] h-[18px] object-contain" />
-                            <span className="text-[11px] font-black text-slate-700">Claude</span>
+                            <img src="/images/claude.png" alt="Claude" className="h-[26px] max-w-[95%] object-contain" />
                           </a>
                           <a
                             href="https://gemini.google.com/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 transition active:scale-95 no-underline cursor-pointer"
+                            className="py-3 px-2 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer"
                           >
-                            <img src="/images/gemini.png" alt="Gemini" className="w-[18px] h-[18px] object-contain" />
-                            <span className="text-[11px] font-black text-slate-700">Gemini</span>
+                            <img src="/images/gemini.png" alt="Gemini" className="h-[26px] max-w-[95%] object-contain" />
                           </a>
                         </div>
                       </div>
