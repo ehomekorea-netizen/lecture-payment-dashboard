@@ -1182,7 +1182,14 @@ ${aiText}
       isPaid: false,
       taxRate: '3.3%',
       taxBase: 'LectureOnly',
-      customTax: 0
+      customTax: 0,
+      _newPresetName: '',
+      _newPresetRate: '',
+      _newPresetRole: 'Main',
+      _newPresetTax: '3.3%',
+      _newPresetEmoji: null,
+      _showEmojiPicker: false,
+      _tab: 'record'
     });
   };
 
@@ -1280,7 +1287,14 @@ ${aiText}
       isPaid: lecture.isPaid,
       taxRate: lecture.taxRate || '3.3%',
       taxBase: lecture.taxBase || 'LectureOnly',
-      customTax: lecture.customTax || 0
+      customTax: lecture.customTax || 0,
+      _tab: 'record',
+      _newPresetName: '',
+      _newPresetRate: '',
+      _newPresetRole: 'Main',
+      _newPresetTax: '3.3%',
+      _newPresetEmoji: null,
+      _showEmojiPicker: false
     });
 
     setIsAddModalOpen(true);
@@ -2301,27 +2315,18 @@ function doPost(e) {
               <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3">
                 <div>
                   <h4 className="text-[15px] font-black text-slate-800">주요 주관사별 비중</h4>
-                  <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">매출 기여도 기준 정렬</p>
+                  <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">기여도 기준 정렬</p>
                 </div>
                 {statsYearLectures.length === 0 ? (
                   <div className="text-[12px] text-slate-400 text-center py-10 font-bold">데이터가 없습니다.</div>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    {statsSortedInsts.map((inst, i) => {
-                        const isPreset = presets.some(p => p.name === inst.name);
+                     {statsSortedInsts.map((inst, i) => {
                         return (
                           <div key={i} className="flex flex-col gap-1.5">
                             <div className="flex justify-between items-center text-[12px] font-bold">
-                              <span className="text-slate-700">{isPreset ? `⭐ ${inst.name}` : inst.name}</span>
-                              {!isPreset && (
-                                <span className="text-slate-500">{Math.round(inst.pct)}% ({formatWon(inst.val)}원)</span>
-                              )}
-                            </div>
-                            <div className="w-full h-3 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                              <div
-                                className="h-full bg-indigo-500 rounded-full"
-                                style={{ width: `${inst.pct}%`, opacity: 1 - (i * 0.15) }}
-                              />
+                              <span className="text-slate-700">{inst.name}</span>
+                              <span className="text-slate-500">{Math.round(inst.pct)}% ({formatWon(inst.val)}원)</span>
                             </div>
                           </div>
                         );
@@ -2622,7 +2627,14 @@ function doPost(e) {
                         isPaid: false,
                         taxRate: '3.3%',
                         taxBase: 'LectureOnly',
-                        customTax: 0
+                        customTax: 0,
+                        _newPresetName: '',
+                        _newPresetRate: '',
+                        _newPresetRole: 'Main',
+                        _newPresetTax: '3.3%',
+                        _newPresetEmoji: null,
+                        _showEmojiPicker: false,
+                        _tab: 'record'
                       });
                       setIsAddModalOpen(true);
                     }}
@@ -2665,10 +2677,8 @@ function doPost(e) {
           [MODAL 3]: Add/Edit Lecture Modal — Redesigned with Preset Picker
          ======================================================== */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
-          <div className="bg-white w-full md:max-w-md rounded-t-[32px] md:rounded-[28px] max-h-[92vh] md:max-h-none flex flex-col pb-6 md:pb-0 shadow-2xl bottom-sheet-enter md:modal-zoom-in overflow-hidden" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
-            {/* Drag handle */}
-            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
+        <div className="fixed inset-0 flex items-stretch md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
+          <div className="bg-white w-full md:max-w-md h-full md:h-auto rounded-none md:rounded-[28px] flex flex-col pb-6 md:pb-0 shadow-2xl md:modal-zoom-in overflow-hidden" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
 
             {/* Folder-Tab style Header: 직접 등록 / 즐겨찾기 선택 */}
             <div className="px-5 pt-4 pb-0 flex items-end justify-between bg-slate-100 border-b border-slate-200">
@@ -2708,7 +2718,7 @@ function doPost(e) {
                   즐겨찾기 선택 ⭐
                 </button>
               </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-200 hover:text-slate-600 rounded-xl mb-2.5 transition">
+              <button onClick={() => setIsAddModalOpen(false)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-xl mb-2.5 transition border-none bg-transparent cursor-pointer flex items-center justify-center">
                 <X size={18} />
               </button>
             </div>
@@ -2984,14 +2994,20 @@ function doPost(e) {
                 <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px dashed rgba(30,58,138,0.25)'}}>
                   <span className="font-black text-[11.5px] text-[#1E3A8A]">⭐ 새 즐겨찾기 추가</span>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, _showEmojiPicker: !prev._showEmojiPicker }))} className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center text-lg shadow-sm flex-shrink-0">{formData._newPresetEmoji || '🌱'}</button>
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, _showEmojiPicker: !prev._showEmojiPicker }))} className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center text-lg shadow-sm flex-shrink-0">
+                      {formData._newPresetEmoji || <span className="text-[10px] text-slate-400 font-extrabold">없음</span>}
+                    </button>
                     <input type="text" placeholder="기관명 입력" value={formData._newPresetName || ''} onChange={e => setFormData(prev => ({ ...prev, _newPresetName: e.target.value }))} className="flex-1 px-3 py-2 border border-blue-200 rounded-xl bg-white text-[11px] font-bold focus:outline-none focus:border-[#1E3A8A]" />
                   </div>
                   {formData._showEmojiPicker && (
-                    <div className="bg-white border border-slate-200 shadow-xl rounded-2xl p-3 grid grid-cols-5 gap-1.5">
-                      {['🌱', '💻', '🤖', '⛺', '🎒', '🏫', '👔', '🏢', '🗂️', '🏠'].map(e => (
-                        <button key={e} type="button" onClick={() => setFormData(prev => ({ ...prev, _newPresetEmoji: e, _showEmojiPicker: false }))} className="w-8 h-8 rounded-lg hover:bg-blue-50 flex items-center justify-center text-lg">{e}</button>
-                      ))}
+                    <div className="bg-white border border-slate-200 shadow-xl rounded-2xl p-3 flex flex-col gap-2 mt-1">
+                      <div className="text-[10px] text-slate-400 font-bold">이모지 선택</div>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {['🌱', '💻', '🤖', '⛺', '🎒', '🏫', '👔', '🏢', '🗂️', '🏠'].map(e => (
+                          <button key={e} type="button" onClick={() => setFormData(prev => ({ ...prev, _newPresetEmoji: e, _showEmojiPicker: false }))} className="w-8 h-8 rounded-lg hover:bg-blue-50 flex items-center justify-center text-lg">{e}</button>
+                        ))}
+                      </div>
+                      <button type="button" onClick={() => setFormData(prev => ({ ...prev, _newPresetEmoji: null, _showEmojiPicker: false }))} className="w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold rounded-lg transition-colors border-none mt-1 cursor-pointer">이모지 사용 안함 (❌)</button>
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2">
@@ -2999,7 +3015,37 @@ function doPost(e) {
                     <input type="number" placeholder="시간당 단가(원)" value={formData._newPresetRate || ''} onChange={e => setFormData(prev => ({ ...prev, _newPresetRate: e.target.value }))} className="px-3 py-2 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none" />
                   </div>
                   <select value={formData._newPresetTax || '3.3%'} onChange={e => setFormData(prev => ({ ...prev, _newPresetTax: e.target.value }))} className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"><option value="3.3%">공제세율 3.3% (기본)</option><option value="8.8%">공제세율 8.8%</option><option value="None">공제 없음 (0%)</option></select>
-                  <button type="button" onClick={() => { const name=(formData._newPresetName||'').trim(); if(!name){alert('기관명을 입력해 주세요.');return;} const emoji=formData._newPresetEmoji||'🌱'; setPresets(prev=>[...prev,{id:`p-${Date.now()}`,name:`${emoji} ${name}`,role:formData._newPresetRole||'Main',rate:Number(formData._newPresetRate)||100000,classes:2,transportFee:0,taxRate:formData._newPresetTax||'3.3%'}]); setFormData(prev=>({...prev,_newPresetName:'',_newPresetRate:'',_newPresetRole:'Main',_newPresetTax:'3.3%',_newPresetEmoji:'🌱',_showEmojiPicker:false})); alert('즐겨찾기가 저장되었습니다!'); }} className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11.5px] shadow-sm transition">새 즐겨찾기 추가 저장</button>
+                  <button type="button" onClick={() => {
+                    const name = (formData._newPresetName || '').trim();
+                    if (!name) {
+                      alert('기관명을 입력해 주세요.');
+                      return;
+                    }
+                    const emoji = formData._newPresetEmoji;
+                    const finalName = emoji ? `${emoji} ${name}` : name;
+                    setPresets(prev => [
+                      ...prev,
+                      {
+                        id: `p-${Date.now()}`,
+                        name: finalName,
+                        role: formData._newPresetRole || 'Main',
+                        rate: Number(formData._newPresetRate) || 100000,
+                        classes: 2,
+                        transportFee: 0,
+                        taxRate: formData._newPresetTax || '3.3%'
+                      }
+                    ]);
+                    setFormData(prev => ({
+                      ...prev,
+                      _newPresetName: '',
+                      _newPresetRate: '',
+                      _newPresetRole: 'Main',
+                      _newPresetTax: '3.3%',
+                      _newPresetEmoji: null,
+                      _showEmojiPicker: false
+                    }));
+                    alert('즐겨찾기가 저장되었습니다!');
+                  }} className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11.5px] shadow-sm transition border-none cursor-pointer">새 즐겨찾기 추가 저장</button>
                 </div>
               </div>
             )}
@@ -3011,32 +3057,29 @@ function doPost(e) {
           [MODAL 4]: AI Scan Modal (Desktop: centered / Mobile: Bottom Sheet)
          ======================================================== */}
       {isAiModalOpen && (
-        <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
-          <div className="bg-white w-full md:max-w-xl rounded-t-[32px] md:rounded-[28px] max-h-[90vh] overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl bottom-sheet-enter md:modal-zoom-in" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
-            {/* drag handle for mobile */}
-            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
+        <div className="fixed inset-0 flex items-stretch md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
+          <div className="bg-white w-full md:max-w-xl h-full md:h-auto rounded-none md:rounded-[28px] overflow-y-auto flex flex-col pb-8 md:pb-0 shadow-2xl md:modal-zoom-in" style={{boxShadow: '0 -4px 40px rgba(31,46,91,0.18)'}}>
 
 
-            <div className="p-5 border-b border-indigo-100 flex items-center justify-between bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white">
-              <h3 className="text-[16px] font-black text-white flex items-center gap-2">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-blue-400 animate-pulse animate-duration-1000">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white text-slate-800">
+              <h3 className="text-[16px] font-black text-slate-800 flex items-center gap-2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-blue-500 animate-pulse animate-duration-1000">
                   <defs>
                     <linearGradient id="gemini-logo-grad-modal" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#93C5FD" />
-                      <stop offset="50%" stopColor="#3B82F6" />
-                      <stop offset="100%" stopColor="#8B5CF6" />
+                      <stop offset="0%" stopColor="#2563EB" />
+                      <stop offset="100%" stopColor="#3B82F6" />
                     </linearGradient>
                   </defs>
                   <path d="M12 2C12 2 12.3 8.5 4 12C12.3 12 12 22 12 22C12 22 11.7 12 20 12C11.7 8.5 12 2 12 2Z" fill="url(#gemini-logo-grad-modal)" />
                 </svg>
                 {isAiVerifying ? 'AI 분석 결과 검토' : 'AI 일정 등록'}
               </h3>
-              <button 
+              <button
                 onClick={() => {
                   setIsAiModalOpen(false);
                   setIsAiVerifying(false);
-                }} 
-                className="p-1.5 text-indigo-200 hover:text-white hover:bg-white/10 rounded-lg transition"
+                }}
+                className="p-1.5 text-[#2563EB] hover:bg-blue-50 rounded-xl transition border-none bg-transparent cursor-pointer flex items-center justify-center"
               >
                 <X size={18} />
               </button>
@@ -3551,12 +3594,12 @@ function doPost(e) {
 
       {/* ── [MODAL 8]: 최초 안내 공지사항 모달 (홈 화면 추가 권장) ── */}
       {isNoticeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-slate-950/70 animate-fade-in">
-          <div className="bg-gradient-to-b from-[#134030] to-[#0a251c] w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden relative flex flex-col items-center p-6 border border-emerald-800/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-slate-900/60 animate-fade-in">
+          <div className="bg-white w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden relative flex flex-col items-center p-6 border border-slate-200/80">
             {/* Close Button X */}
-            <button 
-              onClick={handleCloseNotice} 
-              className="absolute top-4 right-4 p-1.5 text-white/50 hover:text-white rounded-full hover:bg-white/10 transition border-none bg-transparent cursor-pointer animate-fade-in"
+            <button
+              onClick={handleCloseNotice}
+              className="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition border-none bg-transparent cursor-pointer animate-fade-in flex items-center justify-center"
               aria-label="닫기"
             >
               <X size={18} />
@@ -3564,59 +3607,59 @@ function doPost(e) {
 
             {/* Logo: Coin Lottie (no bg container, centered) */}
             <div className="my-3 flex items-center justify-center relative">
-              <div className="absolute w-24 h-24 bg-emerald-500/20 blur-2xl rounded-full pointer-events-none" />
+              <div className="absolute w-24 h-24 bg-blue-500/10 blur-2xl rounded-full pointer-events-none" />
               <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[88px] h-[88px] relative z-10" />
             </div>
 
             {/* Title */}
-            <h3 className="text-white text-[22px] font-black tracking-tight mt-2 text-center">
+            <h3 className="text-[#0F172A] text-[22px] font-black tracking-tight mt-2 text-center">
               출강바이브
             </h3>
 
             {/* Description */}
-            <div className="text-center mt-3 px-1 flex flex-col gap-1 text-[13px] text-emerald-100 font-semibold leading-relaxed">
+            <div className="text-center mt-3 px-1 flex flex-col gap-1 text-[13.5px] text-slate-500 font-semibold leading-relaxed">
               <p>홈 화면에 추가하고</p>
               <p>매일 편리하게 출강 현황을 관리해 보세요.</p>
             </div>
 
             {/* Guidance Content Card */}
-            <div className="w-full bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col gap-3.5 mt-5 shadow-inner">
-              <p className="text-[11.5px] text-emerald-100 font-medium leading-relaxed text-center">
-                클라우드 실시간 동기를 연동하지 않는 경우, 브라우저 마다 데이터가 개별 저장되거나 초기화될 위험이 있습니다.
+            <div className="w-full bg-slate-50 border border-slate-200/60 rounded-2xl p-4 flex flex-col gap-3.5 mt-5 shadow-sm">
+              <p className="text-[11.5px] text-slate-500 font-medium leading-relaxed text-center">
+                클라우드 실시간 동기를 연동하지 않는 경우, 브라우저마다 데이터가 개별 저장되거나 초기화될 위험이 있습니다.
               </p>
-              
-              {/* CTA Instruction - High Contrast Amber Theme */}
-              <div className="bg-amber-400/10 rounded-xl p-3.5 flex flex-col gap-1.5 items-center justify-center border border-amber-400/30 shadow-md">
-                <div className="flex items-center gap-1.5 text-[12px] font-black text-amber-200">
+
+              {/* CTA Instruction - High Contrast Blue Theme */}
+              <div className="bg-blue-50 rounded-xl p-3.5 flex flex-col gap-1.5 items-center justify-center border border-blue-100/85 shadow-sm">
+                <div className="flex items-center gap-1.5 text-[12px] font-extrabold text-[#2563EB]">
                   <span className="text-xs">📤</span>
                   <span>[공유] 버튼을 누른 뒤</span>
                 </div>
-                <div className="text-[10px] text-amber-400/80 font-black">⬇️</div>
+                <div className="text-[10px] text-blue-400 font-black">⬇️</div>
                 <div className="flex items-center gap-2">
-                  <span className="bg-amber-400 text-slate-900 text-[10px] font-extrabold px-3 py-1.5 rounded-lg shadow-sm">
+                  <span className="bg-[#2563EB] text-white text-[10px] font-extrabold px-3 py-1.5 rounded-lg shadow-sm">
                     홈 화면에 추가
                   </span>
-                  <span className="text-[12px] font-black text-amber-200">누르면 끝!</span>
+                  <span className="text-[12px] font-extrabold text-slate-700">누르면 끝!</span>
                 </div>
               </div>
 
-              <p className="text-[10px] text-emerald-300/80 font-bold leading-relaxed text-center">
+              <p className="text-[10.5px] text-slate-400 font-bold leading-relaxed text-center">
                 ※ 안전한 기기 간 실시간 자동 동기화를 위해
-                <span className="block mt-1 text-amber-400">👉 [설정 ➡️ 클라우드 실시간 동기] 사용을 강력하게 권장합니다.</span>
+                <span className="block mt-1 text-[#2563EB] font-black">👉 [설정 ➡️ 클라우드 실시간 동기] 사용을 강력하게 권장합니다.</span>
               </p>
             </div>
 
             {/* Footer Buttons */}
-            <div className="w-full flex items-center justify-between mt-6 border-t border-emerald-800/30 pt-4 px-1">
-              <button 
-                onClick={handleHide7Days} 
-                className="text-emerald-300/60 hover:text-emerald-200 text-[11.5px] font-bold underline transition border-none bg-transparent cursor-pointer"
+            <div className="w-full flex items-center justify-between mt-6 border-t border-slate-100 pt-4 px-1">
+              <button
+                onClick={handleHide7Days}
+                className="text-slate-400 hover:text-slate-600 text-[11.5px] font-bold underline transition border-none bg-transparent cursor-pointer"
               >
                 7일간 보지 않기
               </button>
-              <button 
-                onClick={handleCloseNotice} 
-                className="bg-[#10B981] hover:bg-[#059669] text-white text-[12px] font-black px-6 py-2.5 rounded-xl transition shadow-md border-none active:scale-95 min-w-[110px] text-center"
+              <button
+                onClick={handleCloseNotice}
+                className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[12.5px] font-black px-6 py-2.5 rounded-xl transition shadow-md border-none active:scale-95 min-w-[110px] text-center cursor-pointer"
               >
                 지금 보러가기
               </button>
