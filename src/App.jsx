@@ -3819,7 +3819,7 @@ function doPost(e) {
               className="w-48 h-48 drop-shadow-2xl"
               loop={false}
             />
-            <span className="text-[20px] font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 mt-4 block animate-pulse drop-shadow-[0_2px_12px_rgba(0,0,0,0.6)] text-center">
+            <span className="text-[20px] font-black text-yellow-300 mt-4 block animate-pulse drop-shadow-[0_4px_12px_rgba(0,0,0,0.9)] text-center">
               정산 완료 처리가 되었습니다! 💸
             </span>
             <span className="text-[13px] font-black text-slate-200 mt-1.5 block drop-shadow-[0_1px_5px_rgba(0,0,0,0.5)] text-center">
