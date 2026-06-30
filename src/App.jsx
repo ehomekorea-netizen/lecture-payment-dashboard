@@ -2813,11 +2813,11 @@ function doPost(e) {
               </div>
 
               {/* 고객지원 및 앱 관리 아코디언 */}
-              <div className="rounded-[24px] border border-slate-200/60 overflow-hidden shadow-sm flex flex-col gap-0 transition-all bg-white">
+              <div className="rounded-[24px] bg-slate-50/10 border border-slate-200 overflow-hidden shadow-sm transition-all">
                 <button
                   type="button"
                   onClick={() => setIsAppSupportOpen(!isAppSupportOpen)}
-                  className="w-full px-6 py-6 flex items-center justify-between hover:bg-slate-50 transition border-none bg-transparent cursor-pointer"
+                  className="w-full px-6 py-6 flex items-center justify-between bg-slate-100 hover:bg-slate-200/70 transition-colors border-none text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-[22px] select-none">⚙️</span>
