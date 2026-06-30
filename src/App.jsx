@@ -2746,6 +2746,37 @@ function doPost(e) {
                         >
                           📋 AI 변환 프롬프트 복사하기
                         </button>
+
+                        {/* AI 바로가기 버튼 삼분할 */}
+                        <div className="grid grid-cols-3 gap-2 mt-1">
+                          <a
+                            href="https://chatgpt.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 transition active:scale-95 no-underline cursor-pointer"
+                          >
+                            <img src="/images/chatgpt.png" alt="ChatGPT" className="w-[18px] h-[18px] object-contain" />
+                            <span className="text-[11px] font-black text-slate-700">ChatGPT</span>
+                          </a>
+                          <a
+                            href="https://claude.ai/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 transition active:scale-95 no-underline cursor-pointer"
+                          >
+                            <img src="/images/claude.png" alt="Claude" className="w-[18px] h-[18px] object-contain" />
+                            <span className="text-[11px] font-black text-slate-700">Claude</span>
+                          </a>
+                          <a
+                            href="https://gemini.google.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="py-2.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex flex-col items-center justify-center gap-1 transition active:scale-95 no-underline cursor-pointer"
+                          >
+                            <img src="/images/gemini.png" alt="Gemini" className="w-[18px] h-[18px] object-contain" />
+                            <span className="text-[11px] font-black text-slate-700">Gemini</span>
+                          </a>
+                        </div>
                       </div>
 
                       {/* 예제 파일 다운로드 */}
