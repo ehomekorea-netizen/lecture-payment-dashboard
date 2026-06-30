@@ -749,10 +749,6 @@ export default function App() {
     const lectureFee = rate * classes;
     const expectedAmount = lectureFee + transport;
     
-    if (!isPaid) {
-      return { expectedAmount, deduction: 0, netAmount: 0 };
-    }
-
     const baseAmount = taxBase === 'LectureOnly' ? lectureFee : expectedAmount;
     let taxAmount = 0;
 
@@ -1295,6 +1291,11 @@ ${aiText}
     });
 
     if (nextPaid) {
+      setRecentlyPaidCardId(lecture.id);
+      setTimeout(() => {
+        setRecentlyPaidCardId(null);
+      }, 4000);
+
       if (moneyLottieTimeoutRef.current) clearTimeout(moneyLottieTimeoutRef.current);
       if (moneyLottieFadeTimeoutRef.current) clearTimeout(moneyLottieFadeTimeoutRef.current);
 
@@ -1323,11 +1324,13 @@ ${aiText}
 
   // 삭제
   const handleDelete = (id) => {
+    const idxInFiltered = filteredLectures.findIndex(l => l.id === id);
     const target = lectures.find(l => l.id === id);
     if (target) {
       setDeletedLecture(target);
+      setDeletedLectureIndex(idxInFiltered !== -1 ? idxInFiltered : 0);
       setLectures(prev => prev.filter(l => l.id !== id));
-      setUndoCountdown(5);
+      setUndoProgress(100);
     }
   };
 
@@ -1594,7 +1597,7 @@ ${aiText}
 
   // 통계 계산
   const totalExpected = homeSummaryLectures.reduce((acc, curr) => acc + curr.expectedAmount, 0);
-  const totalNet = homeSummaryLectures.reduce((acc, curr) => acc + curr.netAmount, 0);
+  const totalNet = homeSummaryLectures.reduce((acc, curr) => acc + (curr.isPaid ? curr.netAmount : 0), 0);
   const totalUnpaid = homeSummaryLectures.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
   const unpaidCount = homeSummaryLectures.filter(l => !l.isPaid).length;
 
@@ -1755,6 +1758,14 @@ ${aiText}
     return b.id.localeCompare(a.id);
   });
 
+  const listItems = (() => {
+    const items = [...filteredLectures];
+    if (deletedLecture && deletedLectureIndex >= 0 && deletedLectureIndex <= items.length) {
+      items.splice(deletedLectureIndex, 0, { isUndoPlaceholder: true, data: deletedLecture });
+    }
+    return items;
+  })();
+
   const gasTemplateCode = `function doGet(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = sheet.getDataRange().getValues();
@@ -1842,33 +1853,7 @@ function doPost(e) {
       {/* Main centered mobile-frame container on desktop, full screen on mobile */}
       <div className="w-full max-w-md bg-[#F8FAF8] min-h-screen md:min-h-[88vh] md:max-h-[94vh] md:rounded-[36px] shadow-2xl relative overflow-hidden flex flex-col pb-0 md:border md:border-slate-800/10">
         
-        {/* Undo Toast Notification */}
-        {deletedLecture && (
-          <div className="absolute top-[60px] left-3.5 right-3.5 z-50 bg-white/95 backdrop-blur border border-red-200/80 rounded-2xl p-3.5 shadow-xl flex items-center justify-between animate-fade-in" style={{ boxShadow: '0 8px 30px rgba(239, 68, 68, 0.08)' }}>
-            <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-[12px] font-black text-red-600 flex items-center gap-1">
-                🗑️ 출강 기록이 삭제되었습니다
-              </span>
-              <span className="text-[10px] text-slate-500 font-extrabold truncate block">{deletedLecture.institution} · {formatWon(deletedLecture.expectedAmount)}원</span>
-            </div>
-            <button 
-              onClick={handleUndoDelete}
-              className="px-3.5 py-2 bg-[#2563EB] hover:bg-blue-700 text-white font-black text-[11px] rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5 flex-shrink-0"
-            >
-              <span>되돌리기</span>
-              <span className="inline-block bg-white/20 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold">{undoCountdown}초</span>
-            </button>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-red-100 rounded-b-2xl overflow-hidden">
-              <div 
-                className="h-full bg-red-500 transition-all ease-linear"
-                style={{ 
-                  width: `${(undoCountdown / 5) * 100}%`,
-                  transitionDuration: '1000ms'
-                }}
-              />
-            </div>
-          </div>
-        )}
+        
 
         <div className="flex-1 flex flex-col min-h-0">
         {/* App Title Header — Clean White Theme */}
@@ -2066,14 +2051,51 @@ function doPost(e) {
                 </div>
               ) : (
                 <div className="flex flex-col gap-3">
-                  {filteredLectures.map((l, idx) => {
+                  {listItems.map((l, idx) => {
+                    if (l.isUndoPlaceholder) {
+                      return (
+                        <div 
+                          key={`undo-${l.data.id}`}
+                          className="bg-red-50/50 border border-dashed border-red-200 rounded-[22px] p-4 flex flex-col gap-2.5 shadow-sm animate-fade-in relative overflow-hidden"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="min-w-0 flex-1 pr-2">
+                              <span className="text-[12px] font-black text-red-600 flex items-center gap-1">
+                                🗑️ 출강 기록이 삭제되었습니다
+                              </span>
+                              <span className="text-[10.5px] text-slate-500 font-extrabold truncate block mt-0.5">
+                                {l.data.institution} · {formatWon(l.data.expectedAmount)}원
+                              </span>
+                            </div>
+                            <button 
+                              onClick={handleUndoDelete}
+                              className="px-3.5 py-2 bg-[#2563EB] hover:bg-blue-700 text-white font-black text-[11px] rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5 flex-shrink-0 border-none cursor-pointer"
+                            >
+                              <span>되돌리기</span>
+                              <span className="inline-block bg-white/20 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold min-w-[18px] text-center">
+                                {Math.max(1, Math.ceil(undoProgress / 14.3))}초
+                              </span>
+                            </button>
+                          </div>
+                          {/* Progress Bar */}
+                          <div className="w-full h-1 bg-red-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-red-500 transition-all ease-linear duration-100"
+                              style={{ width: `${undoProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    const isRecentlyPaid = recentlyPaidCardId === l.id;
                     return (
                       <div
                         key={l.id}
-                        className="relative bg-white rounded-[22px]"
+                        className={`relative bg-white rounded-[22px] ${isRecentlyPaid ? 'animate-emerald-glow' : ''}`}
                         style={{
-                          border:'1px solid rgba(31,46,91,0.10)',
-                          boxShadow:'0 2px 12px rgba(31,46,91,0.06)',
+                          border: l.isPaid ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid rgba(245,158,11,0.35)',
+                          boxShadow: l.isPaid ? '0 4px 14px rgba(16,185,129,0.06)' : '0 4px 14px rgba(245,158,11,0.06)',
                           zIndex: activeMenuCardId === l.id ? 30 : 1
                         }}
                       >
@@ -2250,11 +2272,17 @@ function doPost(e) {
                             : 'text-slate-400'
                         } ${isToday ? 'ring-2 ring-[#1E3A8A]/30 bg-blue-50/20' : ''}`}
                       >
-                        <span className={`text-[13px] font-black ${hasLectures ? 'text-[#0F172A] font-black text-[15px]' : 'text-slate-500'} ${isToday ? 'text-[#1E3A8A]' : ''}`}>{day}</span>
+                        <span className={`text-[13px] font-black ${
+                          isKoreanHoliday(currentYear, currentMonth, day)
+                            ? 'text-red-500'
+                            : (isToday ? 'text-[#1E3A8A]' : (hasLectures ? 'text-[#0F172A]' : 'text-slate-500'))
+                        } ${hasLectures ? 'text-[15px]' : ''}`}>
+                          {day}
+                        </span>
                         {/* 도트 */}
                         <div className="flex gap-0.5 justify-center mt-0.5 h-1">
-                          {hasPaid && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDuration: '0.6s' }} />}
-                          {hasUnpaid && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" style={{ animationDuration: '0.6s' }} />}
+                          {hasPaid && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDelay: `${(day % 5) * 0.3}s`, animationDuration: '1.5s' }} />}
+                          {hasUnpaid && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" style={{ animationDelay: `${(day % 5) * 0.3}s`, animationDuration: '1.5s' }} />}
                         </div>
                       </div>
                     );
@@ -2267,8 +2295,8 @@ function doPost(e) {
                 <span className="font-extrabold text-[14.5px] text-slate-800 flex items-center gap-1">💡 캘린더 안내</span>
                 <p className="font-semibold text-slate-600">기록일은 연하게 칠해지며, 해당 날짜 터치 시 하단에 상세 명세서가 바로 노출됩니다.</p>
                 <div className="flex items-center gap-3 mt-1 font-bold text-[12px]">
-                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" style={{ animationDuration: '0.6s' }}/> 완료</div>
-                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" style={{ animationDuration: '0.6s' }}/> 대기</div>
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 완료</div>
+                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 대기</div>
                 </div>
               </div>
             </div>
@@ -2339,6 +2367,13 @@ function doPost(e) {
                       <div className="flex items-center gap-2">
                         <h4 className="text-[15px] font-black text-slate-800">월별 정산 추이</h4>
                         <span className="text-[11px] font-bold text-slate-400 ml-0.5">밀어서 보기</span>
+                        {momBadges.pct !== null && (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-0.5 ${
+                            momBadges.pct >= 0 ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-500'
+                          }`}>
+                            {momBadges.type} {momBadges.pct >= 0 ? `▲ ${momBadges.pct}%` : `▼ ${Math.abs(momBadges.pct)}%`}
+                          </span>
+                        )}
                       </div>
                       <span className="text-[10px] text-slate-400 font-extrabold">(단위: 만원)</span>
                     </div>
@@ -2386,6 +2421,32 @@ function doPost(e) {
                               <path d={statsAreaD} fill="url(#chart-area-grad)" strokeWidth="0"/>
                             )}
 
+                            {/* 평균 소득 가이드라인 점선 */}
+                            {statsAverageIncome > 0 && (
+                              <g>
+                                <line 
+                                  x1={_sSLP} 
+                                  y1={averageY} 
+                                  x2={_sSW - 28} 
+                                  y2={averageY}
+                                  stroke="#6366F1" 
+                                  strokeWidth="1.5" 
+                                  strokeDasharray="3 3"
+                                  opacity="0.6"
+                                />
+                                <text 
+                                  x={_sSW - 32} 
+                                  y={averageY - 5} 
+                                  fill="#4F46E5" 
+                                  fontSize="8.5" 
+                                  fontWeight="900" 
+                                  textAnchor="end"
+                                >
+                                  평균: {(statsAverageIncome / 10000).toFixed(1).replace('.0', '')}만
+                                </text>
+                              </g>
+                            )}
+
                             {/* 메인 라인 */}
                             {statsPathD && (
                               <path
@@ -2408,8 +2469,21 @@ function doPost(e) {
                             {statsChartPoints.map((p, i) => {
                               const d = statsFullYearData[i];
                               const hasValue = d.total > 0;
+                              
+                              const isCurrentSelected = selectedMonth !== 'All' && selectedMonth === d.month;
+                              const isTodayMonth = selectedMonth === 'All' && new Date().getMonth() === i && new Date().getFullYear() === statsYear;
+                              const isHighlighted = isCurrentSelected || isTodayMonth;
+
                               return (
                                 <g key={i}>
+                                  {isHighlighted && (
+                                    <circle cx={p.x} cy={p.y} r="12"
+                                      fill="none"
+                                      stroke="#3B82F6"
+                                      strokeWidth="2.5"
+                                      className="animate-pulse"
+                                    />
+                                  )}
                                   {hasValue && (
                                     <circle cx={p.x} cy={p.y} r="7"
                                       fill="rgba(99,102,241,0.15)"
@@ -2421,10 +2495,14 @@ function doPost(e) {
                                     stroke={hasValue ? "#6366F1" : "none"}
                                     strokeWidth={hasValue ? "2.5" : "0"}/>
                                   {/* 월 라벨 */}
-                                  <text x={p.x} y="170" fill="#94A3B8"
+                                  <text x={p.x} y="170" fill={isHighlighted ? "#1E3A8A" : "#94A3B8"}
                                     fontSize="11" fontWeight="800" textAnchor="middle">
                                     {d.month}
                                   </text>
+                                  {/* 최고 실적 월 왕관 이모지 */}
+                                  {hasValue && i === peakMonthIndex && (
+                                    <text x={p.x} y={Math.max(p.y - 23, 12)} fontSize="11" textAnchor="middle">👑</text>
+                                  )}
                                   {/* 금액 라벨 (노드 위) */}
                                   {hasValue && (
                                     <text x={p.x} y={Math.max(p.y - 10, 12)}
@@ -2741,18 +2819,18 @@ function doPost(e) {
               </div>
               
               {/* Information footer */}
-              <div className="rounded-[24px] py-4.5 px-5 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-2.5 items-center text-center">
-                <div className="flex items-center justify-center gap-1.5">
-                  <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[20px] h-[20px] drop-shadow-sm flex-shrink-0" />
-                  <span className="text-[15.5px] font-black text-slate-800 tracking-tight">출강바이브 정보</span>
+              <div className="rounded-[24px] py-6 px-6 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-4 items-center text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[22px] h-[22px] drop-shadow-sm flex-shrink-0" />
+                  <span className="text-[16px] font-black text-slate-800 tracking-tight">출강바이브 정보</span>
                 </div>
-                <p className="text-[12.5px] text-slate-400 font-bold leading-normal">프리랜서 강사를 위한 강의료 정산 스마트 대시보드 v1.5.0</p>
+                <p className="text-[13px] text-slate-400 font-bold leading-relaxed max-w-[280px]">프리랜서 강사를 위한 강의료 정산 스마트 대시보드 v1.5.0</p>
                 
                 <a 
                   href="https://open.kakao.com/o/s8Fu8RBi" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="w-full mt-1 py-2.5 bg-[#FEE500] hover:bg-[#FAD000] text-[#191919] font-black text-xs rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border-none no-underline"
+                  className="w-full py-3 bg-[#FEE500] hover:bg-[#FAD000] text-[#191919] font-black text-[13px] rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border-none no-underline"
                 >
                   <span>카카오톡 문의하기</span>
                   <span className="text-sm">💬</span>
@@ -3296,33 +3374,71 @@ function doPost(e) {
                 )}
 
                 <div className="flex flex-col gap-3 mt-1">
+                  {/* Button 1: AI 분석 (AI 분석 시작) */}
                   <button
                     type="button"
-                    onClick={handleMockParse}
-                    disabled={aiLoading}
-                    className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black rounded-xl hover:from-indigo-600 hover:to-purple-700 transition shadow-md shadow-indigo-200 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                    onClick={handleAiParse}
+                    disabled={aiLoading || !aiText.trim() || !apiKey}
+                    className="w-full py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl disabled:bg-blue-300 shadow-md flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer"
                   >
-                    <span>🚀 [체험하기] AI 가상 타핑 & 분석 시뮬레이션</span>
+                    {aiLoading ? <RefreshCw size={14} className="animate-spin" /> : 'AI 분석 시작'}
                   </button>
 
-                  <div className="flex gap-2.5">
+                  {/* Button 2: AI 일정등록 (일정 직접 등록) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAiModalOpen(false);
+                      setEditingLecture(null);
+                      setFormData({
+                        institution: '',
+                        role: 'Main',
+                        rate: 100000,
+                        classes: 4,
+                        transportFee: 0,
+                        date: new Date().toISOString().slice(0, 10),
+                        registrationDate: new Date().toISOString().slice(0, 10),
+                        isPaid: false,
+                        taxRate: '3.3%',
+                        taxBase: 'LectureOnly',
+                        customTax: 0,
+                        _newPresetName: '',
+                        _newPresetRate: '',
+                        _newPresetRole: 'Main',
+                        _newPresetTax: '3.3%',
+                        _newPresetEmoji: null,
+                        _showEmojiPicker: false,
+                        _tab: 'record'
+                      });
+                      setIsAddModalOpen(true);
+                    }}
+                    disabled={aiLoading}
+                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                  >
+                    <span>일정 직접 등록 (수동)</span>
+                  </button>
+
+                  {/* Button 3: 내 시뮬레이션 (Simulation) - Hidden if apiKey exists */}
+                  {!apiKey && (
                     <button
                       type="button"
-                      onClick={() => setIsAiModalOpen(false)}
+                      onClick={handleMockParse}
                       disabled={aiLoading}
-                      className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-toss-textMuted font-bold rounded-xl"
+                      className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black rounded-xl hover:from-indigo-600 hover:to-purple-700 transition shadow-md shadow-indigo-200 flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50 cursor-pointer"
                     >
-                      취소
+                      <span>🚀 [체험하기] AI 가상 타이핑 & 분석 시뮬레이션</span>
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleAiParse}
-                      disabled={aiLoading || !aiText.trim() || !apiKey}
-                      className="flex-1 py-2.5 bg-[#2563EB] hover:bg-blue-700 text-white font-bold rounded-xl disabled:bg-blue-300 shadow-md flex items-center justify-center gap-1.5"
-                    >
-                      {aiLoading ? <RefreshCw size={14} className="animate-spin" /> : 'AI 분석 시작'}
-                    </button>
-                  </div>
+                  )}
+
+                  {/* Cancel Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsAiModalOpen(false)}
+                    disabled={aiLoading}
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl transition cursor-pointer text-center"
+                  >
+                    닫기
+                  </button>
                 </div>
               </div>
             ) : (
