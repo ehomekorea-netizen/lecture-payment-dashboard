@@ -379,13 +379,49 @@ export default function App() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  // 분석 탭 선택 or 연도 변경 시 가로 차트 스크롤 중앙 정렬 (현재 월 기준)
+  // 분석 탭 선택 or 연도 변경 시 가로 차트 스크롤 중앙 정렬 (올해: 현재월 기준, 지난 해: 가장 높은 정산액 기준)
   useEffect(() => {
     if (activeTab === 'stats' && chartScrollRef.current) {
       const timer = setTimeout(() => {
         const currentYear = new Date().getFullYear();
-        // 현재 연도이면 현재 월 기준 중앙, 다른 연도면 6월(중간) 기준
-        const focusMonthIdx = statsYear === currentYear ? new Date().getMonth() : 5;
+        let focusMonthIdx = 5; // 기본값: 6월 (중간)
+
+        if (statsYear === currentYear) {
+          focusMonthIdx = new Date().getMonth();
+        } else {
+          // 지난 해 또는 지지난해: 정산 총액이 가장 높은 월을 기준
+          const yearLectures = lectures.filter(l => {
+            const rd = l.registrationDate || l.date || '';
+            if (!rd) return false;
+            return new Date(rd).getFullYear() === statsYear;
+          });
+
+          if (yearLectures.length > 0) {
+            const monthlyEarnings = Array(12).fill(0);
+            yearLectures.forEach(l => {
+              const dStr = l.date || '';
+              const mMatch = dStr.match(/^\d{4}-(\d{2})-\d{2}$/) || dStr.match(/(\d+)월/);
+              if (mMatch) {
+                const mIdx = parseInt(mMatch[1], 10) - 1;
+                if (mIdx >= 0 && mIdx < 12) {
+                  const amt = l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0);
+                  monthlyEarnings[mIdx] += amt;
+                }
+              }
+            });
+
+            let maxAmt = -1;
+            let maxIdx = 5;
+            for (let i = 0; i < 12; i++) {
+              if (monthlyEarnings[i] > maxAmt) {
+                maxAmt = monthlyEarnings[i];
+                maxIdx = i;
+              }
+            }
+            focusMonthIdx = maxIdx;
+          }
+        }
+
         const svgWidth = 560;
         const step = svgWidth / 11;
         const targetX = focusMonthIdx * step;
@@ -394,7 +430,7 @@ export default function App() {
       }, 120);
       return () => clearTimeout(timer);
     }
-  }, [activeTab, statsYear]);
+  }, [activeTab, statsYear, lectures]);
 
 
   // 강의 데이터 상태
@@ -1386,11 +1422,26 @@ ${aiText}
     });
   }, [lectures, statsYear]);
 
+  // 홈 화면 요약 위젯 계산을 위한 필터링 (선택된 연도/월 및 기관 기준)
+  const homeSummaryLectures = useMemo(() => {
+    return lectures.filter(l => {
+      if (!l) return false;
+      if (selectedMonth === 'All') {
+        const regDate = l.registrationDate || l.date || '';
+        const yr = regDate ? new Date(regDate).getFullYear() : new Date().getFullYear();
+        if (yr !== statsYear) return false;
+      } else {
+        if (extractMonth(l.date) !== selectedMonth) return false;
+      }
+      return selectedInstitution === 'All' || l.institution === selectedInstitution;
+    });
+  }, [lectures, statsYear, selectedMonth, selectedInstitution]);
+
   // 통계 계산
-  const totalExpected = homeYearLectures.reduce((acc, curr) => acc + curr.expectedAmount, 0);
-  const totalNet = homeYearLectures.reduce((acc, curr) => acc + curr.netAmount, 0);
-  const totalUnpaid = homeYearLectures.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
-  const unpaidCount = homeYearLectures.filter(l => !l.isPaid).length;
+  const totalExpected = homeSummaryLectures.reduce((acc, curr) => acc + curr.expectedAmount, 0);
+  const totalNet = homeSummaryLectures.reduce((acc, curr) => acc + curr.netAmount, 0);
+  const totalUnpaid = homeSummaryLectures.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
+  const unpaidCount = homeSummaryLectures.filter(l => !l.isPaid).length;
 
   // 차트 집계
   const chartData = uniqueMonths.map(m => {
@@ -1459,16 +1510,26 @@ ${aiText}
   const _sIM = {}; let _sOT = 0;
   statsYearLectures.forEach(l => { const a = l.expectedAmount || 0; _sIM[l.institution] = (_sIM[l.institution] || 0) + a; _sOT += a; });
   const statsSortedInsts = Object.entries(_sIM).map(([n, v]) => ({ name: n, val: v, pct: _sOT > 0 ? (v / _sOT) * 100 : 0 })).sort((a, b) => b.val - a.val).slice(0, 5);
-  const filteredLectures = homeYearLectures.filter(l => {
+  const filteredLectures = lectures.filter(l => {
     if (!l) return false;
+    
+    // 1. Year/Month Filter: If selectedMonth is 'All', only show lectures of statsYear.
+    // Otherwise, show matching month regardless of statsYear (implicit year match).
+    if (selectedMonth === 'All') {
+      const regDate = l.registrationDate || l.date || '';
+      const yr = regDate ? new Date(regDate).getFullYear() : new Date().getFullYear();
+      if (yr !== statsYear) return false;
+    } else {
+      if (extractMonth(l.date) !== selectedMonth) return false;
+    }
+
     const matchesInst = selectedInstitution === 'All' || l.institution === selectedInstitution;
-    const matchesMonth = selectedMonth === 'All' || extractMonth(l.date) === selectedMonth;
     const matchesStatus = 
       selectedStatus === 'All' || 
       (selectedStatus === 'Paid' && l.isPaid) || 
       (selectedStatus === 'Pending' && !l.isPaid);
     
-    return matchesInst && matchesMonth && matchesStatus;
+    return matchesInst && matchesStatus;
   }).sort((a, b) => {
     // 1. 대기(Pending)가 완료(Paid)보다 상단에 위치하도록 정렬
     if (a.isPaid !== b.isPaid) {
@@ -1701,7 +1762,7 @@ function doPost(e) {
                     >
                       전체월
                     </button>
-                    {uniqueMonths.slice().reverse().map((m, idx) => (
+                    {uniqueMonths.map((m, idx) => (
                       <button 
                         key={idx}
                         onClick={() => setSelectedMonth(m)}
@@ -2428,6 +2489,7 @@ function doPost(e) {
                   <span className="text-[13.5px] font-black text-slate-800">출강바이브 정보</span>
                 </div>
                 <p className="text-[10px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.3.0</p>
+                <p className="text-[9.5px] text-slate-400 font-extrabold flex items-center gap-1 mt-0.5">✉️ 문의: <a href="mailto:wlstlfdl11@kakao.com" className="text-blue-500 hover:text-blue-700 underline">wlstlfdl11@kakao.com</a></p>
               </div>
             </div>
           )}
