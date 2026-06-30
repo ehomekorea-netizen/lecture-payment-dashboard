@@ -506,6 +506,34 @@
   pointer-events: none;
 }
 
+/* AI 일정 등록 펄스 글로우 */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.1), 0 2px 4px -1px rgba(37, 99, 235, 0.06), 0 0 0 rgba(37, 99, 235, 0);
+  }
+  50% {
+    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.15), 0 0 12px rgba(37, 99, 235, 0.5);
+  }
+}
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite ease-in-out;
+}
+
+/* 완료 처리 에메랄드 글로우 */
+@keyframes emeraldGlow {
+  0%, 100% {
+    border-color: rgba(16, 185, 129, 0.25);
+    box-shadow: 0 2px 12px rgba(16, 185, 129, 0.05), 0 0 0 rgba(16, 185, 129, 0);
+  }
+  50% {
+    border-color: rgba(16, 185, 129, 1);
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.2), 0 0 16px rgba(16, 185, 129, 0.65);
+  }
+}
+.animate-emerald-glow {
+  animation: emeraldGlow 1.5s infinite ease-in-out;
+}
+
 
 
 

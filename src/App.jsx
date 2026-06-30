@@ -50,6 +50,41 @@ function matchesCalendarDate(lectureDate, selectedCalendarDate) {
   return lectureDate.replace(/\s+/g, '').includes(selectedCalendarDate.replace(/\s+/g, ''));
 }
 
+// 한국 공휴일 및 대체공휴일 체크 함수 (2025~2026년 기준)
+function isKoreanHoliday(year, month, day) {
+  // 양력 고정 공휴일 (month는 0-indexed: 0=1월, 1=2월, ...)
+  if (month === 0 && day === 1) return true;   // 신정
+  if (month === 2 && day === 1) return true;   // 삼일절
+  if (month === 4 && day === 5) return true;   // 어린이날
+  if (month === 5 && day === 6) return true;   // 현충일
+  if (month === 7 && day === 15) return true;  // 광복절
+  if (month === 9 && day === 3) return true;   // 개천절
+  if (month === 9 && day === 9) return true;   // 한글날
+  if (month === 11 && day === 25) return true; // 성탄절
+
+  // 2025년 특정 음력 절기 및 대체공휴일
+  if (year === 2025) {
+    // 설날 연휴 (1월 28, 29, 30일)
+    if (month === 0 && (day === 28 || day === 29 || day === 30)) return true;
+    // 어린이날/석가탄신일 겹침에 따른 대체공휴일 (5월 6일)
+    if (month === 4 && day === 6) return true;
+    // 추석 연휴 (10월 5, 6, 7일) 및 대체공휴일 (10월 8일)
+    if (month === 9 && (day === 5 || day === 6 || day === 7 || day === 8)) return true;
+  }
+
+  // 2026년 특정 음력 절기 및 대체공휴일
+  if (year === 2026) {
+    // 설날 연휴 (2월 16, 17, 18일)
+    if (month === 1 && (day === 16 || day === 17 || day === 18)) return true;
+    // 석가탄신일 대체공휴일 (5월 25일)
+    if (month === 4 && day === 25) return true;
+    // 추석 연휴 (9월 24, 25, 26일) 및 대체공휴일 (9월 28일)
+    if (month === 8 && (day === 24 || day === 25 || day === 26 || day === 28)) return true;
+  }
+
+  return false;
+}
+
 // 다음 달 계산 유틸리티 (12월 다음은 1월)
 function getNextMonthString() {
   const now = new Date();
@@ -345,21 +380,41 @@ export default function App() {
 
   // 삭제 취소(Undo) 기능용 상태
   const [deletedLecture, setDeletedLecture] = useState(null);
-  const [undoCountdown, setUndoCountdown] = useState(0);
+  const [deletedLectureIndex, setDeletedLectureIndex] = useState(-1);
+  const [undoProgress, setUndoProgress] = useState(0); // 0 to 100
 
+  // 신규 추가 상태
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [recentlyPaidCardId, setRecentlyPaidCardId] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
 
+  // 토스트 타이머
   useEffect(() => {
-    if (undoCountdown <= 0) {
-      if (undoCountdown === 0) {
+    if (toastMessage) {
+      const timer = setTimeout(() => {
+        setToastMessage(null);
+      }, 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
+
+  // 100ms 정밀 해상도 Undo 7초 타이머
+  useEffect(() => {
+    if (undoProgress <= 0) {
+      if (undoProgress === 0) {
         setDeletedLecture(null);
+        setDeletedLectureIndex(-1);
       }
       return;
     }
     const interval = setInterval(() => {
-      setUndoCountdown(prev => prev - 1);
-    }, 1000);
+      setUndoProgress(prev => {
+        const next = prev - (100 / 70); // 70 steps of 100ms = 7 seconds
+        return next < 0 ? 0 : next;
+      });
+    }, 100);
     return () => clearInterval(interval);
-  }, [undoCountdown]);
+  }, [undoProgress]);
 
   const handleUndoDelete = () => {
     if (deletedLecture) {
@@ -371,7 +426,8 @@ export default function App() {
         });
       });
       setDeletedLecture(null);
-      setUndoCountdown(0);
+      setUndoProgress(0);
+      setDeletedLectureIndex(-1);
     }
   };
 
@@ -898,6 +954,12 @@ export default function App() {
 8. taxRate: 세율 (일반적인 복지관/사회복지협의회는 8.8% 기본 설정, 사기업은 3.3% 설정)
 9. taxBase: 과세 기준 ("LectureOnly" 또는 "Total". 기본값 "LectureOnly")
 10. isPaid: 정산 완료 여부 (기본 false)
+
+[일정 등록 및 변환 규칙]
+- 규칙 1: 정산 대기 상태('isPaid': false)의 실수령액을 0원으로 작성하지 않는다. (수수료/세금을 제한 실제 예상 수령액으로 정확하게 작성)
+- 규칙 2: 정산 여부(입금 완료 등)가 명확하게 언급되지 않은 경우, 반드시 'isPaid': false (정산 대기) 상태로 등록한다.
+- 규칙 3: 실수령액은 항상 [강의료 + 교통비 - 공제금액] 기준으로 계산한다.
+- 규칙 4: 정산 대기는 "미정산"의 의미이지 "실수령 0원"의 의미가 아니므로, 모든 금액 계산식은 동일하게 정상 적용되어야 한다.
 
 반환할 포맷:
 [
@@ -1596,6 +1658,73 @@ ${aiText}
   }));
   const statsPathD = statsChartPoints.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(' ');
   const statsAreaD = statsPathD + ` L ${statsChartPoints[11].x} 148 L ${statsChartPoints[0].x} 148 Z`;
+
+  // activeYearMonths 계산
+  const activeYearMonths = (() => {
+    const monthsWithData = new Set(
+      lectures
+        .filter(l => getLectureYear(l) === statsYear)
+        .map(l => extractMonth(l.date))
+    );
+    const order = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+    const filtered = order.filter(m => monthsWithData.has(m));
+    return filtered.length > 0 ? filtered : order;
+  })();
+
+  // 평균 소득 계산 및 Y 좌표 매핑
+  const statsAverageIncome = (() => {
+    const activeMonths = statsFullYearData.filter(d => d.total > 0);
+    if (activeMonths.length === 0) return 0;
+    const sum = activeMonths.reduce((acc, d) => acc + d.total, 0);
+    return Math.round(sum / activeMonths.length);
+  })();
+  const averageY = 148 - (_sMax > 0 ? (statsAverageIncome / _sMax) * 108 : 0);
+
+  // 최고 실적 월 지표 계산 (0-indexed)
+  const peakMonthIndex = (() => {
+    let maxVal = -1;
+    let maxIdx = -1;
+    statsFullYearData.forEach((d, idx) => {
+      if (d.total > maxVal) {
+        maxVal = d.total;
+        maxIdx = idx;
+      }
+    });
+    return maxVal > 0 ? maxIdx : -1;
+  })();
+
+  // YoY / MoM 증감율 계산
+  const momBadges = (() => {
+    if (selectedMonth === 'All') {
+      const curYearTotal = lectures
+        .filter(l => getLectureYear(l) === statsYear)
+        .reduce((sum, l) => sum + (l.netAmount || 0), 0);
+
+      const prevYearTotal = lectures
+        .filter(l => getLectureYear(l) === statsYear - 1)
+        .reduce((sum, l) => sum + (l.netAmount || 0), 0);
+
+      if (prevYearTotal === 0) return { type: 'YoY', pct: null };
+      const pct = ((curYearTotal - prevYearTotal) / prevYearTotal) * 100;
+      return { type: 'YoY', pct: Math.round(pct) };
+    } else {
+      const monthNum = parseInt(selectedMonth, 10);
+      const curMonthTotal = lectures
+        .filter(l => getLectureYear(l) === statsYear && extractMonth(l.date) === selectedMonth)
+        .reduce((sum, l) => sum + (l.netAmount || 0), 0);
+
+      const prevMonthName = monthNum === 1 ? '12월' : `${monthNum - 1}월`;
+      const prevYearTarget = monthNum === 1 ? statsYear - 1 : statsYear;
+      const prevMonthTotal = lectures
+        .filter(l => getLectureYear(l) === prevYearTarget && extractMonth(l.date) === prevMonthName)
+        .reduce((sum, l) => sum + (l.netAmount || 0), 0);
+
+      if (prevMonthTotal === 0) return { type: 'MoM', pct: null };
+      const pct = ((curMonthTotal - prevMonthTotal) / prevMonthTotal) * 100;
+      return { type: 'MoM', pct: Math.round(pct) };
+    }
+  })();
+
   const _sIM = {}; let _sOT = 0;
   statsYearLectures.forEach(l => { const a = l.expectedAmount || 0; _sIM[l.institution] = (_sIM[l.institution] || 0) + a; _sOT += a; });
   const statsSortedInsts = Object.entries(_sIM).map(([n, v]) => ({ name: n, val: v, pct: _sOT > 0 ? (v / _sOT) * 100 : 0 })).sort((a, b) => b.val - a.val).slice(0, 5);
@@ -1778,20 +1907,19 @@ function doPost(e) {
                   setIsAiVerifying(false);
                   setIsAiModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-50/60 to-indigo-50/60 hover:from-blue-100/80 hover:to-indigo-100/80 border border-indigo-100 rounded-full transition shadow-sm active:scale-95 flex-shrink-0"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border border-transparent rounded-full transition shadow-md shadow-blue-500/10 active:scale-95 flex-shrink-0 animate-pulse-glow"
                 title="AI 일정 등록"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-[14px] h-[14px] drop-shadow-sm">
                   <defs>
                     <linearGradient id="gemini-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#93C5FD" />
-                      <stop offset="50%" stopColor="#3B82F6" />
-                      <stop offset="100%" stopColor="#8B5CF6" />
+                      <stop offset="0%" stopColor="#FFFFFF" />
+                      <stop offset="100%" stopColor="#E0E7FF" />
                     </linearGradient>
                   </defs>
                   <path d="M12 2C12 2 12.3 8.5 4 12C12.3 12 12 22 12 22C12 22 11.7 12 20 12C11.7 8.5 12 2 12 2Z" fill="url(#gemini-logo-grad)" />
                 </svg>
-                <span className="text-[11.5px] font-black text-indigo-955 tracking-tight">AI 일정 등록</span>
+                <span className="text-[11.5px] font-black text-white tracking-tight">AI 일정 등록</span>
               </button>
             </div>
           </div>
@@ -1886,23 +2014,20 @@ function doPost(e) {
                   </select>
                 </div>
                 <div className="flex gap-2 items-center justify-between border-t border-slate-100 pt-2.5">
-                  {/* Left Side: Month list (scrollable) */}
-                  <div className="w-[49%] overflow-x-auto scrollbar-none flex gap-1.5 py-1">
+                  {/* Left Side: Month selection (5:5 layout) */}
+                  <div className="w-[49%] flex gap-1 py-1 flex-shrink-0">
                     <button 
                       onClick={() => setSelectedMonth('All')}
-                      className={`flex-shrink-0 text-[10px] font-black px-2.5 py-1.5 rounded-lg ${selectedMonth === 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-slate-500'}`}
+                      className={`flex-1 text-[10px] font-black py-1.5 rounded-lg text-center transition-all ${selectedMonth === 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-slate-500 hover:bg-slate-200/50'}`}
                     >
-                      전체월
+                      전체
                     </button>
-                    {uniqueMonths.map((m, idx) => (
-                      <button 
-                        key={idx}
-                        onClick={() => setSelectedMonth(m)}
-                        className={`flex-shrink-0 text-[10px] font-black px-2.5 py-1.5 rounded-lg ${selectedMonth === m ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-slate-500'}`}
-                      >
-                        {m}
-                      </button>
-                    ))}
+                    <button 
+                      onClick={() => setIsMonthPickerOpen(true)}
+                      className={`flex-1 text-[10px] font-black py-1.5 rounded-lg text-center transition-all ${selectedMonth !== 'All' ? 'bg-[#1F2E5B] text-white' : 'bg-gray-100 text-slate-500 hover:bg-slate-200/50'}`}
+                    >
+                      {selectedMonth === 'All' ? '월 선택 ▾' : `${selectedMonth} ▾`}
+                    </button>
                   </div>
                   
                   {/* Separator line */}
@@ -2333,17 +2458,31 @@ function doPost(e) {
                 {statsYearLectures.length === 0 ? (
                   <div className="text-[12px] text-slate-400 text-center py-10 font-bold">데이터가 없습니다.</div>
                 ) : (
-                  <div className="flex flex-col gap-3">
-                     {statsSortedInsts.map((inst, i) => {
-                        return (
-                          <div key={i} className="flex flex-col gap-1.5">
-                            <div className="flex justify-between items-center text-[12px] font-bold">
-                              <span className="text-slate-700">{inst.name}</span>
-                              <span className="text-slate-500">{Math.round(inst.pct)}% ({formatWon(inst.val)}원)</span>
-                            </div>
+                  <div className="flex flex-col gap-3.5">
+                    {statsSortedInsts.map((inst, i) => {
+                      return (
+                        <div key={i} className="flex flex-col gap-1.5">
+                          <div className="flex justify-between items-center text-[12px] font-bold">
+                            <span 
+                              className="text-slate-700 truncate max-w-[200px] cursor-help" 
+                              title={inst.name}
+                            >
+                              {inst.name}
+                            </span>
+                            <span className="text-slate-500 flex-shrink-0">
+                              {Math.round(inst.pct)}% ({formatWon(inst.val)}원)
+                            </span>
                           </div>
-                        );
-                      })}
+                          {/* 가로 프로그레스 바 비중 시각화 */}
+                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-indigo-500 to-[#2563EB] rounded-full transition-all duration-1000 ease-out"
+                              style={{ width: `${inst.pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -2419,7 +2558,7 @@ function doPost(e) {
                   <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
                     <div className="p-4 bg-blue-50/70 border border-blue-100 text-[#1E3A8A] rounded-xl font-semibold leading-relaxed flex flex-col gap-1.5 text-[13px]">
                       <p className="font-black text-[14px] flex items-center gap-1">☁️ 클라우드 동기화 안내</p>
-                      <p className="text-slate-500">구글 스프레드시트 배포 URL을 연동하면 모바일과 PC 등 다른 기기들과 출강 데이터를 동일하게 동기화할 수 있습니다.</p>
+                      <p className="text-slate-500">구글 스프레드시트 배포 URL을 연동하면 기기 간 데이터가 백업 버튼 조작 없이 저장 시 실시간으로 자동 동기화됩니다. 인터넷 연결 시 자동으로 최신 데이터가 반영됩니다.</p>
                       <div className="mt-1">
                         <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[12px] font-black text-white bg-[#1E3A8A] px-3 py-2 rounded-lg hover:bg-[#0F172A] transition border-none cursor-pointer">구글 시트 연동 방법 보기</button>
                       </div>
@@ -2602,13 +2741,22 @@ function doPost(e) {
               </div>
               
               {/* Information footer */}
-              <div className="rounded-[24px] py-3.5 px-4 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-1 items-center text-center">
+              <div className="rounded-[24px] py-4.5 px-5 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-2.5 items-center text-center">
                 <div className="flex items-center justify-center gap-1.5">
-                  <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[18px] h-[18px] drop-shadow-sm flex-shrink-0" />
-                  <span className="text-[13.5px] font-black text-slate-800">출강바이브 정보</span>
+                  <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[20px] h-[20px] drop-shadow-sm flex-shrink-0" />
+                  <span className="text-[15.5px] font-black text-slate-800 tracking-tight">출강바이브 정보</span>
                 </div>
-                <p className="text-[10px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.3.0</p>
-                <p className="text-[9.5px] text-slate-400 font-extrabold flex items-center gap-1 mt-0.5">💬 카톡문의: <a href="https://open.kakao.com/o/s8Fu8RBi" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline">https://open.kakao.com/o/s8Fu8RBi</a></p>
+                <p className="text-[12.5px] text-slate-400 font-bold leading-normal">프리랜서 강사를 위한 강의료 정산 스마트 대시보드 v1.5.0</p>
+                
+                <a 
+                  href="https://open.kakao.com/o/s8Fu8RBi" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="w-full mt-1 py-2.5 bg-[#FEE500] hover:bg-[#FAD000] text-[#191919] font-black text-xs rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border-none no-underline"
+                >
+                  <span>카카오톡 문의하기</span>
+                  <span className="text-sm">💬</span>
+                </a>
               </div>
             </div>
           )}
@@ -3675,6 +3823,61 @@ function doPost(e) {
                 className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[12.5px] font-black px-6 py-2.5 rounded-xl transition shadow-md border-none active:scale-95 min-w-[110px] text-center cursor-pointer"
               >
                 지금 보러가기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Month Picker Modal */}
+      {isMonthPickerOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-fade">
+          <div className="bg-white w-full max-w-xs rounded-[28px] shadow-2xl p-6 flex flex-col gap-4 animate-fade-in">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-[14.5px] font-black text-slate-800 flex items-center gap-1.5">
+                📅 {statsYear}년 월 선택
+              </h3>
+              <button 
+                onClick={() => setIsMonthPickerOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-650 hover:bg-slate-50 rounded-lg transition border-none bg-transparent cursor-pointer flex items-center justify-center"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-3 gap-2.5 max-h-[220px] overflow-y-auto py-1">
+              {activeYearMonths.map(m => {
+                const isSelected = selectedMonth === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => {
+                      setSelectedMonth(m);
+                      setIsMonthPickerOpen(false);
+                    }}
+                    className={`py-2 text-[12px] font-black rounded-xl transition active:scale-95 cursor-pointer text-center ${
+                      isSelected
+                        ? 'bg-[#1F2E5B] text-white shadow-sm shadow-blue-900/10'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/45'
+                    }`}
+                  >
+                    {m}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <div className="border-t border-slate-100 pt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedMonth('All');
+                  setIsMonthPickerOpen(false);
+                }}
+                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black rounded-xl text-[11.5px] transition cursor-pointer text-center border-none"
+              >
+                전체 선택 (All)
               </button>
             </div>
           </div>
