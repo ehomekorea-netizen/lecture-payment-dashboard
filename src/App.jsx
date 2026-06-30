@@ -368,6 +368,7 @@ export default function App() {
   const [isApiSettingsOpen, setIsApiSettingsOpen] = useState(false);
   const [isCloudBackupOpen, setIsCloudBackupOpen] = useState(false);
   const [isLocalBackupOpen, setIsLocalBackupOpen] = useState(false);
+  const [isAppSupportOpen, setIsAppSupportOpen] = useState(false);
   
   // 설정 탭 임시 입력 값 상태 (Controlled Inputs용)
   const [tempApiKey, setTempApiKey] = useState(() => safeLocalStorage.getItem('gemini_api_key') || '');
@@ -2811,27 +2812,60 @@ function doPost(e) {
                 )}
               </div>
 
-              {/* Danger zone */}
-              <div className="rounded-[24px] p-5 flex flex-col gap-2.5 shadow-sm" style={{background:'linear-gradient(135deg,#FEF2F2 0%,#FFF1F2 100%)',border:'1px solid rgba(239,68,68,0.12)'}}>
-                <div className="flex items-center gap-2"><AlertCircle size={17} className="text-red-500" /><span className="text-[14.5px] font-black text-red-700">기록 데이터 초기화</span></div>
-                <p className="text-[13px] text-red-600/70 leading-relaxed font-semibold">모든 출강기록과 API 연동 키를 삭제하며, 복구할 수 없습니다.</p>
-                <button onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){safeLocalStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} className="py-3 text-[13.5px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl transition shadow-sm border-none cursor-pointer">앱 전체 데이터 초기화</button>
+              {/* 고객지원 및 앱 관리 아코디언 */}
+              <div className="rounded-[24px] border border-slate-200/60 overflow-hidden shadow-sm flex flex-col gap-0 transition-all bg-white">
+                <button
+                  type="button"
+                  onClick={() => setIsAppSupportOpen(!isAppSupportOpen)}
+                  className="w-full px-6 py-6 flex items-center justify-between hover:bg-slate-50 transition border-none bg-transparent cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-[22px] select-none">⚙️</span>
+                    <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">고객지원 및 앱 관리</h3>
+                  </div>
+                  <ChevronDown
+                    size={20}
+                    className={`text-slate-500 transition-transform duration-200 ${isAppSupportOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {isAppSupportOpen && (
+                  <div className="p-5 flex flex-col gap-5 border-t border-slate-200/60 bg-white">
+                    {/* 카카오톡 문의하기 */}
+                    <div className="flex flex-col gap-2.5">
+                      <span className="text-[13.5px] font-black text-[#1E3A8A] uppercase tracking-wide">💬 1:1 고객지원 문의</span>
+                      <a 
+                        href="https://open.kakao.com/o/s8Fu8RBi" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="w-full py-3 bg-[#FEE500] hover:bg-[#FAD000] text-[#191919] font-black text-[13px] rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border-none no-underline"
+                      >
+                        <span>카카오톡 문의하기</span>
+                        <span className="text-sm">💬</span>
+                      </a>
+                    </div>
+
+                    {/* Danger zone (기록 데이터 초기화) */}
+                    <div className="flex flex-col gap-2.5 pt-3 border-t border-slate-100">
+                      <div className="flex items-center gap-2"><AlertCircle size={16} className="text-red-500" /><span className="text-[13.5px] font-black text-red-700">기록 데이터 초기화</span></div>
+                      <p className="text-[12px] text-red-600/70 leading-relaxed font-semibold">모든 출강기록과 API 연동 키를 삭제하며, 복구할 수 없습니다.</p>
+                      <button 
+                        onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){safeLocalStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} 
+                        className="w-full py-3 text-[13px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl transition shadow-sm border-none cursor-pointer active:scale-95"
+                      >
+                        앱 전체 데이터 초기화
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
               
-              {/* Information footer */}
-              <div className="rounded-[24px] py-5 px-5 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-3.5 items-center text-center">
-                <a 
-                  href="https://open.kakao.com/o/s8Fu8RBi" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="w-full py-3 bg-[#FEE500] hover:bg-[#FAD000] text-[#191919] font-black text-[13px] rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition active:scale-95 cursor-pointer border-none no-underline"
-                >
-                  <span>카카오톡 문의하기</span>
-                  <span className="text-sm">💬</span>
-                </a>
-                
+              {/* Information footer (outside accordion) */}
+              <div className="py-2.5 flex flex-col items-center justify-center text-center gap-1.5 select-none mt-2">
                 <p className="text-[11px] text-slate-400 font-bold whitespace-nowrap leading-none">
-                  프리랜서 강사를 위한 강의료 정산 스마트 대시보드 v1.5.0
+                  프리랜서 강사를 위한 강의료 정산 스마트 대시보드 v1.0.0
+                </p>
+                <p className="text-[9.5px] text-slate-400 font-semibold whitespace-nowrap leading-none">
+                  © 2026. 출강바이브. All rights reserved.
                 </p>
               </div>
             </div>
