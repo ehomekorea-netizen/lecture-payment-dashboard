@@ -3812,14 +3812,16 @@ function doPost(e) {
       {/* 완료 처리 시 축하 Lottie overlay */}
       {showMoneyLottie && (
         <div className={`fixed inset-0 flex items-center justify-center z-[100] pointer-events-none transition-opacity duration-500 ${lottieFade ? 'opacity-0' : 'opacity-100'}`}>
-          <div className="fixed inset-0 bg-[#0F172A]/20 backdrop-blur-[3px] transition-all" />
-          <div className="bg-white/95 backdrop-blur-md p-8 rounded-[36px] shadow-2xl flex flex-col items-center justify-center border border-slate-100 z-10 scale-up-bounce pointer-events-auto">
+          <div className="fixed inset-0 bg-[#0F172A]/35 backdrop-blur-[4px] transition-all" />
+          <div className="flex flex-col items-center justify-center z-10 scale-up-bounce pointer-events-auto">
             <StableLottie 
               path="/lottie/Money stack.json" 
-              className="w-48 h-48"
+              className="w-48 h-48 drop-shadow-2xl"
               loop={false}
             />
-            <span className="text-[14px] font-black text-[#10B981] mt-2 block animate-pulse">정산 완료 처리가 되었습니다! 💸</span>
+            <span className="text-[17px] font-black text-emerald-400 mt-3 block animate-pulse drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
+              정산 완료 처리가 되었습니다! 💸
+            </span>
           </div>
         </div>
       )}
