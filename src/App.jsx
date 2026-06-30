@@ -1151,10 +1151,10 @@ ${aiText}
   const handleDownloadSampleCSV = () => {
     const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부'];
     const rows = [
-      ['창의융합/광주전남중', '주강사', '25000', '12', '300000', '0', '-10660', '10월', '193400', '10월 15일', '2025-10-15', '정산완료'],
-      ['TMD교육/고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '-6335', '12월', '185665', '12월 10일', '2025-12-10', '정산완료'],
-      ['TMD교육/고흥동초A (1)', '보조강사', '50000', '3', '192000', '42000', '-6335', '12월', '185665', '12월 11일', '2025-12-11', '정산완료'],
-      ['코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)', '보조강사', '50000', '3', '175787', '25787', '-4950', '1월', '170837', '1월 12일', '2026-01-12', '정산완료']
+      ['창의융합/광주전남중', '주강사', '25000', '12', '300000', '0', '-10660', '10월', '193400', '2025-10-15', '2025-10-15', '정산완료'],
+      ['TMD교육/고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '-6335', '12월', '185665', '2025-12-10', '2025-12-10', '정산완료'],
+      ['TMD교육/고흥동초A (1)', '보조강사', '50000', '3', '192000', '42000', '-6335', '12월', '185665', '2025-12-11', '2025-12-11', '정산완료'],
+      ['코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)', '보조강사', '50000', '3', '175787', '25787', '-4950', '1월', '170837', '2026-01-12', '2026-01-12', '정산완료']
     ];
 
     const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -1194,32 +1194,63 @@ ${aiText}
 
     const processCsvText = (text) => {
       const lines = text.split('\n');
-      if (lines.length < 2) return;
+      if (lines.length < 2) {
+        alert("업로드된 CSV 파일에 데이터가 부족하거나 올바르지 않은 파일입니다.");
+        return;
+      }
 
       const newLectures = [];
+      const invalidRows = [];
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
 
         const cleanFields = parseCSVLine(line).map(f => f.replace(/^"|"$/g, '').trim());
 
-        if (cleanFields.length < 8) continue;
+        if (cleanFields.length < 12) {
+          invalidRows.push({ lineNum: i + 1, reason: `열 개수가 부족합니다. (필요: 12개, 현재: ${cleanFields.length}개)` });
+          continue;
+        }
 
         const inst = cleanFields[0];
-        const role = cleanFields[1] === '보조강사' ? 'Assistant' : 'Main';
-        const rate = Number(cleanFields[2]) || 0;
-        const classes = Number(cleanFields[3]) || 0;
+        const roleStr = cleanFields[1];
+        const rateStr = cleanFields[2];
+        const classesStr = cleanFields[3];
+        const dateStr = cleanFields[9];
+
+        if (!inst) {
+          invalidRows.push({ lineNum: i + 1, reason: "기관명/학교가 비어 있습니다." });
+          continue;
+        }
+
+        // Validate date format: YYYY-MM-DD
+        if (!dateRegex.test(dateStr)) {
+          invalidRows.push({ lineNum: i + 1, reason: `날짜 형식이 올바르지 않습니다. 반드시 'YYYY-MM-DD' 형식이어야 합니다. (입력값: "${dateStr}")` });
+          continue;
+        }
+
+        // Validate numbers
+        const rate = Number(rateStr);
+        const classes = Number(classesStr);
+        if (isNaN(rate) || isNaN(classes)) {
+          invalidRows.push({ lineNum: i + 1, reason: `강의단가 또는 총 차시가 올바른 숫자가 아닙니다.` });
+          continue;
+        }
+
+        const role = roleStr === '보조강사' ? 'Assistant' : 'Main';
         const expected = Number(cleanFields[4]) || 0;
         const transport = Number(cleanFields[5]) || 0;
         const deduction = Number(cleanFields[6]) || 0;
-        const date = cleanFields[9] || '';
+        const date = dateStr;
         const month = cleanFields[7] && cleanFields[7] !== 'undefined' ? cleanFields[7] : extractMonth(date);
         const net = cleanFields[8] ? Number(cleanFields[8]) : 0;
-        const regDate = cleanFields[10] || new Date().toISOString().slice(0, 10);
+        const regDate = cleanFields[10] && dateRegex.test(cleanFields[10]) ? cleanFields[10] : date;
         const isPaid = cleanFields[11] === '정산완료' || net > 0;
 
         newLectures.push({
-          id: `csv-${Date.now()}-${i}`,
+          id: `csv-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 5)}`,
           institution: inst,
           role,
           rate,
@@ -1236,6 +1267,19 @@ ${aiText}
           taxBase: 'LectureOnly',
           customTax: Math.abs(deduction)
         });
+      }
+
+      if (invalidRows.length > 0) {
+        let errMsg = "CSV 파일 파싱 중 오류가 발생하여 가져오기를 취소했습니다.\n\n[오류 목록]\n";
+        invalidRows.slice(0, 5).forEach(err => {
+          errMsg += `- ${err.lineNum}번째 줄: ${err.reason}\n`;
+        });
+        if (invalidRows.length > 5) {
+          errMsg += `...외 ${invalidRows.length - 5}건의 오류가 더 존재합니다.\n`;
+        }
+        errMsg += "\n💡 작성 표준 양식 CSV를 다운로드하여 형식을 다시 한 번 확인해 주세요. 날짜는 반드시 'YYYY-MM-DD' 형식(예: 2026-06-30)이어야 합니다.";
+        alert(errMsg);
+        return;
       }
 
       if (newLectures.length > 0) {
@@ -1895,7 +1939,7 @@ function doPost(e) {
                       </div>
                       <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
                         <span className="text-[11px] font-bold text-slate-400">월별 출강 평균 횟수</span>
-                        <AnimatedNumber value={Math.round(yearLectures.length / (statsYearUniqueMonths.length || 1))} suffix="건" className="text-[18px] font-black text-slate-800" />
+                        <AnimatedNumber value={Math.round(statsYearLectures.length / (statsYearUniqueMonths.length || 1))} suffix="건" className="text-[18px] font-black text-slate-800" />
                       </div>
                       <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5 min-w-0">
                         <span className="text-[11px] font-bold text-slate-400">최다 출강 교육기관</span>
@@ -2213,7 +2257,7 @@ function doPost(e) {
                           🤖 AI 활용 기존 기록 변환기
                         </span>
                         <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
-                          선생님이 관리 중이시던 기존 엑셀 목록을 복사해 ChatGPT/Claude에 본 프롬프트와 함께 입력하시면 완벽한 대시보드 파일로 즉시 가공해 줍니다.
+                          선생님이 관리 중이시던 기존 엑셀 목록을 복사해 ChatGPT/Claude에 본 프롬프트와 함께 입력하시면 완벽한 대시보드 파일로 즉시 가공해 줍니다. (날짜 형식은 반드시 YYYY-MM-DD 형식이어야 합니다.)
                         </p>
                         <button
                           type="button"
@@ -2224,12 +2268,13 @@ function doPost(e) {
 기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제금액(-),월,실수령액,날짜,등록일,정산여부
 
 [변환 예시 1 (2025년)]
-"TMD교육/고흥동초B (1)","보조강사","50000","3","192000","42000","-6335","12월","185665","12월 10일","2025-12-10","정산완료"
+"TMD교육/고흥동초B (1)","보조강사","50000","3","192000","42000","-6335","12월","185665","2025-12-10","2025-12-10","정산완료"
 
 [변환 예시 2 (2026년)]
-"코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)","보조강사","50000","3","175787","25787","-4950","1월","170837","1월 12일","2026-01-12","정산완료"
+"코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)","보조강사","50000","3","175787","25787","-4950","1월","170837","2026-01-12","2026-01-12","정산완료"
 
 [주의 사항]
+- 날짜와 등록일은 반드시 'YYYY-MM-DD' 형식(예: 2026-06-30)이어야 합니다.
 - 등록일(YYYY-MM-DD)을 기준으로 연도가 구별되니 날짜와 등록일 연도를 일치시켜줘.
 - 실수령액과 공제금액은 숫자로만 채워줘.
 - 마크다운 블록 없이 순수 CSV 텍스트로만 반환해줘.
@@ -2282,7 +2327,7 @@ function doPost(e) {
                       <div className="border border-slate-200 rounded-2xl p-4 flex flex-col gap-2.5 bg-white shadow-sm">
                         <span className="text-[12.5px] font-extrabold text-slate-800">📥 [가져오기] 백업 파일 불러오기</span>
                         <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
-                          이전에 백업해둔 CSV 파일을 불러와 현재 강의 리스트 뒤에 추가 및 병합합니다.
+                          이전에 백업해둔 CSV 파일을 불러와 현재 강의 리스트 뒤에 추가 및 병합합니다. 날짜 형식은 반드시 YYYY-MM-DD(예: 2026-06-30)여야 하며, 다른 형식인 경우 가져오기가 거부됩니다.
                         </p>
                         <div className="relative border-2 border-dashed border-slate-200 rounded-xl p-5 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
                           <input type="file" accept=".csv" onChange={handleAnimatedUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" disabled={isUploading} />
@@ -2717,12 +2762,12 @@ function doPost(e) {
                 <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #EFF6FF 0%, #F0F9FF 100%)', border: '1px dashed rgba(30,58,138,0.25)'}}>
                   <span className="font-black text-[11.5px] text-[#1E3A8A]">⭐ 새 즐겨찾기 추가</span>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, _showEmojiPicker: !prev._showEmojiPicker }))} className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center text-lg shadow-sm flex-shrink-0">{formData._newPresetEmoji || '🏫'}</button>
+                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, _showEmojiPicker: !prev._showEmojiPicker }))} className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center text-lg shadow-sm flex-shrink-0">{formData._newPresetEmoji || '🌱'}</button>
                     <input type="text" placeholder="기관명 입력" value={formData._newPresetName || ''} onChange={e => setFormData(prev => ({ ...prev, _newPresetName: e.target.value }))} className="flex-1 px-3 py-2 border border-blue-200 rounded-xl bg-white text-[11px] font-bold focus:outline-none focus:border-[#1E3A8A]" />
                   </div>
                   {formData._showEmojiPicker && (
                     <div className="bg-white border border-slate-200 shadow-xl rounded-2xl p-3 grid grid-cols-5 gap-1.5">
-                      {['🏫','🎓','🏢','💼','💻','💡','🤖','📚','✏️','✨','⭐','🔥','🌍','🚀','🎨','🧩','📈','🎯','📢','🏛️'].map(e => (
+                      {['🌱', '💻', '🤖', '⛺', '🎒', '🏫', '👔', '🏢', '🗂️', '🏠'].map(e => (
                         <button key={e} type="button" onClick={() => setFormData(prev => ({ ...prev, _newPresetEmoji: e, _showEmojiPicker: false }))} className="w-8 h-8 rounded-lg hover:bg-blue-50 flex items-center justify-center text-lg">{e}</button>
                       ))}
                     </div>
@@ -2732,7 +2777,7 @@ function doPost(e) {
                     <input type="number" placeholder="시간당 단가(원)" value={formData._newPresetRate || ''} onChange={e => setFormData(prev => ({ ...prev, _newPresetRate: e.target.value }))} className="px-3 py-2 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none" />
                   </div>
                   <select value={formData._newPresetTax || '3.3%'} onChange={e => setFormData(prev => ({ ...prev, _newPresetTax: e.target.value }))} className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"><option value="3.3%">공제세율 3.3% (기본)</option><option value="8.8%">공제세율 8.8%</option><option value="None">공제 없음 (0%)</option></select>
-                  <button type="button" onClick={() => { const name=(formData._newPresetName||'').trim(); if(!name){alert('기관명을 입력해 주세요.');return;} const emoji=formData._newPresetEmoji||'🏫'; setPresets(prev=>[...prev,{id:`p-${Date.now()}`,name:`[${emoji}] ${name}`,role:formData._newPresetRole||'Main',rate:Number(formData._newPresetRate)||100000,classes:2,transportFee:0,taxRate:formData._newPresetTax||'3.3%'}]); setFormData(prev=>({...prev,_newPresetName:'',_newPresetRate:'',_newPresetRole:'Main',_newPresetTax:'3.3%',_newPresetEmoji:'🏫',_showEmojiPicker:false})); alert('즐겨찾기가 저장되었습니다!'); }} className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11.5px] shadow-sm transition">새 즐겨찾기 추가 저장</button>
+                  <button type="button" onClick={() => { const name=(formData._newPresetName||'').trim(); if(!name){alert('기관명을 입력해 주세요.');return;} const emoji=formData._newPresetEmoji||'🌱'; setPresets(prev=>[...prev,{id:`p-${Date.now()}`,name:`[${emoji}] ${name}`,role:formData._newPresetRole||'Main',rate:Number(formData._newPresetRate)||100000,classes:2,transportFee:0,taxRate:formData._newPresetTax||'3.3%'}]); setFormData(prev=>({...prev,_newPresetName:'',_newPresetRate:'',_newPresetRole:'Main',_newPresetTax:'3.3%',_newPresetEmoji:'🌱',_showEmojiPicker:false})); alert('즐겨찾기가 저장되었습니다!'); }} className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11.5px] shadow-sm transition">새 즐겨찾기 추가 저장</button>
                 </div>
               </div>
             )}
@@ -2782,8 +2827,14 @@ function doPost(e) {
                 </p>
 
                 {!apiKey && (
-                  <div className="p-3.5 bg-orange-50 border border-orange-200 text-toss-amber rounded-xl text-[10px] leading-relaxed flex items-center justify-between">
-                    <span>이 기능을 쓰시려면 환경설정에 Gemini API Key를 등록하셔야 합니다.</span>
+                  <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-[20px] text-[13.5px] font-black text-amber-800 leading-relaxed flex items-start gap-3 shadow-sm animate-pulse" style={{ animationDuration: '3s' }}>
+                    <AlertCircle className="text-amber-500 flex-shrink-0 mt-0.5" size={18} />
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[13.5px] font-black text-amber-900 flex items-center gap-1">⚠️ Gemini API Key 등록 필요</span>
+                      <p className="text-[11.5px] text-amber-700 font-bold leading-normal">
+                        이 기능을 사용하려면 [설정] 탭에서 <strong>Gemini API Key</strong>를 등록하셔야 합니다. API 키는 무료로 쉽게 발급받을 수 있습니다.
+                      </p>
+                    </div>
                   </div>
                 )}
 
