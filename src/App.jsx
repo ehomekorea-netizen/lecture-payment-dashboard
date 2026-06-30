@@ -1817,7 +1817,7 @@ function doPost(e) {
                 {statsYear === 2026 ? (
                   <span className="glossy-year-badge px-3.5 py-1.5 rounded-full text-[13px] font-black text-slate-850 tracking-tight flex items-center gap-1.5 select-none">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#00BCD4] animate-pulse" />
-                    {statsYear}년 (올해)
+                    {statsYear}년
                   </span>
                 ) : (
                   <span className="text-[15.5px] font-black text-slate-800 tracking-tight">{statsYear}년</span>
@@ -2163,7 +2163,7 @@ function doPost(e) {
                 {statsYear === 2026 ? (
                   <span className="glossy-year-badge px-3.5 py-1.5 rounded-full text-[13px] font-black text-slate-850 tracking-tight flex items-center gap-1.5 select-none">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#00BCD4] animate-pulse" />
-                    {statsYear}년 (올해)
+                    {statsYear}년
                   </span>
                 ) : (
                   <span className="text-[15.5px] font-black text-slate-800 tracking-tight">{statsYear}년</span>
