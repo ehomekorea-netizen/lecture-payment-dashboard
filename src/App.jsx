@@ -2819,13 +2819,7 @@ function doPost(e) {
               </div>
               
               {/* Information footer */}
-              <div className="rounded-[24px] py-6 px-6 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-4 items-center text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[22px] h-[22px] drop-shadow-sm flex-shrink-0" />
-                  <span className="text-[16px] font-black text-slate-800 tracking-tight">출강바이브 정보</span>
-                </div>
-                <p className="text-[13px] text-slate-400 font-bold leading-relaxed max-w-[280px]">프리랜서 강사를 위한 강의료 정산 스마트 대시보드 v1.5.0</p>
-                
+              <div className="rounded-[24px] py-5 px-5 bg-white border border-slate-200/60 shadow-sm flex flex-col gap-3.5 items-center text-center">
                 <a 
                   href="https://open.kakao.com/o/s8Fu8RBi" 
                   target="_blank" 
@@ -2835,6 +2829,10 @@ function doPost(e) {
                   <span>카카오톡 문의하기</span>
                   <span className="text-sm">💬</span>
                 </a>
+                
+                <p className="text-[11px] text-slate-400 font-bold whitespace-nowrap leading-none">
+                  프리랜서 강사를 위한 강의료 정산 스마트 대시보드 v1.5.0
+                </p>
               </div>
             </div>
           )}
