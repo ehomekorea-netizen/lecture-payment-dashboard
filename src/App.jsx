@@ -174,6 +174,22 @@ export default function App() {
   // 모바일 앱용 탭 상태 ('home', 'stats', 'sync', 'settings')
   const [activeTab, setActiveTab] = useState('home');
 
+  // 강의 데이터 상태 (Moved here to prevent TDZ in useEffect hooks)
+  const [lectures, setLectures] = useState(() => {
+    const saved = safeLocalStorage.getItem('lectures');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(l => l && typeof l === 'object');
+        }
+      } catch (e) {
+        console.error("Failed to parse cached lectures", e);
+      }
+    }
+    return INITIAL_LECTURES;
+  });
+
   // Scroll to top on tab change (target tab body container for full support)
   useEffect(() => {
     const resetScroll = () => {
@@ -433,21 +449,7 @@ export default function App() {
   }, [activeTab, statsYear, lectures]);
 
 
-  // 강의 데이터 상태
-  const [lectures, setLectures] = useState(() => {
-    const saved = safeLocalStorage.getItem('lectures');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(l => l && typeof l === 'object');
-        }
-      } catch (e) {
-        console.error("Failed to parse cached lectures", e);
-      }
-    }
-    return INITIAL_LECTURES;
-  });
+
 
   // 데이터 불러올 시 달력 자동 동기화 (최근 출강 날짜의 년/월로 달력 이동)
   useEffect(() => {
