@@ -489,6 +489,79 @@ export default function App() {
     customTax: 0
   });
 
+  const extractMonth = (dateStr) => {
+    if (!dateStr) return '';
+    if (/^\d{2}-\d{1,2}월$/.test(dateStr)) return dateStr;
+    if (/^\d{1,2}월$/.test(dateStr)) return dateStr;
+
+    const currentYear = new Date().getFullYear();
+    
+    // Format 2: "2026-06-30" (YYYY-MM-DD)
+    const m2 = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (m2) {
+      const year = parseInt(m2[1], 10);
+      const month = parseInt(m2[2], 10);
+      if (year === currentYear) {
+        return `${month}월`;
+      } else {
+        const shortYear = String(year).slice(-2);
+        return `${shortYear}-${month}월`;
+      }
+    }
+
+    // Format 4: "2025년 12월"
+    const mYearMonth = dateStr.match(/(\d{4})년\s*(\d+)월/);
+    if (mYearMonth) {
+      const year = parseInt(mYearMonth[1], 10);
+      const month = parseInt(mYearMonth[2], 10);
+      if (year === currentYear) {
+        return `${month}월`;
+      } else {
+        const shortYear = String(year).slice(-2);
+        return `${shortYear}-${month}월`;
+      }
+    }
+
+    const m1 = dateStr.match(/(\d+)월/);
+    if (m1) return `${parseInt(m1[1], 10)}월`;
+    
+    const m3 = dateStr.match(/^(\d{1,2})-\d{1,2}$/);
+    if (m3) return `${parseInt(m3[1], 10)}월`;
+    
+    return '';
+  };
+
+  const uniqueMonths = Array.from(new Set(lectures.map(l => extractMonth(l?.date)).filter(Boolean))).sort((a, b) => {
+    const isPrevYearA = a.includes('-');
+    const isPrevYearB = b.includes('-');
+
+    if (isPrevYearA && !isPrevYearB) return 1;
+    if (!isPrevYearA && isPrevYearB) return -1;
+
+    if (!isPrevYearA && !isPrevYearB) {
+      const numA = parseInt(a, 10);
+      const numB = parseInt(b, 10);
+      return numB - numA;
+    }
+
+    const matchA = a.match(/^(\d+)-(\d+)월$/);
+    const matchB = b.match(/^(\d+)-(\d+)월$/);
+    
+    if (matchA && matchB) {
+      const yearA = parseInt(matchA[1], 10);
+      const yearB = parseInt(matchB[1], 10);
+      const monthA = parseInt(matchA[2], 10);
+      const monthB = parseInt(matchB[2], 10);
+      
+      if (yearA !== yearB) {
+        return yearB - yearA;
+      }
+      return monthB - monthA;
+    }
+    
+    return a.localeCompare(b);
+  });
+
   // 로컬 스토리지 데이터 동기화
   useEffect(() => {
     safeLocalStorage.setItem('lectures', JSON.stringify(lectures));
@@ -510,35 +583,7 @@ export default function App() {
   // 자동 완성 추천 목록
   const uniqueInstitutions = Array.from(new Set(lectures.map(l => l?.institution).filter(Boolean))).sort((a, b) => a.localeCompare(b));
 
-  // 고유 월 리스트 정렬
-  const monthOrder = [
-    '25/10월', '25/11월', '25/12월', '1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'
-  ];
-  const extractMonth = (dateStr) => {
-    if (!dateStr) return '';
-    // Format 1: "6월 15일" or "2026년 06월 15일"
-    const m1 = dateStr.match(/(\d+)월/);
-    if (m1) return `${parseInt(m1[1], 10)}월`;
-    
-    // Format 2: "2026-06-30" (YYYY-MM-DD)
-    const m2 = dateStr.match(/^\d{4}-(\d{2})-\d{2}$/);
-    if (m2) return `${parseInt(m2[1], 10)}월`;
-    
-    // Format 3: "6-30" or "MM-DD"
-    const m3 = dateStr.match(/^(\d{1,2})-\d{1,2}$/);
-    if (m3) return `${parseInt(m3[1], 10)}월`;
-    
-    return '';
-  };
 
-  const uniqueMonths = Array.from(new Set(lectures.map(l => extractMonth(l?.date)).filter(Boolean))).sort((a, b) => {
-    const indexA = monthOrder.indexOf(a);
-    const indexB = monthOrder.indexOf(b);
-    if (indexA === -1 && indexB === -1) return (a || '').localeCompare(b || '');
-    if (indexA === -1) return 1;
-    if (indexB === -1) return -1;
-    return indexA - indexB;
-  });
 
   // 세금 계산식
   const calculateFees = (rate, classes, transport, taxRate, taxBase, customTax, isPaid) => {
@@ -849,7 +894,7 @@ ${aiText}
           netAmount: Number(row.netAmount) || 0,
           month: String(row.month || '6월'),
           date: String(row.date || '6월 29일'),
-          registrationDate: String(row.registrationDate || new Date().toISOString().slice(0, 10)),
+          registrationDate: row.registrationDate ? String(row.registrationDate) : '',
           isPaid: String(row.isPaid) === 'true' || row.isPaid === true,
           taxRate: String(row.taxRate || '8.8%'),
           taxBase: String(row.taxBase || 'LectureOnly'),
@@ -886,7 +931,7 @@ ${aiText}
             netAmount: Number(row.netAmount) || 0,
             month: String(row.month),
             date: String(row.date),
-            registrationDate: String(row.registrationDate),
+            registrationDate: row.registrationDate ? String(row.registrationDate) : '',
             isPaid: String(row.isPaid) === 'true' || row.isPaid === true,
             taxRate: String(row.taxRate),
             taxBase: String(row.taxBase || 'LectureOnly'),
@@ -1246,7 +1291,7 @@ ${aiText}
         const date = dateStr;
         const month = cleanFields[7] && cleanFields[7] !== 'undefined' ? cleanFields[7] : extractMonth(date);
         const net = cleanFields[8] ? Number(cleanFields[8]) : 0;
-        const regDate = cleanFields[10] && dateRegex.test(cleanFields[10]) ? cleanFields[10] : date;
+        const regDate = cleanFields[10] && dateRegex.test(cleanFields[10]) ? cleanFields[10] : '';
         const isPaid = cleanFields[11] === '정산완료' || net > 0;
 
         newLectures.push({
@@ -1335,7 +1380,7 @@ ${aiText}
   const homeYearLectures = useMemo(() => {
     return lectures.filter(l => {
       if (!l) return false;
-      const regDate = l.registrationDate || '';
+      const regDate = l.registrationDate || l.date || '';
       const yr = regDate ? new Date(regDate).getFullYear() : new Date().getFullYear();
       return yr === statsYear;
     });
@@ -1374,11 +1419,17 @@ ${aiText}
   const statsCanGoPrev = statsYear > (_sNow - 3);
   const statsCanGoNext = statsYear < _sNow;
   const statsYearLectures = lectures.filter(l => {
-    const rd = l.registrationDate || '';
+    const rd = l.registrationDate || l.date || '';
     if (!rd) return true;
     return new Date(rd).getFullYear() === statsYear;
   });
-  const statsYearUniqueMonths = Array.from(new Set(statsYearLectures.map(l => l.month))).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
+  const statsYearUniqueMonths = Array.from(new Set(statsYearLectures.map(l => l.month))).sort((a, b) => {
+    const matchA = a.match(/(\d+)월$/);
+    const matchB = b.match(/(\d+)월$/);
+    const numA = matchA ? parseInt(matchA[1], 10) : 0;
+    const numB = matchB ? parseInt(matchB[1], 10) : 0;
+    return numA - numB;
+  });
   const statsMostFreqInst = (() => {
     if (statsYearLectures.length === 0) return '없음';
     const _c = {};
@@ -1387,7 +1438,12 @@ ${aiText}
   })();
   const _sFYM = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
   const statsFullYearData = _sFYM.map(m => {
-    const _it = statsYearLectures.filter(l => extractMonth(l.date) === m);
+    const monthNum = parseInt(m, 10);
+    const _it = statsYearLectures.filter(l => {
+      const monthStr = extractMonth(l.date);
+      const match = monthStr.match(/(\d+)월$/);
+      return match && parseInt(match[1], 10) === monthNum;
+    });
     const _p = _it.reduce((s, l) => s + (l.isPaid ? l.netAmount : 0), 0);
     const _u = _it.reduce((s, l) => s + (l.isPaid ? 0 : l.expectedAmount), 0);
     return { month: m, total: _p + _u };
@@ -1993,21 +2049,21 @@ function doPost(e) {
 
                             {/* 수평 가이드라인 (3줄) */}
                             {[40, 80, 120].map(y => (
-                              <line key={y} x1={LEFT_PAD} y1={y} x2={SVG_W - RIGHT_PAD} y2={y}
+                              <line key={y} x1={_sSLP} y1={y} x2={_sSW - 28} y2={y}
                                 stroke="#E2E8F0" strokeWidth="1" strokeDasharray="4 4"/>
                             ))}
 
                             {/* X축 기준선 */}
-                            <line x1={LEFT_PAD} y1="148" x2={SVG_W - RIGHT_PAD} y2="148"
+                            <line x1={_sSLP} y1="148" x2={_sSW - 28} y2="148"
                               stroke="#CBD5E1" strokeWidth="1.5"/>
 
                             {/* 영역 채우기 */}
-                            {pathD && (
+                            {statsAreaD && (
                               <path d={statsAreaD} fill="url(#chart-area-grad)" strokeWidth="0"/>
                             )}
 
                             {/* 메인 라인 */}
-                            {pathD && (
+                            {statsPathD && (
                               <path
                                 d={statsPathD}
                                 fill="none"
@@ -2025,8 +2081,8 @@ function doPost(e) {
                             )}
 
                             {/* 노드 + 월 라벨 + 금액 */}
-                            {points.map((p, i) => {
-                              const d = fullYearData[i];
+                            {statsChartPoints.map((p, i) => {
+                              const d = statsFullYearData[i];
                               const hasValue = d.total > 0;
                               return (
                                 <g key={i}>
@@ -2129,9 +2185,12 @@ function doPost(e) {
                 {isApiSettingsOpen && (
                   <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
                     <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
-                        <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
+                          <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
+                        </div>
+                        <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2563EB] hover:text-blue-800 underline font-extrabold">👉 API Key 무료 발급 바로가기</a>
                       </div>
                       <div className="flex gap-2">
                         <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-400" />
@@ -2160,7 +2219,7 @@ function doPost(e) {
                 >
                   <div className="flex items-center gap-2.5">
                     <span className="text-[16px]">☁️</span>
-                    <h3 className="text-[15px] font-black text-slate-800 tracking-tight">클라우드 백업</h3>
+                    <h3 className="text-[15px] font-black text-slate-800 tracking-tight">클라우드 실시간 동기</h3>
                   </div>
                   <ChevronDown
                     size={16}
@@ -2171,7 +2230,7 @@ function doPost(e) {
                   <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
                     <div className="p-3 bg-blue-50/70 border border-blue-100 text-[#1E3A8A] rounded-xl font-semibold leading-relaxed flex flex-col gap-1.5 text-[10.5px]">
                       <p className="font-black text-[11px] flex items-center gap-1">☁️ 클라우드 동기화 안내</p>
-                      <p className="text-slate-500">구글 스프레드시트 배포 URL을 연동하면 모바일과 PC 등 다른 기기들과 출강 데이터를 동일하게 백업/복원(동기화)할 수 있습니다.</p>
+                      <p className="text-slate-500">구글 스프레드시트 배포 URL을 연동하면 모바일과 PC 등 다른 기기들과 출강 데이터를 동일하게 동기화할 수 있습니다.</p>
                       <div>
                         <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[10px] font-black text-white bg-[#1E3A8A] px-2.5 py-1.5 rounded-lg hover:bg-[#0F172A] transition">구글 시트 연동 방법 보기</button>
                       </div>
@@ -2203,7 +2262,7 @@ function doPost(e) {
 
                     {!sheetUrl ? (
                       <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl font-semibold text-center text-[10.5px]">
-                        구글 시트 웹 앱 URL을 입력하고 저장하시면 클라우드 백업/복원 단추가 활성화됩니다.
+                        구글 시트 웹 앱 URL을 입력하고 저장하시면 클라우드 실시간 동기 단추가 활성화됩니다.
                       </div>
                     ) : (
                       <div className="flex flex-col gap-2 mt-1">
@@ -2267,15 +2326,15 @@ function doPost(e) {
 [CSV 헤더 규격]
 기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제금액(-),월,실수령액,날짜,등록일,정산여부
 
-[변환 예시 1 (2025년)]
+[변환 예시 1]
 "TMD교육/고흥동초B (1)","보조강사","50000","3","192000","42000","-6335","12월","185665","2025-12-10","2025-12-10","정산완료"
 
-[변환 예시 2 (2026년)]
+[변환 예시 2]
 "코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)","보조강사","50000","3","175787","25787","-4950","1월","170837","2026-01-12","2026-01-12","정산완료"
 
 [주의 사항]
 - 날짜와 등록일은 반드시 'YYYY-MM-DD' 형식(예: 2026-06-30)이어야 합니다.
-- 등록일(YYYY-MM-DD)을 기준으로 연도가 구별되니 날짜와 등록일 연도를 일치시켜줘.
+- 등록일을 기준으로 연도가 구별되니 날짜와 등록일 연도를 일치시켜줘. (등록일은 비워둘 수 있으며, 비어 있을 경우 날짜의 연도가 기준이 됩니다.)
 - 실수령액과 공제금액은 숫자로만 채워줘.
 - 마크다운 블록 없이 순수 CSV 텍스트로만 반환해줘.
 
@@ -2294,12 +2353,12 @@ function doPost(e) {
                       <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
                         <span className="text-[12.5px] font-extrabold text-emerald-800">📄 작성 표준 양식 CSV 다운로드</span>
                         <p className="text-[11px] text-emerald-700 font-semibold leading-relaxed">
-                          연도(2025/2026) 필터링 및 날짜 서식이 올바르게 적용된 예제 파일을 내 컴퓨터로 다운로드합니다.
+                          표준 날짜 서식이 올바르게 적용된 예제 양식 파일을 내 컴퓨터로 다운로드합니다.
                         </p>
                         <button onClick={handleDownloadSampleCSV}
                           className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-[12.5px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 border-none">
                           <Download size={13} className="text-white" />
-                          출강기록 양식 예시 CSV 받기 (2025-2026 예제)
+                          출강기록 양식 예시 CSV 받기
                         </button>
                       </div>
                     </div>
@@ -2832,7 +2891,7 @@ function doPost(e) {
                     <div className="flex flex-col gap-1">
                       <span className="text-[13.5px] font-black text-amber-900 flex items-center gap-1">⚠️ Gemini API Key 등록 필요</span>
                       <p className="text-[11.5px] text-amber-700 font-bold leading-normal">
-                        이 기능을 사용하려면 [설정] 탭에서 <strong>Gemini API Key</strong>를 등록하셔야 합니다. API 키는 무료로 쉽게 발급받을 수 있습니다.
+                        이 기능을 사용하려면 [설정] 탭에서 <strong>Gemini API Key</strong>를 등록하셔야 합니다. API 키는 <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-amber-600 underline font-black hover:text-amber-800">Google AI Studio</a>에서 무료로 쉽게 발급받을 수 있습니다.
                       </p>
                     </div>
                   </div>
