@@ -2360,14 +2360,14 @@ function doPost(e) {
                 <button
                   type="button"
                   onClick={() => setIsApiSettingsOpen(!isApiSettingsOpen)}
-                  className="w-full px-5 py-4.5 flex items-center justify-between bg-violet-100 hover:bg-violet-200/70 transition-colors border-none text-left"
+                  className="w-full px-6 py-6 flex items-center justify-between bg-violet-100 hover:bg-violet-200/70 transition-colors border-none text-left cursor-pointer"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[16px]">⚙️</span>
-                    <h3 className="text-[15px] font-black text-slate-800 tracking-tight">API 연동 설정</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[22px]">⚙️</span>
+                    <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">API 연동 설정</h3>
                   </div>
                   <ChevronDown
-                    size={16}
+                    size={20}
                     className={`text-slate-500 transition-transform duration-200 ${isApiSettingsOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
@@ -2404,24 +2404,24 @@ function doPost(e) {
                 <button
                   type="button"
                   onClick={() => setIsCloudBackupOpen(!isCloudBackupOpen)}
-                  className="w-full px-5 py-4.5 flex items-center justify-between bg-sky-100 hover:bg-sky-200/70 transition-colors border-none text-left"
+                  className="w-full px-6 py-6 flex items-center justify-between bg-sky-100 hover:bg-sky-200/70 transition-colors border-none text-left cursor-pointer"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[16px]">☁️</span>
-                    <h3 className="text-[15px] font-black text-slate-800 tracking-tight">클라우드 실시간 동기</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[22px]">☁️</span>
+                    <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">클라우드 실시간 동기</h3>
                   </div>
                   <ChevronDown
-                    size={16}
+                    size={20}
                     className={`text-slate-500 transition-transform duration-200 ${isCloudBackupOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
                 {isCloudBackupOpen && (
                   <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
-                    <div className="p-3 bg-blue-50/70 border border-blue-100 text-[#1E3A8A] rounded-xl font-semibold leading-relaxed flex flex-col gap-1.5 text-[10.5px]">
-                      <p className="font-black text-[11px] flex items-center gap-1">☁️ 클라우드 동기화 안내</p>
+                    <div className="p-4 bg-blue-50/70 border border-blue-100 text-[#1E3A8A] rounded-xl font-semibold leading-relaxed flex flex-col gap-1.5 text-[13px]">
+                      <p className="font-black text-[14px] flex items-center gap-1">☁️ 클라우드 동기화 안내</p>
                       <p className="text-slate-500">구글 스프레드시트 배포 URL을 연동하면 모바일과 PC 등 다른 기기들과 출강 데이터를 동일하게 동기화할 수 있습니다.</p>
-                      <div>
-                        <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[10px] font-black text-white bg-[#1E3A8A] px-2.5 py-1.5 rounded-lg hover:bg-[#0F172A] transition">구글 시트 연동 방법 보기</button>
+                      <div className="mt-1">
+                        <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[12px] font-black text-white bg-[#1E3A8A] px-3 py-2 rounded-lg hover:bg-[#0F172A] transition border-none cursor-pointer">구글 시트 연동 방법 보기</button>
                       </div>
                     </div>
 
@@ -2455,9 +2455,9 @@ function doPost(e) {
                       </div>
                     ) : (
                       <div className="flex flex-col gap-2 mt-1">
-                        <div className="p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl font-semibold text-[11px] leading-relaxed flex flex-col gap-1">
-                          <span className="font-black text-[12.5px] flex items-center gap-1">✨ 실시간 자동 동기화 활성화됨</span>
-                          <span className="text-emerald-700 text-[10px]">대시보드에서 일정을 등록, 수정, 삭제하거나 정산 완료 처리를 하시면 백업 버튼을 따로 누르지 않아도 사용자의 구글 시트에 실시간으로 자동 저장됩니다.</span>
+                        <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl font-semibold text-[13px] leading-relaxed flex flex-col gap-1.5">
+                          <span className="font-black text-[14px] flex items-center gap-1">✨ 실시간 자동 동기화 활성화됨</span>
+                          <span className="text-emerald-700 text-[12px]">대시보드에서 일정을 등록, 수정, 삭제하거나 정산 완료 처리를 하시면 백업 버튼을 따로 누르지 않아도 사용자의 구글 시트에 실시간으로 자동 저장됩니다.</span>
                         </div>
                       </div>
                     )}
@@ -2470,14 +2470,14 @@ function doPost(e) {
                 <button
                   type="button"
                   onClick={() => setIsLocalBackupOpen(!isLocalBackupOpen)}
-                  className="w-full px-5 py-4.5 flex items-center justify-between bg-emerald-100 hover:bg-emerald-200/70 transition-colors border-none text-left"
+                  className="w-full px-6 py-6 flex items-center justify-between bg-emerald-100 hover:bg-emerald-200/70 transition-colors border-none text-left cursor-pointer"
                 >
-                  <div className="flex items-center gap-2.5">
-                    <span className="text-[16px]">📂</span>
-                    <h3 className="text-[15px] font-black text-slate-800 tracking-tight">로컬 데이터 관리</h3>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[22px]">📂</span>
+                    <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">로컬 데이터 관리</h3>
                   </div>
                   <ChevronDown
-                    size={16}
+                    size={20}
                     className={`text-slate-500 transition-transform duration-200 ${isLocalBackupOpen ? 'rotate-180' : ''}`}
                   />
                 </button>
@@ -2486,103 +2486,105 @@ function doPost(e) {
 
                     {/* Section A: 처음 오신 분 – AI 변환 & 샘플 */}
                     <div className="flex flex-col gap-3">
-                      <span className="text-[11.5px] font-black text-indigo-600 uppercase tracking-wide">💡 처음이신가요? 기존 데이터 변환 &amp; 예시</span>
+                      <span className="text-[13.5px] font-black text-indigo-600 uppercase tracking-wide">💡 처음이신가요? 기존 데이터 변환 &amp; 예시</span>
 
                       {/* AI 프롬프트 카드 */}
-                      <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
-                        <span className="text-[12.5px] font-extrabold text-slate-800">
-                          🤖 AI 활용 기존 기록 변환기
+                      <div className="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-5 flex flex-col gap-3.5 shadow-sm">
+                        <span className="text-[14px] font-extrabold text-slate-800">
+                          🤖 AI 활용 기존 기록 파일 일괄 변환기
                         </span>
-                        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
-                          선생님이 관리 중이시던 기존 엑셀 목록을 복사해 ChatGPT/Claude에 본 프롬프트와 함께 입력하시면 완벽한 대시보드 파일로 즉시 가공해 줍니다. (날짜 형식은 반드시 YYYY-MM-DD 형식이어야 합니다.)
-                        </p>
+                        
+                        <div className="text-[13px] text-slate-600 font-semibold leading-relaxed flex flex-col gap-2">
+                          <p className="font-extrabold text-indigo-900">👉 기존에 관리하시던 강의 장부(엑셀/한글 표 등) 가져오는 법:</p>
+                          <ol className="list-decimal pl-4.5 flex flex-col gap-1.5 text-slate-500">
+                            <li>바로 아래의 <strong>[출강기록 양식 예시 CSV 받기]</strong>를 클릭하여 표준 서식 파일을 다운로드합니다.</li>
+                            <li><strong>ChatGPT</strong> 또는 <strong>Claude</strong> 대화창에 <strong>선생님이 기존에 사용하시던 장부 파일</strong>과 <strong>방금 내려받은 예시 파일</strong> 두 개를 함께 업로드합니다.</li>
+                            <li>아래 <strong>[AI 변환 프롬프트 복사하기]</strong> 버튼을 눌러 문구를 복사한 뒤 AI 대화창에 붙여넣어(Ctrl+V) 전송합니다.</li>
+                            <li>AI가 생성해 준 결과 파일(또는 CSV 문구)을 저장해 하단의 <strong>[백업 파일 불러오기]</strong>로 가져오면 즉시 연동됩니다!</li>
+                          </ol>
+                        </div>
+                        
                         <button
                           type="button"
                           onClick={() => {
-                            const promptText = `내가 가진 강의 일정 데이터를 아래의 CSV 규격과 예시 형식에 맞춰서 변환해줘.
+                            const promptText = `첨부한 두 개의 파일(나의 기존 데이터 파일 & 양식 예시 CSV 파일)을 참고하여, 나의 데이터를 양식 예시 CSV 파일의 헤더 규격 및 서식 규칙에 맞춰 완벽하게 변환해줘.
 
 [CSV 헤더 규격]
 기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제금액(-),월,실수령액,날짜,등록일,정산여부
 
-[변환 예시 1]
-"TMD교육/고흥동초B (1)","보조강사","50000","3","192000","42000","-6335","12월","185665","2025-12-10","2025-12-10","정산완료"
-
-[변환 예시 2]
-"코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)","보조강사","50000","3","175787","25787","-4950","1월","170837","2026-01-12","2026-01-12","정산완료"
+[출력 데이터 규격 및 형식 규칙]
+- 헤더 규격: '기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제금액(-),월,실수령액,날짜,등록일,정산여부' 순서의 열로 만들어줘.
+- '날짜'와 '등록일' 서식: 반드시 'YYYY-MM-DD' 형식 (예: 2026-06-30)이어야 합니다. 날짜와 등록일의 연도는 일치해야 합니다. (등록일이 누락된 항목은 날짜의 연도를 복사해줘.)
+- '출강역할' 서식: '주강사' 또는 '보조강사' 중 하나로 표준화해줘.
+- '정산여부' 서식: 이미 돈을 지급받은 강의는 '정산완료', 아직 지급 대기 중인 강의는 '정산대기'로 변환해줘.
 
 [주의 사항]
-- 날짜와 등록일은 반드시 'YYYY-MM-DD' 형식(예: 2026-06-30)이어야 합니다.
-- 등록일을 기준으로 연도가 구별되니 날짜와 등록일 연도를 일치시켜줘. (등록일은 비워둘 수 있으며, 비어 있을 경우 날짜의 연도가 기준이 됩니다.)
-- 실수령액과 공제금액은 숫자로만 채워줘.
-- 마크다운 블록 없이 순수 CSV 텍스트로만 반환해줘.
-
-[나의 데이터]
-(여기에 기존 데이터를 붙여넣으세요)`;
-                            navigator.clipboard.writeText(promptText);
-                            alert('AI 변환 프롬프트가 복사되었습니다!\n\nChatGPT 또는 Claude 창을 열고 붙여넣기(Ctrl+V) 한 뒤, 변환할 데이터를 입력창 맨 아래에 덧붙여 요청하세요.');
-                          }}
-                          className="w-full py-2.5 bg-indigo-100 hover:bg-indigo-200/70 border border-indigo-200 text-indigo-700 text-[11px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 text-center"
+- 실수령액(예상수령액 + 교통비 - 공제금액)과 공제금액 계산이 양식 예시 규격과 맞는지 수학적으로 다시 한 번 정밀 검증해서 채워줘.
+- 마크다운 코드 블록(\`\`\`) 없이 순수 CSV 텍스트로만 반환해줘.`;
+                             navigator.clipboard.writeText(promptText);
+                             alert('AI 변환 프롬프트가 클립보드에 복사되었습니다!\n\nChatGPT 또는 Claude 창을 열고, [내 데이터 파일]과 [다운로드한 양식 예시 CSV] 두 개를 첨부한 뒤 복사한 메시지를 전송하세요.');
+                           }}
+                           className="w-full py-3 bg-indigo-100 hover:bg-indigo-200/70 border border-indigo-200 text-indigo-700 text-[13px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 text-center cursor-pointer"
                         >
                           📋 AI 변환 프롬프트 복사하기
                         </button>
                       </div>
 
                       {/* 예제 파일 다운로드 */}
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex flex-col gap-2 shadow-sm">
-                        <span className="text-[12.5px] font-extrabold text-emerald-800">📄 작성 표준 양식 CSV 다운로드</span>
-                        <p className="text-[11px] text-emerald-700 font-semibold leading-relaxed">
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col gap-2 shadow-sm">
+                        <span className="text-[14px] font-extrabold text-emerald-800">📄 작성 표준 양식 CSV 다운로드</span>
+                        <p className="text-[13px] text-emerald-700 font-semibold leading-relaxed">
                           표준 날짜 서식이 올바르게 적용된 예제 양식 파일을 내 컴퓨터로 다운로드합니다.
                         </p>
                         <button onClick={handleDownloadSampleCSV}
-                          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-[12.5px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 border-none">
-                          <Download size={13} className="text-white" />
+                          className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white text-[13.5px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 border-none cursor-pointer">
+                          <Download size={15} className="text-white" />
                           출강기록 양식 예시 CSV 받기
                         </button>
                       </div>
                     </div>
-
-                    <div className="h-px bg-slate-100" />
+                                        <div className="h-px bg-slate-100" />
 
                     {/* Section B: 내 데이터 백업 & 복원 */}
                     <div className="flex flex-col gap-3">
-                      <span className="text-[11.5px] font-black text-slate-600 uppercase tracking-wide">📦 내 데이터 백업 및 복원</span>
+                      <span className="text-[13.5px] font-black text-slate-600 uppercase tracking-wide">📦 내 데이터 백업 및 복원</span>
 
                       {/* 📤 내보내기 */}
-                      <div className="border border-slate-200 rounded-2xl p-4 flex flex-col gap-2.5 bg-white shadow-sm">
-                        <span className="text-[12.5px] font-extrabold text-slate-800">📤 [보내기] 내 기록 파일로 백업</span>
-                        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                      <div className="border border-slate-200 rounded-2xl p-5 flex flex-col gap-3 bg-white shadow-sm">
+                        <span className="text-[14px] font-extrabold text-slate-800">📤 [보내기] 내 기록 파일로 백업</span>
+                        <p className="text-[13px] text-slate-500 font-semibold leading-relaxed">
                           현재 대시보드에 입력된 모든 출강 기록을 기기에 파일로 내려받아 보관합니다.
                         </p>
                         <button onClick={handleExportCSV}
-                          className="w-full py-3 bg-[#1F2E5B] hover:bg-[#172346] text-white text-[12.5px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 border-none">
-                          <Upload size={13} className="text-white" />
+                          className="w-full py-3 bg-[#1F2E5B] hover:bg-[#172346] text-white text-[13.5px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-95 border-none cursor-pointer">
+                          <Upload size={15} className="text-white" />
                           현재 내 모든 기록 내보내기 (백업 파일 내려받기)
                         </button>
                       </div>
 
                       {/* 📥 가져오기 */}
-                      <div className="border border-slate-200 rounded-2xl p-4 flex flex-col gap-2.5 bg-white shadow-sm">
-                        <span className="text-[12.5px] font-extrabold text-slate-800">📥 [가져오기] 백업 파일 불러오기</span>
-                        <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">
+                      <div className="border border-slate-200 rounded-2xl p-5 flex flex-col gap-3 bg-white shadow-sm">
+                        <span className="text-[14px] font-extrabold text-slate-800">📥 [가져오기] 백업 파일 불러오기</span>
+                        <p className="text-[13px] text-slate-500 font-semibold leading-relaxed">
                           이전에 백업해둔 CSV 파일을 불러와 현재 강의 리스트 뒤에 추가 및 병합합니다. 날짜 형식은 반드시 YYYY-MM-DD(예: 2026-06-30)여야 하며, 다른 형식인 경우 가져오기가 거부됩니다.
                         </p>
-                        <div className="relative border-2 border-dashed border-slate-200 rounded-xl p-5 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
+                        <div className="relative border-2 border-dashed border-slate-200 rounded-xl p-6 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
                           <input type="file" accept=".csv" onChange={handleAnimatedUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" disabled={isUploading} />
-                          <div className={`p-2.5 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-2 ${isUploading ? 'upload-pulse' : 'cloud-float'}`}>
-                            <Cloud size={24} className="text-[#2563EB]" />
+                          <div className={`p-3 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center mb-2.5 ${isUploading ? 'upload-pulse' : 'cloud-float'}`}>
+                            <Cloud size={28} className="text-[#2563EB]" />
                           </div>
                           {isUploading ? (
-                            <div className="w-full max-w-[180px] flex flex-col items-center gap-1">
-                              <span className="text-[10px] font-bold text-[#2563EB]">파일을 파싱하는 중...</span>
+                            <div className="w-full max-w-[200px] flex flex-col items-center gap-1.5">
+                              <span className="text-[12px] font-bold text-[#2563EB]">파일을 파싱하는 중...</span>
                               <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-[#2563EB] transition-all duration-75" style={{width: `${uploadProgress}%`}} />
                               </div>
-                              <span className="text-[9px] text-slate-400 font-extrabold">{uploadProgress}%</span>
+                              <span className="text-[11px] text-slate-400 font-extrabold">{uploadProgress}%</span>
                             </div>
                           ) : (
                             <>
-                              <span className="text-[12.5px] font-black text-slate-800">CSV 백업 파일 선택 / 드래그</span>
-                              <p className="text-[10px] text-slate-400 mt-1 font-semibold">이곳을 누르거나 백업된 CSV 파일을 끌어오세요.</p>
+                              <span className="text-[14px] font-black text-slate-800">CSV 백업 파일 선택 / 드래그</span>
+                              <p className="text-[12px] text-slate-400 mt-1 font-semibold">이곳을 누르거나 백업된 CSV 파일을 끌어오세요.</p>
                             </>
                           )}
                         </div>
@@ -2593,10 +2595,10 @@ function doPost(e) {
               </div>
 
               {/* Danger zone */}
-              <div className="rounded-[24px] p-4 flex flex-col gap-2 shadow-sm" style={{background:'linear-gradient(135deg,#FEF2F2 0%,#FFF1F2 100%)',border:'1px solid rgba(239,68,68,0.12)'}}>
-                <div className="flex items-center gap-2"><AlertCircle size={15} className="text-red-500" /><span className="text-[13px] font-black text-red-700">기록 데이터 초기화</span></div>
-                <p className="text-[11px] text-red-600/70 leading-relaxed font-semibold">모든 출강기록과 API 연동 키를 삭제하며, 복구할 수 없습니다.</p>
-                <button onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){safeLocalStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} className="py-2.5 text-[12px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl transition shadow-sm">앱 전체 데이터 초기화</button>
+              <div className="rounded-[24px] p-5 flex flex-col gap-2.5 shadow-sm" style={{background:'linear-gradient(135deg,#FEF2F2 0%,#FFF1F2 100%)',border:'1px solid rgba(239,68,68,0.12)'}}>
+                <div className="flex items-center gap-2"><AlertCircle size={17} className="text-red-500" /><span className="text-[14.5px] font-black text-red-700">기록 데이터 초기화</span></div>
+                <p className="text-[13px] text-red-600/70 leading-relaxed font-semibold">모든 출강기록과 API 연동 키를 삭제하며, 복구할 수 없습니다.</p>
+                <button onClick={() => { if(window.confirm('정말 전체 초기화하시겠습니까?')){safeLocalStorage.clear();setLectures([]);setApiKey('');setSheetUrl('');alert('초기화 완료. 새로고침합니다.');window.location.reload();}}} className="py-3 text-[13.5px] font-black text-white bg-red-600 hover:bg-red-700 rounded-xl transition shadow-sm border-none cursor-pointer">앱 전체 데이터 초기화</button>
               </div>
               
               {/* Information footer */}
