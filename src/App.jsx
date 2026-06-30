@@ -2594,7 +2594,7 @@ function doPost(e) {
                   <span className="text-[13.5px] font-black text-slate-800">출강바이브 정보</span>
                 </div>
                 <p className="text-[10px] text-slate-400 font-bold">출강료 관리 모바일 대시보드 v1.3.0</p>
-                <p className="text-[9.5px] text-slate-400 font-extrabold flex items-center gap-1 mt-0.5">✉️ 문의: <a href="mailto:wlstlfdl11@kakao.com" className="text-blue-500 hover:text-blue-700 underline">wlstlfdl11@kakao.com</a></p>
+                <p className="text-[9.5px] text-slate-400 font-extrabold flex items-center gap-1 mt-0.5">💬 카톡문의: <a href="https://open.kakao.com/o/s8Fu8RBi" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline">https://open.kakao.com/o/s8Fu8RBi</a></p>
               </div>
             </div>
           )}
