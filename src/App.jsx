@@ -809,8 +809,8 @@ export default function App() {
     setIsMockParseResult(true);
 
     let currentLength = 0;
-    const intervalTime = 12; // ms per step
-    const stepSize = 4; // type 4 characters at a time for smooth speed
+    const intervalTime = 25; // ms per step (slower)
+    const stepSize = 1; // type 1 character at a time (smoother and slower)
     
     const timer = setInterval(() => {
       currentLength += stepSize;
@@ -859,7 +859,7 @@ export default function App() {
           setParsedLectures(mockParsed);
           setIsAiVerifying(true);
           setAiLoading(false);
-        }, 500);
+        }, 1500); // 1.5 seconds transition delay so users have time to see it complete
       } else {
         setAiText(fullText.slice(0, currentLength));
       }
@@ -1814,7 +1814,14 @@ function doPost(e) {
                     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </button>
                 ) : <span className="w-8 h-8"/>}
-                <span className="text-[15.5px] font-black text-slate-800 tracking-tight">{statsYear}년</span>
+                {statsYear === 2026 ? (
+                  <span className="glossy-year-badge px-3.5 py-1.5 rounded-full text-[13px] font-black text-slate-850 tracking-tight flex items-center gap-1.5 select-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00BCD4] animate-pulse" />
+                    {statsYear}년 (올해)
+                  </span>
+                ) : (
+                  <span className="text-[15.5px] font-black text-slate-800 tracking-tight">{statsYear}년</span>
+                )}
                 {homeCanGoNext ? (
                   <button onClick={() => setStatsYear(y => y + 1)}
                     className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
@@ -2144,18 +2151,24 @@ function doPost(e) {
 
           {activeTab === 'stats' && (
             <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
-              <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
-                {/* 연도 조작 셀렉터 - 심플 가로 중앙 정렬 */}
-                <div className="flex items-center justify-center gap-4 py-1.5 animate-fade-in">
-                  {statsCanGoPrev ? (
-                    <button onClick={() => setStatsYear(y => y - 1)}
-                      className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
-                      aria-label="이전 연도">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                    </button>
-                  ) : <span className="w-8 h-8"/>}
+              {/* 연도 조작 셀렉터 - 심플 가로 중앙 정렬 */}
+              <div className="flex items-center justify-center gap-4 py-1.5 animate-fade-in">
+                {statsCanGoPrev ? (
+                  <button onClick={() => setStatsYear(y => y - 1)}
+                    className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
+                    aria-label="이전 연도">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  </button>
+                ) : <span className="w-8 h-8"/>}
+                {statsYear === 2026 ? (
+                  <span className="glossy-year-badge px-3.5 py-1.5 rounded-full text-[13px] font-black text-slate-850 tracking-tight flex items-center gap-1.5 select-none">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#00BCD4] animate-pulse" />
+                    {statsYear}년 (올해)
+                  </span>
+                ) : (
                   <span className="text-[15.5px] font-black text-slate-800 tracking-tight">{statsYear}년</span>
-                  {statsCanGoNext ? (
+                )}
+                {statsCanGoNext ? (
                     <button onClick={() => setStatsYear(y => y + 1)}
                       className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
                       aria-label="다음 연도">
@@ -2334,7 +2347,6 @@ function doPost(e) {
                   </div>
                 )}
               </div>
-            </div>
             </div>
           )}
 
@@ -3104,7 +3116,6 @@ function doPost(e) {
                 )}
 
                 <textarea
-                  rows="7"
                   value={aiText}
                   onChange={(e) => setAiText(e.target.value)}
                   disabled={aiLoading}
@@ -3113,7 +3124,7 @@ function doPost(e) {
 2026 디지털 정보화 교육 안내
 - 11/19(화) 09:00~12:00 (3차시) 광주사회복지회관
 - 강사료: 시간당 10만원 (교통비 2만원 별도)`}
-                  className="w-full px-4 py-3 border border-indigo-150 rounded-2xl focus:outline-none focus:border-indigo-500 bg-white/70 backdrop-blur shadow-inner resize-none text-[13.5px] font-medium text-slate-800 transition-all placeholder-slate-400"
+                  className="w-full h-[280px] md:h-[220px] px-4 py-3 border border-indigo-150 rounded-2xl focus:outline-none focus:border-indigo-500 bg-white/70 backdrop-blur shadow-inner resize-none text-[13.5px] font-medium text-slate-800 transition-all placeholder-slate-400"
                 />
 
                 {aiLoading && (
@@ -3267,8 +3278,8 @@ function doPost(e) {
                   )}
                 </div>
                 {isMockParseResult && (
-                  <div className="text-center mt-2 text-[11px] font-bold text-indigo-600 bg-indigo-50 py-2 rounded-lg border border-indigo-100">
-                    ※ 목업 테스트용 가상 데이터입니다. 확인 후 이전으로 돌아가주세요.
+                  <div className="text-center mt-2 text-[11.5px] font-bold text-indigo-650 bg-indigo-50/80 py-2.5 px-3 rounded-lg border border-indigo-100 leading-normal">
+                    ※ 체험용 목업(가상) 데이터입니다. 본인의 실제 강의 내역을 정산하려면 <strong>[설정]</strong> 탭에서 <strong>Gemini API Key</strong>를 등록한 후 진짜 일정을 자동으로 분석해 보세요!
                   </div>
                 )}
               </div>
