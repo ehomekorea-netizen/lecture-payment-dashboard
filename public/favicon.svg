@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+  <defs>
+    <!-- Drop Shadow for the emblem to pop in 3D -->
+    <filter id="emblemShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#5C2600" flood-opacity="0.5"/>
+    </filter>
+
+    <!-- Drop Shadow for the entire coin -->
+    <filter id="coinShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+
+    <!-- Outer Rim Metallic Gold Gradient -->
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFEFA6" />
+      <stop offset="30%" stop-color="#FFD13B" />
+      <stop offset="70%" stop-color="#E09200" />
+      <stop offset="100%" stop-color="#804C00" />
+    </linearGradient>
+
+    <!-- Inner Face Deep Orange-Gold Gradient -->
+    <linearGradient id="innerFaceGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFAE19" />
+      <stop offset="100%" stop-color="#D65900" />
+    </linearGradient>
+
+    <!-- Center Emblem Bright Reflective Gold Gradient -->
+    <linearGradient id="emblemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="20%" stop-color="#FFF3B3" />
+      <stop offset="50%" stop-color="#FFD63D" />
+      <stop offset="80%" stop-color="#E09200" />
+      <stop offset="100%" stop-color="#9C5200" />
+    </linearGradient>
+    
+    <!-- Outer Bevel Highlight Gradient -->
+    <linearGradient id="bevelGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.4" />
+    </linearGradient>
+  </defs>
+
+  <!-- Main Coin Group with Shadow -->
+  <g transform="translate(300, 300)" filter="url(#coinShadow)">
+    <!-- Base Outer Circle (Gold Rim) -->
+    <circle cx="0" cy="0" r="193.3" fill="url(#rimGrad)" />
+    
+    <!-- Bevel highlight overlay -->
+    <circle cx="0" cy="0" r="193.3" fill="url(#bevelGrad)" opacity="0.15" />
+    
+    <!-- Rim inner border shadow -->
+    <circle cx="0" cy="0" r="185" fill="none" stroke="#7A3D00" stroke-width="2.5" opacity="0.3" />
+    
+    <!-- Inner Face Background Disk -->
+    <circle cx="0" cy="0" r="143" fill="url(#innerFaceGrad)" stroke="#FFD866" stroke-width="2" />
+    
+    <!-- Inner rim shadow for depth -->
+    <circle cx="0" cy="0" r="143" fill="none" stroke="#5C2000" stroke-width="4" opacity="0.3" />
+
+    <!-- Center Emblem Vector Paths -->
+    <path d="M 20.244 59.636 C 17.709 61.657 14.512 63.121 10.692 64.067 C 10.692 64.067 10.692 25.773 10.692 25.773 C 13.789 27.010 16.416 28.299 18.563 29.641 C 24.444 33.317 27.384 38.344 27.384 44.729 C 27.384 50.872 25.003 55.841 20.244 59.636 Z" fill="url(#emblemGrad)" filter="url(#emblemShadow)" />
+    <path d="M -20.244 -28.004 C -25.341 -31.556 -27.888 -36.226 -27.888 -42.008 C -27.888 -48.152 -25.649 -53.212 -21.168 -57.187 C -18.351 -59.688 -14.800 -61.399 -10.520 -62.327 C -10.520 -62.327 -10.520 -23.235 -10.520 -23.235 C -14.559 -24.715 -17.807 -26.303 -20.244 -28.004 Z" fill="url(#emblemGrad)" filter="url(#emblemShadow)" />
+    <path d="M 36.119 -10.024 C 29.037 -12.803 20.554 -15.337 10.692 -17.634 C 10.692 -17.634 10.692 -61.136 10.692 -61.136 C 13.970 -59.919 16.681 -58.155 18.815 -55.832 C 20.415 -54.090 21.729 -52.183 22.758 -50.110 C 26.565 -42.438 34.559 -37.310 43.654 -37.310 C 43.654 -37.310 44.942 -37.310 44.942 -37.310 C 62.894 -37.310 74.292 -55.541 64.992 -69.804 C 61.897 -74.551 58.013 -78.899 53.340 -82.847 C 42.147 -92.300 27.930 -97.927 10.692 -99.733 C 10.692 -99.733 10.692 -109.831 10.692 -109.831 C 10.692 -115.689 5.944 -120.438 0.087 -120.438 C -5.771 -120.438 -10.520 -115.689 -10.520 -109.831 C -10.520 -109.831 -10.520 -100.050 -10.520 -100.050 C -28.266 -98.695 -42.936 -92.996 -54.516 -82.938 C -67.901 -71.311 -74.592 -56.826 -74.592 -39.478 C -74.592 -9.902 -53.230 9.789 -10.520 19.609 C -10.520 19.609 -10.520 64.424 -10.520 64.424 C -16.100 63.303 -20.829 61.141 -24.696 57.921 C -27.665 55.452 -29.946 52.442 -31.543 48.889 C -34.940 41.325 -43.150 36.598 -51.972 36.598 C -68.982 36.598 -79.958 53.613 -71.613 67.380 C -71.168 68.115 -70.704 68.848 -70.224 69.575 C -63.504 79.757 -54.238 87.767 -42.420 93.609 C -32.897 98.317 -22.262 101.126 -10.520 102.039 C -10.520 102.039 -10.520 109.828 -10.520 109.828 C -10.520 115.687 -5.771 120.436 0.087 120.436 C 5.944 120.436 10.692 115.687 10.692 109.828 C 10.692 109.828 10.692 101.755 10.692 101.755 C 27.581 100.041 41.770 94.739 53.256 85.838 C 67.477 74.816 74.592 60.391 74.592 42.561 C 74.592 17.623 61.765 0.096 36.119 -10.024 Z" fill="url(#emblemGrad)" filter="url(#emblemShadow)" />
+
+  </g>
+</svg>
