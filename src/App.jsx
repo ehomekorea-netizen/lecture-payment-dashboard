@@ -2753,25 +2753,25 @@ function doPost(e) {
                             href="https://chatgpt.com/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer"
+                            className="py-2 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
                           >
-                            <img src="/images/chatgpt.png" alt="ChatGPT" className="h-[28px] max-w-[95%] object-contain" />
+                            <img src="/images/chatgpt.png" alt="ChatGPT" className="h-[35px] max-w-[95%] object-contain" />
                           </a>
                           <a
                             href="https://claude.ai/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer"
+                            className="py-2 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
                           >
-                            <img src="/images/claude.png" alt="Claude" className="h-[34px] max-w-[95%] object-contain" />
+                            <img src="/images/claude.png" alt="Claude" className="h-[42px] max-w-[95%] object-contain" />
                           </a>
                           <a
                             href="https://gemini.google.com/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer"
+                            className="py-2 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
                           >
-                            <img src="/images/gemini.png" alt="Gemini" className="h-[34px] max-w-[95%] object-contain" />
+                            <img src="/images/gemini.png" alt="Gemini" className="h-[42px] max-w-[95%] object-contain" />
                           </a>
                         </div>
                       </div>
