@@ -190,6 +190,28 @@ export default function App() {
     return INITIAL_LECTURES;
   });
 
+  const [isSyncing, setIsSyncing] = useState(false);
+  const skipNextSyncRef = useRef(false);
+  const [isNoticeOpen, setIsNoticeOpen] = useState(false);
+
+  useEffect(() => {
+    const hideUntil = safeLocalStorage.getItem('lectoss_notice_hide_until');
+    const now = Date.now();
+    if (!hideUntil || now > Number(hideUntil)) {
+      setIsNoticeOpen(true);
+    }
+  }, []);
+
+  const handleHide7Days = () => {
+    const nextWeek = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    safeLocalStorage.setItem('lectoss_notice_hide_until', String(nextWeek));
+    setIsNoticeOpen(false);
+  };
+
+  const handleCloseNotice = () => {
+    setIsNoticeOpen(false);
+  };
+
   // Scroll to top on tab change (target tab body container for full support)
   useEffect(() => {
     const resetScroll = () => {
@@ -600,10 +622,20 @@ export default function App() {
     return a.localeCompare(b);
   });
 
-  // 로컬 스토리지 데이터 동기화
+  // 로컬 스토리지 데이터 동기화 및 구글 시트 백그라운드 자동 동기화(Push)
   useEffect(() => {
     safeLocalStorage.setItem('lectures', JSON.stringify(lectures));
-  }, [lectures]);
+    
+    if (sheetUrl) {
+      if (skipNextSyncRef.current) {
+        // Pull 등 외부 연동에 의한 업데이트 시 중복 전송 방지
+        skipNextSyncRef.current = false;
+        return;
+      }
+      // 백그라운드 실시간 동기화 실행
+      syncToGoogleSheetSilent(lectures);
+    }
+  }, [lectures, sheetUrl]);
 
   // Reset card swipe offsets on filter or search changes to prevent rendering anomalies (Placed safely below state initialization)
   useEffect(() => {
@@ -613,7 +645,7 @@ export default function App() {
 
   // 최초 로드 시 시트 연동 되어있으면 백그라운드 데이터 풀
   useEffect(() => {
-    if (sheetUrl && lectures.length === 0) {
+    if (sheetUrl) {
       fetchFromGoogleSheetSilent();
     }
   }, [sheetUrl]);
@@ -938,6 +970,7 @@ ${aiText}
           taxBase: String(row.taxBase || 'LectureOnly'),
           customTax: Number(row.customTax) || 0
         }));
+        skipNextSyncRef.current = true;
         setLectures(mapped);
         setSyncMessage({ type: 'success', text: `구글 시트에서 ${mapped.length}개의 강의 내역을 동기화하여 가져왔습니다.` });
       } else {
@@ -975,11 +1008,29 @@ ${aiText}
             taxBase: String(row.taxBase || 'LectureOnly'),
             customTax: Number(row.customTax) || 0
           }));
+          skipNextSyncRef.current = true;
           setLectures(mapped);
         }
       }
     } catch (e) {
       console.warn('Silent sync failed', e);
+    }
+  };
+
+  // 백그라운드 실시간 동기화 (Push)
+  const syncToGoogleSheetSilent = async (lecturesList) => {
+    if (!sheetUrl) return;
+    setIsSyncing(true);
+    try {
+      await fetch(sheetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'sync_all', lectures: lecturesList })
+      });
+    } catch (e) {
+      console.warn('Silent auto-sync push failed:', e);
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -1642,6 +1693,19 @@ function doPost(e) {
                 <h1 className="text-[#0F172A] text-[18px] font-black tracking-tight" style={{lineHeight: 1.15}}>
                   출강바이브
                 </h1>
+                {sheetUrl && (
+                  <span className="text-[9px] font-extrabold text-slate-400 block -mt-0.5">
+                    {isSyncing ? (
+                      <span className="text-[#2563EB] animate-pulse flex items-center gap-0.5">
+                        <RefreshCw size={8} className="animate-spin" /> 동기화 중...
+                      </span>
+                    ) : (
+                      <span className="text-emerald-500">
+                        ☁️ 실시간 동기 완료
+                      </span>
+                    )}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -2325,24 +2389,13 @@ function doPost(e) {
 
                     {!sheetUrl ? (
                       <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl font-semibold text-center text-[10.5px]">
-                        구글 시트 웹 앱 URL을 입력하고 저장하시면 클라우드 실시간 동기 단추가 활성화됩니다.
+                        구글 시트 웹 앱 URL을 입력하고 저장하시면 클라우드 실시간 동기가 활성화됩니다.
                       </div>
                     ) : (
                       <div className="flex flex-col gap-2 mt-1">
-                        {syncMessage && (
-                          <div className={`p-3 rounded-xl border text-[12px] font-semibold ${syncMessage.type === 'success' ? 'bg-green-50 border-green-200 text-green-700' : 'bg-red-50 border-red-200 text-red-600'}`}>
-                            {syncMessage.text}
-                          </div>
-                        )}
-                        <div className="grid grid-cols-2 gap-2">
-                          <button onClick={fetchFromGoogleSheet} disabled={syncLoading} className="w-full py-3.5 text-[12.5px] font-black bg-blue-50 border border-blue-100 text-[#2563EB] rounded-xl flex items-center justify-center gap-1 hover:bg-blue-100 transition">
-                            {syncLoading ? <RefreshCw size={13} className="animate-spin" /> : <Download size={13} />}
-                            가져오기 (Pull)
-                          </button>
-                          <button onClick={() => syncToGoogleSheet(lectures)} disabled={syncLoading} className="w-full py-3.5 text-[12.5px] font-black bg-[#1F2E5B] text-white rounded-xl flex items-center justify-center gap-1 hover:bg-[#172346] transition">
-                            {syncLoading ? <RefreshCw size={13} className="animate-spin" /> : <Upload size={13} />}
-                            백업하기 (Push)
-                          </button>
+                        <div className="p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl font-semibold text-[11px] leading-relaxed flex flex-col gap-1">
+                          <span className="font-black text-[12.5px] flex items-center gap-1">✨ 실시간 자동 동기화 활성화됨</span>
+                          <span className="text-emerald-700 text-[10px]">대시보드에서 일정을 등록, 수정, 삭제하거나 정산 완료 처리를 하시면 백업 버튼을 따로 누르지 않아도 사용자의 구글 시트에 실시간으로 자동 저장됩니다.</span>
                         </div>
                       </div>
                     )}
@@ -3444,6 +3497,81 @@ function doPost(e) {
                 className="w-full py-3 bg-[#2563EB] text-white font-black rounded-xl shadow-md hover:bg-blue-700 transition text-[13px]"
               >
                 저장 완료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── [MODAL 8]: 최초 안내 공지사항 모달 (홈 화면 추가 권장) ── */}
+      {isNoticeOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md bg-slate-950/70 animate-fade-in">
+          <div className="bg-gradient-to-b from-[#134030] to-[#0a251c] w-full max-w-sm rounded-[32px] shadow-2xl overflow-hidden relative flex flex-col items-center p-6 border border-emerald-800/40">
+            {/* Close Button X */}
+            <button 
+              onClick={handleCloseNotice} 
+              className="absolute top-4 right-4 p-1.5 text-white/50 hover:text-white rounded-full hover:bg-white/10 transition border-none bg-transparent cursor-pointer animate-fade-in"
+              aria-label="닫기"
+            >
+              <X size={18} />
+            </button>
+
+            {/* Logo: Coin Lottie (no bg container, centered) */}
+            <div className="my-3 flex items-center justify-center relative">
+              <div className="absolute w-24 h-24 bg-emerald-500/20 blur-2xl rounded-full pointer-events-none" />
+              <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[88px] h-[88px] relative z-10" />
+            </div>
+
+            {/* Title */}
+            <h3 className="text-white text-[22px] font-black tracking-tight mt-2 text-center">
+              출강바이브
+            </h3>
+
+            {/* Description */}
+            <div className="text-center mt-3 px-1 flex flex-col gap-1 text-[13px] text-emerald-100 font-semibold leading-relaxed">
+              <p>홈 화면에 추가하고</p>
+              <p>매일 편리하게 출강 현황을 관리해 보세요.</p>
+            </div>
+
+            {/* Guidance Content Card */}
+            <div className="w-full bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 flex flex-col gap-3.5 mt-5 shadow-inner">
+              <p className="text-[11.5px] text-emerald-100 font-medium leading-relaxed text-center">
+                클라우드 실시간 동기를 연동하지 않는 경우, 브라우저 마다 데이터가 개별 저장되거나 초기화될 위험이 있습니다.
+              </p>
+              
+              {/* CTA Instruction */}
+              <div className="bg-emerald-950/40 rounded-xl p-3 flex flex-col gap-1.5 items-center justify-center border border-emerald-900/40">
+                <div className="flex items-center gap-1.5 text-[12px] font-black text-white">
+                  <span className="text-xs">📤</span>
+                  <span>[공유] 버튼을 누른 뒤</span>
+                </div>
+                <div className="text-[10px] text-emerald-400 font-black">⬇️</div>
+                <div className="flex items-center gap-2">
+                  <span className="bg-[#10B981] text-white text-[10px] font-black px-2.5 py-1.5 rounded-lg shadow-sm">
+                    홈 화면에 추가
+                  </span>
+                  <span className="text-[12px] font-black text-white">누르면 끝!</span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-emerald-300/80 font-bold leading-normal text-center">
+                ※ 안전한 기기 간 실시간 자동 동기화를 위해 [설정 ➡️ 클라우드 실시간 동기] 사용을 강력하게 권장합니다.
+              </p>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="w-full flex items-center justify-between mt-6 border-t border-emerald-800/30 pt-4 px-1">
+              <button 
+                onClick={handleHide7Days} 
+                className="text-emerald-300/60 hover:text-emerald-200 text-[11.5px] font-bold underline transition border-none bg-transparent cursor-pointer"
+              >
+                7일간 보지 않기
+              </button>
+              <button 
+                onClick={handleCloseNotice} 
+                className="bg-[#10B981] hover:bg-[#059669] text-white text-[12px] font-black px-4.5 py-2.5 rounded-xl transition shadow-md border-none active:scale-95"
+              >
+                지금 보러가기
               </button>
             </div>
           </div>
