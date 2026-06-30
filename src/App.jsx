@@ -232,7 +232,20 @@ export default function App() {
     const saved = safeLocalStorage.getItem('lectoss_presets');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          // 기존 대괄호가 있는 프리셋 명칭 정리 (예: [🌱] 디지털새싹 -> 🌱 디지털새싹)
+          return parsed.map(p => {
+            if (p && p.name && p.name.startsWith('[') && p.name.includes(']')) {
+              const match = p.name.match(/^\[(.*?)\]\s*(.*)/);
+              if (match) {
+                return { ...p, name: `${match[1]} ${match[2]}` };
+              }
+            }
+            return p;
+          });
+        }
+        return parsed;
       } catch (e) {
         console.error(e);
       }
@@ -428,11 +441,7 @@ export default function App() {
           focusMonthIdx = new Date().getMonth();
         } else {
           // 지난 해 또는 지지난해: 정산 총액이 가장 높은 월을 기준
-          const yearLectures = lectures.filter(l => {
-            const rd = l.registrationDate || l.date || '';
-            if (!rd) return false;
-            return new Date(rd).getFullYear() === statsYear;
-          });
+          const yearLectures = lectures.filter(l => getLectureYear(l) === statsYear);
 
           if (yearLectures.length > 0) {
             const monthlyEarnings = Array(12).fill(0);
@@ -589,6 +598,30 @@ export default function App() {
     if (m3) return `${parseInt(m3[1], 10)}월`;
     
     return '';
+  };
+
+  const getLectureYear = (l) => {
+    if (!l) return statsYear;
+    // 1. Try registrationDate first (format YYYY-MM-DD)
+    if (l.registrationDate && l.registrationDate.startsWith('20')) {
+      const match = l.registrationDate.match(/^(\d{4})/);
+      if (match) return parseInt(match[1], 10);
+    }
+    // 2. Try date (format YYYY-MM-DD)
+    if (l.date && l.date.startsWith('20')) {
+      const match = l.date.match(/^(\d{4})/);
+      if (match) return parseInt(match[1], 10);
+    }
+    // 3. Try parsing year from month (if format is "25-12월")
+    if (l.month && l.month.includes('-')) {
+      const match = l.month.match(/^(\d+)-/);
+      if (match) {
+        const yy = parseInt(match[1], 10);
+        return 2000 + yy; // e.g. 25 -> 2025
+      }
+    }
+    // 4. Default to active statsYear if no year info is found
+    return statsYear;
   };
 
   const uniqueMonths = Array.from(new Set(lectures.map(l => extractMonth(l?.date)).filter(Boolean))).sort((a, b) => {
@@ -1147,7 +1180,7 @@ ${aiText}
       date: new Date().toISOString().slice(0, 10),
       registrationDate: new Date().toISOString().slice(0, 10),
       isPaid: false,
-      taxRate: '8.8%',
+      taxRate: '3.3%',
       taxBase: 'LectureOnly',
       customTax: 0
     });
@@ -1245,7 +1278,7 @@ ${aiText}
       date: lecture.date,
       registrationDate: lecture.registrationDate || new Date().toISOString().slice(0, 10),
       isPaid: lecture.isPaid,
-      taxRate: lecture.taxRate || '8.8%',
+      taxRate: lecture.taxRate || '3.3%',
       taxBase: lecture.taxBase || 'LectureOnly',
       customTax: lecture.customTax || 0
     });
@@ -1467,12 +1500,7 @@ ${aiText}
 
   // statsYear 기준으로 lectures 필터링 (홈 탭 및 통계용)
   const homeYearLectures = useMemo(() => {
-    return lectures.filter(l => {
-      if (!l) return false;
-      const regDate = l.registrationDate || l.date || '';
-      const yr = regDate ? new Date(regDate).getFullYear() : new Date().getFullYear();
-      return yr === statsYear;
-    });
+    return lectures.filter(l => getLectureYear(l) === statsYear);
   }, [lectures, statsYear]);
 
   // 홈 화면 요약 위젯 계산을 위한 필터링 (선택된 연도/월 및 기관 기준)
@@ -1480,9 +1508,7 @@ ${aiText}
     return lectures.filter(l => {
       if (!l) return false;
       if (selectedMonth === 'All') {
-        const regDate = l.registrationDate || l.date || '';
-        const yr = regDate ? new Date(regDate).getFullYear() : new Date().getFullYear();
-        if (yr !== statsYear) return false;
+        if (getLectureYear(l) !== statsYear) return false;
       } else {
         if (extractMonth(l.date) !== selectedMonth) return false;
       }
@@ -1522,11 +1548,7 @@ ${aiText}
   const _sNow = new Date().getFullYear();
   const statsCanGoPrev = statsYear > (_sNow - 3);
   const statsCanGoNext = statsYear < _sNow;
-  const statsYearLectures = lectures.filter(l => {
-    const rd = l.registrationDate || l.date || '';
-    if (!rd) return true;
-    return new Date(rd).getFullYear() === statsYear;
-  });
+  const statsYearLectures = lectures.filter(l => getLectureYear(l) === statsYear);
   const statsYearUniqueMonths = Array.from(new Set(statsYearLectures.map(l => l.month))).sort((a, b) => {
     const matchA = a.match(/(\d+)월$/);
     const matchB = b.match(/(\d+)월$/);
@@ -1569,9 +1591,7 @@ ${aiText}
     // 1. Year/Month Filter: If selectedMonth is 'All', only show lectures of statsYear.
     // Otherwise, show matching month regardless of statsYear (implicit year match).
     if (selectedMonth === 'All') {
-      const regDate = l.registrationDate || l.date || '';
-      const yr = regDate ? new Date(regDate).getFullYear() : new Date().getFullYear();
-      if (yr !== statsYear) return false;
+      if (getLectureYear(l) !== statsYear) return false;
     } else {
       if (extractMonth(l.date) !== selectedMonth) return false;
     }
@@ -1595,10 +1615,35 @@ ${aiText}
   const gasTemplateCode = `function doGet(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = sheet.getDataRange().getValues();
-  if (data.length <= 1) {
-    return ContentService.createTextOutput(JSON.stringify([]))
-      .setMimeType(ContentService.MimeType.JSON);
+  
+  // 만약 빈 시트이거나 행이 전혀 없는 경우 초기화 및 예시 데이터 생성
+  if (data.length <= 1 || (data.length === 2 && !data[1][0])) {
+    var headers = ["id", "institution", "rate", "classes", "expectedAmount", "transportFee", "deduction", "netAmount", "month", "date", "registrationDate", "isPaid", "taxRate", "taxBase", "customTax"];
+    sheet.clearContents();
+    sheet.appendRow(headers);
+    
+    // 예시 데이터 추가 (로컬데이터관리 출강기록 양식)
+    var sampleRow = [
+      "1782793714523",
+      "🌱 디지털새싹-대시보드개발",
+      100000,
+      4,
+      400000,
+      0,
+      0,
+      0,
+      "6월",
+      "2026-06-30",
+      "2026-06-30",
+      false,
+      "3.3%",
+      "LectureOnly",
+      0
+    ];
+    sheet.appendRow(sampleRow);
+    data = [headers, sampleRow];
   }
+  
   var headers = data[0];
   var rows = [];
   for (var i = 1; i < data.length; i++) {
@@ -2575,7 +2620,7 @@ function doPost(e) {
                         date: new Date().toISOString().slice(0, 10),
                         registrationDate: new Date().toISOString().slice(0, 10),
                         isPaid: false,
-                        taxRate: '8.8%',
+                        taxRate: '3.3%',
                         taxBase: 'LectureOnly',
                         customTax: 0
                       });
@@ -2694,8 +2739,9 @@ function doPost(e) {
                           institution: preset.name,
                           role: preset.role || 'Main',
                           rate: preset.rate,
+                          classes: preset.classes || prev.classes || 2,
                           transportFee: preset.transportFee || 0,
-                          taxRate: preset.taxRate || '8.8%',
+                          taxRate: preset.taxRate || '3.3%',
                           date: prev.date || `${new Date().getMonth() + 1}월 ${new Date().getDate()}일`
                         }));
                       }
@@ -2953,7 +2999,7 @@ function doPost(e) {
                     <input type="number" placeholder="시간당 단가(원)" value={formData._newPresetRate || ''} onChange={e => setFormData(prev => ({ ...prev, _newPresetRate: e.target.value }))} className="px-3 py-2 border border-blue-100 rounded-xl bg-white text-[11px] font-bold focus:outline-none" />
                   </div>
                   <select value={formData._newPresetTax || '3.3%'} onChange={e => setFormData(prev => ({ ...prev, _newPresetTax: e.target.value }))} className="px-3 py-2 bg-white border border-blue-100 rounded-xl text-[11px] font-bold"><option value="3.3%">공제세율 3.3% (기본)</option><option value="8.8%">공제세율 8.8%</option><option value="None">공제 없음 (0%)</option></select>
-                  <button type="button" onClick={() => { const name=(formData._newPresetName||'').trim(); if(!name){alert('기관명을 입력해 주세요.');return;} const emoji=formData._newPresetEmoji||'🌱'; setPresets(prev=>[...prev,{id:`p-${Date.now()}`,name:`[${emoji}] ${name}`,role:formData._newPresetRole||'Main',rate:Number(formData._newPresetRate)||100000,classes:2,transportFee:0,taxRate:formData._newPresetTax||'3.3%'}]); setFormData(prev=>({...prev,_newPresetName:'',_newPresetRate:'',_newPresetRole:'Main',_newPresetTax:'3.3%',_newPresetEmoji:'🌱',_showEmojiPicker:false})); alert('즐겨찾기가 저장되었습니다!'); }} className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11.5px] shadow-sm transition">새 즐겨찾기 추가 저장</button>
+                  <button type="button" onClick={() => { const name=(formData._newPresetName||'').trim(); if(!name){alert('기관명을 입력해 주세요.');return;} const emoji=formData._newPresetEmoji||'🌱'; setPresets(prev=>[...prev,{id:`p-${Date.now()}`,name:`${emoji} ${name}`,role:formData._newPresetRole||'Main',rate:Number(formData._newPresetRate)||100000,classes:2,transportFee:0,taxRate:formData._newPresetTax||'3.3%'}]); setFormData(prev=>({...prev,_newPresetName:'',_newPresetRate:'',_newPresetRole:'Main',_newPresetTax:'3.3%',_newPresetEmoji:'🌱',_showEmojiPicker:false})); alert('즐겨찾기가 저장되었습니다!'); }} className="w-full py-2.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11.5px] shadow-sm transition">새 즐겨찾기 추가 저장</button>
                 </div>
               </div>
             )}
@@ -3539,23 +3585,24 @@ function doPost(e) {
                 클라우드 실시간 동기를 연동하지 않는 경우, 브라우저 마다 데이터가 개별 저장되거나 초기화될 위험이 있습니다.
               </p>
               
-              {/* CTA Instruction */}
-              <div className="bg-emerald-950/40 rounded-xl p-3 flex flex-col gap-1.5 items-center justify-center border border-emerald-900/40">
-                <div className="flex items-center gap-1.5 text-[12px] font-black text-white">
+              {/* CTA Instruction - High Contrast Amber Theme */}
+              <div className="bg-amber-400/10 rounded-xl p-3.5 flex flex-col gap-1.5 items-center justify-center border border-amber-400/30 shadow-md">
+                <div className="flex items-center gap-1.5 text-[12px] font-black text-amber-200">
                   <span className="text-xs">📤</span>
                   <span>[공유] 버튼을 누른 뒤</span>
                 </div>
-                <div className="text-[10px] text-emerald-400 font-black">⬇️</div>
+                <div className="text-[10px] text-amber-400/80 font-black">⬇️</div>
                 <div className="flex items-center gap-2">
-                  <span className="bg-[#10B981] text-white text-[10px] font-black px-2.5 py-1.5 rounded-lg shadow-sm">
+                  <span className="bg-amber-400 text-slate-900 text-[10px] font-extrabold px-3 py-1.5 rounded-lg shadow-sm">
                     홈 화면에 추가
                   </span>
-                  <span className="text-[12px] font-black text-white">누르면 끝!</span>
+                  <span className="text-[12px] font-black text-amber-200">누르면 끝!</span>
                 </div>
               </div>
 
-              <p className="text-[10px] text-emerald-300/80 font-bold leading-normal text-center">
-                ※ 안전한 기기 간 실시간 자동 동기화를 위해 [설정 ➡️ 클라우드 실시간 동기] 사용을 강력하게 권장합니다.
+              <p className="text-[10px] text-emerald-300/80 font-bold leading-relaxed text-center">
+                ※ 안전한 기기 간 실시간 자동 동기화를 위해
+                <span className="block mt-1 text-amber-400">👉 [설정 ➡️ 클라우드 실시간 동기] 사용을 강력하게 권장합니다.</span>
               </p>
             </div>
 
@@ -3569,7 +3616,7 @@ function doPost(e) {
               </button>
               <button 
                 onClick={handleCloseNotice} 
-                className="bg-[#10B981] hover:bg-[#059669] text-white text-[12px] font-black px-4.5 py-2.5 rounded-xl transition shadow-md border-none active:scale-95"
+                className="bg-[#10B981] hover:bg-[#059669] text-white text-[12px] font-black px-6 py-2.5 rounded-xl transition shadow-md border-none active:scale-95 min-w-[110px] text-center"
               >
                 지금 보러가기
               </button>
