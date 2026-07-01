@@ -1874,43 +1874,55 @@ ${aiText}
   }
   
   var headers = data[0];
+  var colMap = {};
+  for (var k = 0; k < headers.length; k++) {
+    colMap[String(headers[k]).trim()] = k;
+  }
+  
+  function getVal(row, headerName, def) {
+    var idx = colMap[headerName];
+    if (idx === undefined || idx >= row.length) return def;
+    return row[idx];
+  }
+
   var rows = [];
   for (var i = 1; i < data.length; i++) {
     var rowData = data[i];
+    if (rowData.length === 0 || (!rowData[0] && rowData.length <= 1)) continue;
+    
     var item = {};
     
-    // Header-based mapping
-    item.institution = rowData[0] || "";
-    var roleStr = rowData[1] || "주강사";
+    item.institution = getVal(rowData, '기관명/학교', "") || "";
+    var roleStr = getVal(rowData, '출강역할', "주강사") || "주강사";
     item.role = roleStr === "보조강사" ? "Assistant" : "Main";
-    item.rate = Number(rowData[2]) || 0;
-    item.classes = Number(rowData[3]) || 0;
-    item.expectedAmount = Number(rowData[4]) || 0;
-    item.transportFee = Number(rowData[5]) || 0;
+    item.rate = Number(getVal(rowData, '강의단가', 0)) || 0;
+    item.classes = Number(getVal(rowData, '총 차시', 0)) || 0;
+    item.expectedAmount = Number(getVal(rowData, '예상수령액', 0)) || 0;
+    item.transportFee = Number(getVal(rowData, '교통비(+)', 0)) || 0;
     
-    var taxRateVal = String(rowData[6] || "3.3").trim();
+    var taxRateVal = String(getVal(rowData, '공제율(%)', "3.3") || "3.3").trim();
     item.taxRate = (taxRateVal === "0" || taxRateVal.toLowerCase() === "none") ? "None" : (taxRateVal.indexOf("%") !== -1 ? taxRateVal : taxRateVal + "%");
     
-    item.deduction = Number(rowData[7]) || 0;
-    item.month = rowData[8] ? String(rowData[8]) : "";
-    item.netAmount = Number(rowData[9]) || 0;
+    item.deduction = Number(getVal(rowData, '공제금액(-)', 0)) || 0;
+    item.month = String(getVal(rowData, '월', "") || "");
+    item.netAmount = Number(getVal(rowData, '실수령액', 0)) || 0;
     
-    var dateVal = rowData[10];
+    var dateVal = getVal(rowData, '날짜', "");
     if (dateVal instanceof Date) {
       dateVal = Utilities.formatDate(dateVal, Session.getScriptTimeZone(), "yyyy-MM-dd");
     }
     item.date = String(dateVal || "");
     
-    var regDateVal = rowData[11];
+    var regDateVal = getVal(rowData, '등록일', "");
     if (regDateVal instanceof Date) {
       regDateVal = Utilities.formatDate(regDateVal, Session.getScriptTimeZone(), "yyyy-MM-dd");
     }
     item.registrationDate = String(regDateVal || "");
     
-    var isPaidStr = rowData[12] || "정산대기";
+    var isPaidStr = getVal(rowData, '정산여부', "정산대기") || "정산대기";
     item.isPaid = (isPaidStr === "정산완료" || item.netAmount > 0);
     
-    item.id = String(rowData[13] || "gs-" + Date.now() + "-" + i);
+    item.id = String(getVal(rowData, 'ID', "") || "gs-" + Date.now() + "-" + i);
     
     // Additional internal fields
     item.taxBase = "LectureOnly";
