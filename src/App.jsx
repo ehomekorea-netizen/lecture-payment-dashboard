@@ -1062,8 +1062,19 @@ ${aiText}
       if (!response.ok) throw new Error('구글 시트 데이터를 가져올 수 없습니다. 웹 앱 배포 상태를 검토해 주세요.');
       
       const data = await response.json();
+      let lecturesList = null;
       if (Array.isArray(data)) {
-        const mapped = data.map(row => ({
+        lecturesList = data;
+      } else if (data && Array.isArray(data.lectures)) {
+        lecturesList = data.lectures;
+        if (data.spreadsheetUrl) {
+          safeLocalStorage.setItem('google_spreadsheet_url', data.spreadsheetUrl);
+          setSpreadsheetUrl(data.spreadsheetUrl);
+        }
+      }
+
+      if (lecturesList) {
+        const mapped = lecturesList.map(row => ({
           id: String(row.id || Date.now() + Math.random()),
           institution: String(row.institution || '기타 기관'),
           rate: Number(row.rate) || 0,
@@ -1100,8 +1111,19 @@ ${aiText}
       const response = await fetch(sheetUrl);
       if (response.ok) {
         const data = await response.json();
+        let lecturesList = null;
         if (Array.isArray(data)) {
-          const mapped = data.map(row => ({
+          lecturesList = data;
+        } else if (data && Array.isArray(data.lectures)) {
+          lecturesList = data.lectures;
+          if (data.spreadsheetUrl) {
+            safeLocalStorage.setItem('google_spreadsheet_url', data.spreadsheetUrl);
+            setSpreadsheetUrl(data.spreadsheetUrl);
+          }
+        }
+
+        if (lecturesList) {
+          const mapped = lecturesList.map(row => ({
             id: String(row.id),
             institution: String(row.institution),
             rate: Number(row.rate) || 0,
@@ -1875,7 +1897,11 @@ ${aiText}
     
     rows.push(item);
   }
-  return ContentService.createTextOutput(JSON.stringify(rows))
+  var responsePayload = {
+    spreadsheetUrl: SpreadsheetApp.getActiveSpreadsheet().getUrl(),
+    lectures: rows
+  };
+  return ContentService.createTextOutput(JSON.stringify(responsePayload))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -2919,7 +2945,7 @@ function doPost(e) {
                           </span>
                           <div className="flex gap-2 mt-1">
                             <a
-                              href={`${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
+                              href={spreadsheetUrl || `${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-[11.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
