@@ -589,6 +589,7 @@ export default function App() {
   const [isEditingApiKey, setIsEditingApiKey] = useState(!apiKey);
   const [isEditingSheetUrl, setIsEditingSheetUrl] = useState(!sheetUrl);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [activeGuideCase, setActiveGuideCase] = useState('new'); // 'new' | 'existing'
   
   const [aiText, setAiText] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
@@ -2251,13 +2252,10 @@ function doPost(e) {
                                   <span className="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded font-extrabold">{l.taxRate || '3.3%'} 공제</span>
                                   <span className="line-through">{formatWon(l.expectedAmount)}원</span>
                                 </div>
-                                <div className="flex items-center gap-1 mt-1">
-                                  <span className="text-[9.5px] font-black px-1.5 py-0.5 rounded-md" style={{background:'rgba(16,185,129,0.1)',color:'#10B981'}}>입금완료</span>
-                                  <AnimatedNumber 
-                                    value={l.netAmount} 
-                                    className="font-black text-[#10B981] text-[17px]" 
-                                  />
-                                </div>
+                                <AnimatedNumber 
+                                  value={l.netAmount} 
+                                  className="font-black text-[#10B981] text-[17px] mt-1" 
+                                />
                               </div>
                             </div>
                           )}
@@ -3856,24 +3854,85 @@ function doPost(e) {
                   구글 스프레드시트를 연동하시면 PC, 스마트폰, 태블릿 등 여러 기기에서 번거로운 백업/다운로드 버튼 조작 없이 **실시간으로 데이터가 자동 동기화**됩니다. 연동되지 않은 상태에서는 브라우저 캐시에만 임시 보관됩니다.
                 </p>
               </div>
-              <div className="flex flex-col gap-3">
-                <h4 className="font-black text-sm text-[#0F172A] flex items-center gap-1">⚙️ 구글 스프레드시트 연동 방법</h4>
-                <ol className="list-decimal pl-5 flex flex-col gap-2.5 text-slate-600 font-bold leading-relaxed text-[12px]">
-                  <li>
-                    <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="text-[#2563EB] hover:text-blue-800 underline font-black">
-                      [Google 스프레드시트] 새 문서 만들기 ↗
-                    </a>
-                  </li>
-                  <li>스프레드시트 상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
-                  <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
-                  <li>우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 버튼을 클릭합니다.</li>
-                  <li>설정에서 유형: <strong>"웹 앱"</strong>, 웹 앱 실행 대상: <strong>"나"</strong>, 액세스 권한: <strong>"모든 사용자"</strong>로 선택 후 배포합니다.</li>
-                  <li>
-                    배포 완료 후 화면에 표시되는 **웹 앱 URL**을 복사합니다. 
-                    <span className="block mt-1 text-[#EF4444] font-black text-[11.5px]">※ 필수 확인: 복사한 주소 끝부분이 반드시 `/exec`로 끝나는 주소여야 합니다!</span>
-                  </li>
-                </ol>
+
+              {/* 케이스 선택 탭 */}
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setActiveGuideCase('new')}
+                  className={`flex-1 py-2 text-center rounded-lg text-[11.5px] font-black transition-all cursor-pointer ${
+                    activeGuideCase === 'new'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Case 1. 처음 시작해요 (새 시트)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveGuideCase('existing')}
+                  className={`flex-1 py-2 text-center rounded-lg text-[11.5px] font-black transition-all cursor-pointer ${
+                    activeGuideCase === 'existing'
+                      ? 'bg-white text-blue-600 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Case 2. 기존 장부가 있어요
+                </button>
               </div>
+
+              {activeGuideCase === 'new' && (
+                <div className="flex flex-col gap-3 animate-fade-in">
+                  <h4 className="font-black text-sm text-[#0F172A] flex items-center gap-1">🌱 새 스프레드시트로 연동하기</h4>
+                  <ol className="list-decimal pl-5 flex flex-col gap-2.5 text-slate-600 font-bold leading-relaxed text-[12px]">
+                    <li>
+                      <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="text-[#2563EB] hover:text-blue-800 underline font-black">
+                        [Google 스프레드시트] 새 문서 만들기 ↗
+                      </a>
+                    </li>
+                    <li>스프레드시트 상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
+                    <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
+                    <li>우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 버튼을 클릭합니다.</li>
+                    <li>설정에서 유형: <strong>"웹 앱"</strong>, 웹 앱 실행 대상: <strong>"나"</strong>, 액세스 권한: <strong>"모든 사용자"</strong>로 선택 후 배포합니다.</li>
+                    <li>
+                      배포 완료 후 화면에 표시되는 **웹 앱 URL**을 복사해 설정창에 저장합니다.
+                      <span className="block mt-1 text-[#EF4444] font-black text-[11.5px]">※ 필수 확인: 복사한 주소 끝부분이 반드시 `/exec`로 끝나는 배포 URL이어야 합니다!</span>
+                    </li>
+                    <li className="text-slate-500 font-medium">
+                      💡 연동 완료 후 대시보드에 일정을 등록하면 구글 시트에 자동으로 열(헤더)과 첫 데이터행이 생성됩니다.
+                    </li>
+                  </ol>
+                </div>
+              )}
+
+              {activeGuideCase === 'existing' && (
+                <div className="flex flex-col gap-3 animate-fade-in">
+                  <h4 className="font-black text-sm text-[#0F172A] flex items-center gap-1">📂 기존 장부 데이터 넣어서 연동하기</h4>
+                  <ol className="list-decimal pl-5 flex flex-col gap-2.5 text-slate-600 font-bold leading-relaxed text-[12px]">
+                    <li>
+                      위쪽의 <strong>[AI 변환 프롬프트 복사하기]</strong> 기능을 사용하여 기존 강의 데이터를 양식에 맞는 CSV 파일로 정제하여 다운로드합니다.
+                    </li>
+                    <li>
+                      <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="text-[#2563EB] hover:text-blue-800 underline font-black">
+                        [Google 스프레드시트] 새 문서 만들기 ↗
+                      </a>
+                    </li>
+                    <li>
+                      구글 스프레드시트 메뉴에서 <strong>[파일] ➡️ [가져오기] (File ➡️ Import)</strong>를 누르고, AI가 만들어준 정제된 CSV 파일을 업로드하여 가져옵니다. (시트에 행들이 올바르게 들어갔는지 확인합니다.)
+                    </li>
+                    <li>상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
+                    <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
+                    <li>우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 클릭 후, 유형: <strong>"웹 앱"</strong>, 웹 앱 실행 대상: <strong>"나"</strong>, 액세스 권한: <strong>"모든 사용자"</strong>로 선택 후 배포합니다.</li>
+                    <li>
+                      발급된 **웹 앱 URL (끝부분이 반드시 `/exec`)**을 대시보드 설정창에 등록하면 연동이 완료됩니다!
+                    </li>
+                    <li className="text-emerald-600 font-black">
+                      💡 동기화 팁: 기존 데이터가 들어있는 상태에서 연동하면, 구글 시트 안의 데이터들을 대시보드가 자동으로 읽어와 한 번에 동기화해 줍니다!
+                      <span className="block mt-0.5 text-slate-500 font-medium">(시트 14번째 열인 N열(ID)은 최초 연동 시 고유 식별 번호가 자동으로 기입되니 그대로 두시면 됩니다.)</span>
+                    </li>
+                  </ol>
+                </div>
+              )}
               <div className="bg-slate-900 rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                   <span className="font-black text-[11px] text-sky-400">Apps Script 템플릿 코드</span>
