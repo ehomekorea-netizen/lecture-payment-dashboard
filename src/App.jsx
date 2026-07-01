@@ -585,6 +585,8 @@ export default function App() {
   // AI 및 설정 관련 상태
   const [apiKey, setApiKey] = useState(() => safeLocalStorage.getItem('gemini_api_key') || '');
   const [sheetUrl, setSheetUrl] = useState(() => safeLocalStorage.getItem('google_sheet_url') || '');
+  const [isEditingApiKey, setIsEditingApiKey] = useState(!apiKey);
+  const [isEditingSheetUrl, setIsEditingSheetUrl] = useState(!sheetUrl);
   const [copiedCode, setCopiedCode] = useState(false);
   
   const [aiText, setAiText] = useState('');
@@ -803,6 +805,8 @@ export default function App() {
     safeLocalStorage.setItem('google_sheet_url', sheetApiUrl);
     setApiKey(geminiKey);
     setSheetUrl(sheetApiUrl);
+    setIsEditingApiKey(!geminiKey);
+    setIsEditingSheetUrl(!sheetApiUrl);
     alert('설정이 저장되었습니다.');
   };
 
@@ -2599,19 +2603,33 @@ function doPost(e) {
                         </div>
                         <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2563EB] hover:text-blue-800 underline font-extrabold">👉 API Key 무료 발급 바로가기</a>
                       </div>
-                      <div className="flex gap-2">
-                        <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-400" />
-                        <button 
-                          onClick={() => {
-                            const k = document.getElementById('settings-api-key-mobile').value;
-                            handleSaveSettings(k, sheetUrl);
-                            alert('Gemini API Key가 저장되었습니다.');
-                          }}
-                          className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm"
-                        >
-                          저장
-                        </button>
-                      </div>
+                      {!isEditingApiKey && apiKey ? (
+                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 shadow-sm">
+                          <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
+                            🔒 API 키가 등록되었습니다.
+                          </span>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsEditingApiKey(true)} 
+                            className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-xs hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                          >
+                            변경
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-400" />
+                          <button 
+                            onClick={() => {
+                              const k = document.getElementById('settings-api-key-mobile').value;
+                              handleSaveSettings(k, sheetUrl);
+                            }}
+                            className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
+                          >
+                            저장
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -2645,26 +2663,40 @@ function doPost(e) {
 
                     {/* 구글 시트 URL 입력 및 저장란 */}
                     <div className="flex flex-col gap-2">
-                      <label className="text-[13px] font-black text-slate-600">구글 시트 웹 앱 URL</label>
-                      <div className="flex gap-2">
-                        <input 
-                          type="text" 
-                          id="settings-sheet-url-mobile" 
-                          defaultValue={sheetUrl} 
-                          placeholder="https://script.google.com/macros/s/..." 
-                          className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800" 
-                        />
-                        <button 
-                          onClick={() => {
-                            const u = document.getElementById('settings-sheet-url-mobile').value;
-                            handleSaveSettings(apiKey, u);
-                            alert('구글 시트 연동 URL이 저장되었습니다.');
-                          }}
-                          className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm"
-                        >
-                          저장
-                        </button>
-                      </div>
+                      <label className="text-[13px] font-black text-slate-600">구글 시트 웹 앱 URL <span className="text-[#EF4444] font-black text-[11.5px]">(반드시 배포된 *exec 주소여야 합니다)</span></label>
+                      {!isEditingSheetUrl && sheetUrl ? (
+                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 shadow-sm">
+                          <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
+                            ☁️ 구글 시트 연동 주소(exec)가 등록되었습니다.
+                          </span>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsEditingSheetUrl(true)} 
+                            className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-xs hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                          >
+                            변경
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            id="settings-sheet-url-mobile" 
+                            defaultValue={sheetUrl} 
+                            placeholder="https://script.google.com/macros/s/.../exec" 
+                            className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-400" 
+                          />
+                          <button 
+                            onClick={() => {
+                              const u = document.getElementById('settings-sheet-url-mobile').value;
+                              handleSaveSettings(apiKey, u);
+                            }}
+                            className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
+                          >
+                            저장
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {!sheetUrl ? (
@@ -3632,17 +3664,49 @@ function doPost(e) {
             </div>
             <div className="p-6 flex flex-col gap-5 text-xs overflow-y-auto">
               <div className="rounded-2xl p-5 bg-white border border-slate-200 shadow-sm flex flex-col gap-4">
-                <span className="font-black text-[11.5px] text-[#1E3A8A] flex items-center gap-1.5"><Database size={14} /> API 연동</span>
+                <span className="font-black text-[11.5px] text-[#1E3A8A] flex items-center gap-1.5"><Database size={14} /> API 및 클라우드 연동</span>
+                
                 <div className="flex flex-col gap-1.5">
                   <label className="font-bold text-slate-600">Gemini AI API Key</label>
-                  <input type="password" id="settings-api-key-desktop" defaultValue={apiKey} placeholder="AIzaSy..." className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
+                  {!isEditingApiKey && apiKey ? (
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                      <span className="text-[11.5px] font-extrabold text-emerald-800">
+                        🔒 API 키가 등록되었습니다.
+                      </span>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsEditingApiKey(true)} 
+                        className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-[10.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                      >
+                        변경
+                      </button>
+                    </div>
+                  ) : (
+                    <input type="password" id="settings-api-key-desktop" defaultValue={apiKey} placeholder="AIzaSy..." className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
+                  )}
                 </div>
+                
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-1.5">
-                    <label className="font-bold text-slate-600">구글 시트 웹 앱 URL</label>
-                    <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[10px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition">연동 방법</button>
+                    <label className="font-bold text-slate-600">구글 시트 웹 앱 URL <span className="text-[#EF4444] font-black text-[10px]">(반드시 배포된 *exec 주소)</span></label>
+                    <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[10px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition cursor-pointer">연동 방법</button>
                   </div>
-                  <input type="text" id="settings-sheet-url-desktop" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/..." className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
+                  {!isEditingSheetUrl && sheetUrl ? (
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                      <span className="text-[11.5px] font-extrabold text-emerald-800">
+                        ☁️ 구글 시트 연동 주소(exec)가 등록되었습니다.
+                      </span>
+                      <button 
+                        type="button" 
+                        onClick={() => setIsEditingSheetUrl(true)} 
+                        className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-[10.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                      >
+                        변경
+                      </button>
+                    </div>
+                  ) : (
+                    <input type="text" id="settings-sheet-url-desktop" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/.../exec" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
+                  )}
                 </div>
               </div>
               <div className="rounded-2xl p-4 bg-red-50 border border-red-200/60 flex flex-col gap-2">
@@ -3652,7 +3716,14 @@ function doPost(e) {
             </div>
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
               <button type="button" onClick={() => setIsSettingsOpen(false)} className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl transition">닫기</button>
-              <button type="button" onClick={() => { const k=document.getElementById('settings-api-key-desktop').value; const u=document.getElementById('settings-sheet-url-desktop').value; handleSaveSettings(k,u); setIsSettingsOpen(false); }} className="w-full py-2.5 bg-[#2563EB] text-white font-black rounded-xl shadow-md hover:bg-blue-700 transition">설정 저장</button>
+              <button type="button" onClick={() => { 
+                const kEl = document.getElementById('settings-api-key-desktop'); 
+                const uEl = document.getElementById('settings-sheet-url-desktop'); 
+                const k = kEl ? kEl.value : apiKey; 
+                const u = uEl ? uEl.value : sheetUrl; 
+                handleSaveSettings(k, u); 
+                setIsSettingsOpen(false); 
+              }} className="w-full py-2.5 bg-[#2563EB] text-white font-black rounded-xl shadow-md hover:bg-blue-700 transition">설정 저장</button>
             </div>
           </div>
         </div>
