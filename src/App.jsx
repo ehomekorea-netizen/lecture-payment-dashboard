@@ -1202,6 +1202,7 @@ ${aiText}
           const mapped = validList.map(row => ({
             id: String(row.id || Date.now() + Math.random()),
             institution: String(row.institution || '기타 기관'),
+            venue: String(row.venue || ''),
             rate: Number(row.rate) || 0,
             classes: Number(row.classes) || 0,
             expectedAmount: Number(row.expectedAmount) || 0,
@@ -1265,6 +1266,7 @@ ${aiText}
             const mapped = validList.map(row => ({
               id: String(row.id),
               institution: String(row.institution),
+              venue: String(row.venue || ''),
               rate: Number(row.rate) || 0,
               classes: Number(row.classes) || 0,
               expectedAmount: Number(row.expectedAmount) || 0,
@@ -2350,7 +2352,6 @@ ${aiText}
   })();
 
   const gasTemplateCode = `function doGet(e) {
-  // 연동된 스프레드시트 열기 요청 처리
   if (e && e.parameter && e.parameter.open === "true") {
     var url = SpreadsheetApp.getActiveSpreadsheet().getUrl();
     return HtmlService.createHtmlOutput("<meta http-equiv='refresh' content='0; url=" + url + "'><script>window.location.href = '" + url + "';</script><div style='font-family:sans-serif; text-align:center; padding:30px;'><h3 style='color:#1E3A8A;'>출강바이브 연동 스프레드시트</h3><p style='color:#475569;'>구글 스프레드시트로 이동 중입니다...</p></div>");
@@ -2359,23 +2360,49 @@ ${aiText}
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = sheet.getDataRange().getValues();
   
-  // 만약 빈 시트이거나 행이 전혀 없는 경우 초기화
-  if (data.length <= 1 || (data.length === 2 && !data[1][0])) {
-    var headers = ['주최기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
+  var standardHeaders = ['주최기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
+  
+  if (data.length <= 1 || (data.length === 2 && !data[1][0] && !data[0][0])) {
     sheet.clearContents();
-    sheet.appendRow(headers);
-    data = [headers];
+    sheet.appendRow(standardHeaders);
+    data = [standardHeaders];
   }
   
   var headers = data[0];
-  var colMap = {};
-  for (var k = 0; k < headers.length; k++) {
-    colMap[String(headers[k]).trim()] = k;
-  }
   
-  function getVal(row, headerName, def) {
-    var idx = colMap[headerName];
-    if (idx === undefined || idx >= row.length) return def;
+  var HEADER_MAP = {
+    institution: ['주최기관', '기관명/학교', '기관명'],
+    venue: ['교육장명', '교육장', '교육 장소'],
+    role: ['출강역할', '역할'],
+    rate: ['강의단가', '단가', '시급'],
+    classes: ['총 차시', '차시', '시간'],
+    expectedAmount: ['예상수령액', '예상금액'],
+    transportFee: ['교통비(+)', '교통비'],
+    taxRate: ['공제율(%)', '공제율', '세율'],
+    deduction: ['공제금액(-)', '공제금액(-', '공제금액', '세금'],
+    month: ['월'],
+    netAmount: ['실수령액', '실수령'],
+    date: ['날짜', '일자'],
+    isPaid: ['정산여부', '정산완료여부'],
+    id: ['ID', 'id']
+  };
+
+  function getColIdx(prop) {
+    var aliases = HEADER_MAP[prop];
+    for (var i = 0; i < headers.length; i++) {
+      var h = String(headers[i]).trim();
+      for (var j = 0; j < aliases.length; j++) {
+        if (h === aliases[j] || h.indexOf(aliases[j]) === 0) {
+          return i;
+        }
+      }
+    }
+    return -1;
+  }
+
+  function getVal(row, prop, def) {
+    var idx = getColIdx(prop);
+    if (idx === -1 || idx >= row.length) return def;
     return row[idx];
   }
 
@@ -2384,45 +2411,45 @@ ${aiText}
     var rowData = data[i];
     if (rowData.length === 0 || (!rowData[0] && rowData.length <= 1)) continue;
     
-    var inst = getVal(rowData, '주최기관', "") || "";
-    // 기관명이 비어있는 행은 패스 (빈 행 패싱)
-    if (!inst.trim()) continue;
+    var inst = getVal(rowData, 'institution', "");
+    if (!inst || !String(inst).trim()) continue;
 
     var item = {};
-    item.institution = inst;
-    var roleStr = getVal(rowData, '출강역할', "주강사") || "주강사";
-    item.role = roleStr === "보조강사" ? "Assistant" : "Main";
-    item.rate = Number(getVal(rowData, '강의단가', 0)) || 0;
-    item.classes = Number(getVal(rowData, '총 차시', 0)) || 0;
-    item.expectedAmount = Number(getVal(rowData, '예상수령액', 0)) || 0;
-    item.transportFee = Number(getVal(rowData, '교통비(+)', 0)) || 0;
+    item.institution = String(inst).trim();
+    item.venue = String(getVal(rowData, 'venue', "") || "").trim();
     
-    var taxRateVal = String(getVal(rowData, '공제율(%)', "3.3") || "3.3").trim();
+    var roleStr = String(getVal(rowData, 'role', "주강사") || "주강사").trim();
+    item.role = (roleStr === "보조강사" || roleStr === "Assistant") ? "Assistant" : "Main";
+    
+    item.rate = Number(getVal(rowData, 'rate', 0)) || 0;
+    item.classes = Number(getVal(rowData, 'classes', 0)) || 0;
+    item.expectedAmount = Number(getVal(rowData, 'expectedAmount', 0)) || 0;
+    item.transportFee = Number(getVal(rowData, 'transportFee', 0)) || 0;
+    
+    var taxRateVal = String(getVal(rowData, 'taxRate', "3.3") || "3.3").trim();
     item.taxRate = (taxRateVal === "0" || taxRateVal.toLowerCase() === "none") ? "None" : (taxRateVal.indexOf("%") !== -1 ? taxRateVal : taxRateVal + "%");
     
-    item.deduction = Number(getVal(rowData, '공제금액(-)', 0)) || 0;
-    item.month = String(getVal(rowData, '월', "") || "");
-    item.netAmount = Number(getVal(rowData, '실수령액', 0)) || 0;
+    item.deduction = Number(getVal(rowData, 'deduction', 0)) || 0;
+    item.month = String(getVal(rowData, 'month', "") || "");
+    item.netAmount = Number(getVal(rowData, 'netAmount', 0)) || 0;
     
-    var dateVal = getVal(rowData, '날짜', "");
+    var dateVal = getVal(rowData, 'date', "");
     if (dateVal instanceof Date) {
       dateVal = Utilities.formatDate(dateVal, Session.getScriptTimeZone(), "yyyy-MM-dd");
     }
     item.date = String(dateVal || "");
     
+    var isPaidStr = String(getVal(rowData, 'isPaid', "정산대기") || "정산대기").trim();
+    item.isPaid = (isPaidStr === "정산완료" || isPaidStr === "true" || isPaidStr === "YES");
     
-
-    var isPaidStr = getVal(rowData, '정산여부', "정산대기") || "정산대기";
-    item.isPaid = (isPaidStr === "정산완료");
+    item.id = String(getVal(rowData, 'id', "") || "gs-" + Date.now() + "-" + i);
     
-    item.id = String(getVal(rowData, 'ID', "") || "gs-" + Date.now() + "-" + i);
-    
-    // Additional internal fields
     item.taxBase = "LectureOnly";
     item.customTax = Math.abs(item.deduction);
     
     rows.push(item);
   }
+  
   var responsePayload = {
     spreadsheetUrl: SpreadsheetApp.getActiveSpreadsheet().getUrl(),
     lectures: rows
@@ -2436,10 +2463,87 @@ function doPost(e) {
   var payload = JSON.parse(e.postData.contents);
   var action = payload.action;
   
+  var standardHeaders = ['주최기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
+  
+  var HEADER_MAP = {
+    institution: ['주최기관', '기관명/학교', '기관명'],
+    venue: ['교육장명', '교육장', '교육 장소'],
+    role: ['출강역할', '역할'],
+    rate: ['강의단가', '단가', '시급'],
+    classes: ['총 차시', '차시', '시간'],
+    expectedAmount: ['예상수령액', '예상금액'],
+    transportFee: ['교통비(+)', '교통비'],
+    taxRate: ['공제율(%)', '공제율', '세율'],
+    deduction: ['공제금액(-)', '공제금액(-', '공제금액', '세금'],
+    month: ['월'],
+    netAmount: ['실수령액', '실수령'],
+    date: ['날짜', '일자'],
+    isPaid: ['정산여부', '정산완료여부'],
+    id: ['ID', 'id']
+  };
+
   if (action === "sync_all") {
-    sheet.clearContents();
-    var headers = ['주최기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
-    var outputData = [headers];
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    
+    // 만약 시트가 비어있다면 표준 헤더를 작성
+    if (data.length <= 1 || (data.length === 2 && !data[1][0] && !data[0][0])) {
+      sheet.clearContents();
+      sheet.appendRow(standardHeaders);
+      headers = standardHeaders;
+    }
+    
+    // 누락된 표준 컬럼이 있으면 시트 맨 뒤에 컬럼 추가하여 기존 데이터 형식 보존
+    var sheetUpdated = false;
+    var keys = Object.keys(HEADER_MAP);
+    
+    for (var k = 0; k < keys.length; k++) {
+      var prop = keys[k];
+      var aliases = HEADER_MAP[prop];
+      var found = false;
+      for (var i = 0; i < headers.length; i++) {
+        var h = String(headers[i]).trim();
+        for (var j = 0; j < aliases.length; j++) {
+          if (h === aliases[j] || h.indexOf(aliases[j]) === 0) {
+            found = true;
+            break;
+          }
+        }
+        if (found) break;
+      }
+      
+      // 해당 속성에 부합하는 컬럼 헤더가 시트에 전혀 없는 경우 추가
+      if (!found) {
+        var newColHeader = aliases[0]; // 대표 이름
+        headers.push(newColHeader);
+        sheet.getRange(1, headers.length).setValue(newColHeader);
+        sheetUpdated = true;
+      }
+    }
+    
+    if (sheetUpdated) {
+      SpreadsheetApp.flush();
+    }
+    
+    // 2행 이하의 기존 데이터 행들을 전부 안전하게 삭제 (헤더 행 서식 보존)
+    if (sheet.getLastRow() >= 2) {
+      sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).clearContent();
+    }
+    
+    function getColIdx(prop) {
+      var aliases = HEADER_MAP[prop];
+      for (var i = 0; i < headers.length; i++) {
+        var h = String(headers[i]).trim();
+        for (var j = 0; j < aliases.length; j++) {
+          if (h === aliases[j] || h.indexOf(aliases[j]) === 0) {
+            return i;
+          }
+        }
+      }
+      return -1;
+    }
+
+    var outputData = [];
     
     if (payload.lectures && payload.lectures.length > 0) {
       payload.lectures.forEach(function(l) {
@@ -2449,42 +2553,59 @@ function doPost(e) {
         var taxRateNum = l.taxRate === 'None' ? '0' : String(l.taxRate || '3.3').replace('%', '');
         var isPaidKorean = l.isPaid ? '정산완료' : '정산대기';
         
-        outputData.push([
-          l.institution,
-          l.venue || "",
-          roleKorean,
-          Number(l.rate) || 0,
-          Number(l.classes) || 0,
-          Number(l.expectedAmount) || 0,
-          Number(l.transportFee) || 0,
-          taxRateNum,
-          Number(l.deduction) || 0,
-          l.month || "",
-          l.isPaid ? Number(l.netAmount) : "",
-          l.date || "",
-          isPaidKorean,
-          l.id
-        ]);
+        var rowVal = new Array(headers.length);
+        // 기본값 채우기
+        for (var c = 0; c < headers.length; c++) {
+          rowVal[c] = "";
+        }
+        
+        // 컬럼 매핑 인덱스에 값 입력
+        rowVal[getColIdx('institution')] = l.institution;
+        rowVal[getColIdx('venue')] = l.venue || "";
+        rowVal[getColIdx('role')] = roleKorean;
+        rowVal[getColIdx('rate')] = Number(l.rate) || 0;
+        rowVal[getColIdx('classes')] = Number(l.classes) || 0;
+        rowVal[getColIdx('expectedAmount')] = Number(l.expectedAmount) || 0;
+        rowVal[getColIdx('transportFee')] = Number(l.transportFee) || 0;
+        rowVal[getColIdx('taxRate')] = taxRateNum;
+        rowVal[getColIdx('deduction')] = Number(l.deduction) || 0;
+        rowVal[getColIdx('month')] = l.month || "";
+        rowVal[getColIdx('netAmount')] = l.isPaid ? Number(l.netAmount) : "";
+        rowVal[getColIdx('date')] = l.date || "";
+        rowVal[getColIdx('isPaid')] = isPaidKorean;
+        rowVal[getColIdx('id')] = l.id;
+        
+        outputData.push(rowVal);
       });
     }
     
     if (outputData.length > 0) {
-      sheet.getRange(1, 1, outputData.length, headers.length).setValues(outputData);
+      sheet.getRange(2, 1, outputData.length, headers.length).setValues(outputData);
     }
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", count: outputData.length - 1 }))
+    
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", count: outputData.length }))
       .setMimeType(ContentService.MimeType.JSON);
   }
   
   if (action === "update_row") {
     var data = sheet.getDataRange().getValues();
     var headers = data[0];
-    var colMap = {};
-    for (var k = 0; k < headers.length; k++) {
-      colMap[String(headers[k]).trim()] = k;
+    
+    function getColIdx(prop) {
+      var aliases = HEADER_MAP[prop];
+      for (var i = 0; i < headers.length; i++) {
+        var h = String(headers[i]).trim();
+        for (var j = 0; j < aliases.length; j++) {
+          if (h === aliases[j] || h.indexOf(aliases[j]) === 0) {
+            return i;
+          }
+        }
+      }
+      return -1;
     }
     
-    var idColIdx = colMap['ID'];
-    if (idColIdx === undefined) {
+    var idColIdx = getColIdx('id');
+    if (idColIdx === -1) {
       return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "ID 컬럼을 찾을 수 없습니다." }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -2499,14 +2620,17 @@ function doPost(e) {
     
     if (targetRowIndex !== -1) {
       var isPaidKorean = payload.isPaid ? '정산완료' : '정산대기';
-      if (colMap['실수령액'] !== undefined) {
-        sheet.getRange(targetRowIndex, colMap['실수령액'] + 1).setValue(payload.isPaid ? Number(payload.netAmount) : "");
+      var netAmtIdx = getColIdx('netAmount');
+      if (netAmtIdx !== -1) {
+        sheet.getRange(targetRowIndex, netAmtIdx + 1).setValue(payload.isPaid ? Number(payload.netAmount) : "");
       }
-      if (colMap['공제금액(-)'] !== undefined) {
-        sheet.getRange(targetRowIndex, colMap['공제금액(-)'] + 1).setValue(Number(payload.deduction) || 0);
+      var deductionIdx = getColIdx('deduction');
+      if (deductionIdx !== -1) {
+        sheet.getRange(targetRowIndex, deductionIdx + 1).setValue(Number(payload.deduction) || 0);
       }
-      if (colMap['정산여부'] !== undefined) {
-        sheet.getRange(targetRowIndex, colMap['정산여부'] + 1).setValue(isPaidKorean);
+      var isPaidIdx = getColIdx('isPaid');
+      if (isPaidIdx !== -1) {
+        sheet.getRange(targetRowIndex, isPaidIdx + 1).setValue(isPaidKorean);
       }
       return ContentService.createTextOutput(JSON.stringify({ status: "success", updatedId: payload.id }))
         .setMimeType(ContentService.MimeType.JSON);
@@ -2515,7 +2639,8 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
   }
-}`;
+}
+`;
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-0 md:p-4 text-[#1F2E5B] font-sans antialiased" style={{fontFamily: "'Pretendard', 'Inter', sans-serif"}}>
