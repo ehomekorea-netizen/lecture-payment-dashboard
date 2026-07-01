@@ -86,6 +86,25 @@ function isKoreanHoliday(year, month, day) {
   return false;
 }
 
+// 타이핑 효과를 구현하는 React 컴포넌트
+const TypedTitle = ({ text }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  useEffect(() => {
+    let index = 0;
+    setDisplayedText('');
+    const interval = setInterval(() => {
+      if (index < text.length) {
+        setDisplayedText((prev) => prev + text.charAt(index));
+        index++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 45); // 45ms per character for natural look
+    return () => clearInterval(interval);
+  }, [text]);
+  return <span className="text-[#1E3A8A] font-black">{displayedText}</span>;
+};
+
 // 다음 달 계산 유틸리티 (12월 다음은 1월)
 function getNextMonthString() {
   const now = new Date();
@@ -578,6 +597,12 @@ export default function App() {
   const [isCsvImported, setIsCsvImported] = useState(() => safeLocalStorage.getItem('is_csv_imported') === 'true');
   const [isPromptCopied, setIsPromptCopied] = useState(false);
   const [isAppsScriptCodeOpen, setIsAppsScriptCodeOpen] = useState(false);
+
+  // 퀴즈 관련 상태 (다른 탭을 갔다가 오거나 연도 바뀔 때 동적으로 변경)
+  const [quizQuestion, setQuizQuestion] = useState(null);
+  const [quizAnswered, setQuizAnswered] = useState(false);
+  const [selectedQuizOption, setSelectedQuizOption] = useState(null);
+  const [quizToast, setQuizToast] = useState(null); // { type: 'O' | 'X', visible: boolean }
   const [isInitialPullCompleted, setIsInitialPullCompleted] = useState(false);
   const [isEditingApiKey, setIsEditingApiKey] = useState(!apiKey);
   const [isEditingSheetUrl, setIsEditingSheetUrl] = useState(!sheetUrl);
@@ -768,6 +793,283 @@ export default function App() {
 
     return () => clearInterval(interval);
   }, [sheetUrl, isInitialPullCompleted]);
+
+  // 10가지 데이터 기반 퀴즈 생성 로직 (AI 없이도 정밀 계산하는 JS 랭킹 엔진)
+  const generateQuiz = (lecturesForYear, targetYear) => {
+    if (!lecturesForYear || lecturesForYear.length === 0) return null;
+    
+    // 0부터 9까지의 퀴즈 테마 중 하나를 무작위 선택
+    const themeIndex = Math.floor(Math.random() * 10);
+    
+    // 선택지가 5개 미만일 때 더미 데이터를 채워 5지선다 규격을 유지하는 헬퍼
+    const padChoices = (realChoices, type) => {
+      const mockPool = {
+        inst: ['디지털새싹 아카데미', '사회복지협의회 코딩반', '미래스마트 교육재단', '카카오 IT 교실', '인재개발 진흥원', '구글 미래학교', '네이버 스쿨'],
+        venue: ['목포청호중학교 미래교실', '해남종합사회복지관 2층', '본관 대강당', '컴퓨터 실습실', '창의공학관관', '꿈나무 세미나실'],
+        day: ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+      };
+      
+      const pool = mockPool[type] || mockPool.inst;
+      let result = [...realChoices];
+      for (const item of pool) {
+        if (result.length >= 5) break;
+        if (!result.some(r => r.name === item)) {
+          result.push({ name: item, value: 0 });
+        }
+      }
+      return result.slice(0, 5);
+    };
+
+    let title = '';
+    let emoji = '🎯';
+    let rawChoices = [];
+
+    switch (themeIndex) {
+      case 0:
+        title = '올 한해 정산액(예상+실수령)이 가장 많았던 주최기관은 어디일까요?';
+        emoji = '🏆';
+        const instIncome = {};
+        lecturesForYear.forEach(l => {
+          const name = l.institution;
+          if (!name) return;
+          const amt = l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0);
+          instIncome[name] = (instIncome[name] || 0) + amt;
+        });
+        rawChoices = Object.entries(instIncome).map(([name, val]) => ({
+          name,
+          value: val,
+          display: `${Math.round(val / 10000)}만원`
+        })).sort((a, b) => b.value - a.value);
+        rawChoices = padChoices(rawChoices, 'inst');
+        break;
+
+      case 1:
+        title = '올 한해 가장 많은 횟수(출강 건수)로 방문한 교육장은 어디일까요?';
+        emoji = '🏃‍♂️';
+        const venueCount = {};
+        lecturesForYear.forEach(l => {
+          const name = l.venue || l.institution;
+          if (!name) return;
+          venueCount[name] = (venueCount[name] || 0) + 1;
+        });
+        rawChoices = Object.entries(venueCount).map(([name, val]) => ({
+          name,
+          value: val,
+          display: `${val}회`
+        })).sort((a, b) => b.value - a.value);
+        rawChoices = padChoices(rawChoices, 'venue');
+        break;
+
+      case 2:
+        title = '올 한해 평균 강의 단가(시간당 시급)가 가장 높았던 주최기관은 어디일까요?';
+        emoji = '⏱️';
+        const instRate = {};
+        lecturesForYear.forEach(l => {
+          const name = l.institution;
+          if (!name) return;
+          if (!instRate[name]) instRate[name] = { fee: 0, classes: 0 };
+          instRate[name].fee += (l.rate * l.classes);
+          instRate[name].classes += l.classes;
+        });
+        rawChoices = Object.entries(instRate).map(([name, item]) => {
+          const avg = item.classes > 0 ? Math.round(item.fee / item.classes) : 0;
+          return {
+            name,
+            value: avg,
+            display: `${Math.round(avg / 1000)}천원/시간`
+          };
+        }).sort((a, b) => b.value - a.value);
+        rawChoices = padChoices(rawChoices, 'inst');
+        break;
+
+      case 3:
+        title = '올 한해 가장 많은 세금(공제금액)을 차감한 주최기관은 어디일까요?';
+        emoji = '💸';
+        const instDeduct = {};
+        lecturesForYear.forEach(l => {
+          const name = l.institution;
+          if (!name) return;
+          instDeduct[name] = (instDeduct[name] || 0) + Math.abs(l.deduction || 0);
+        });
+        rawChoices = Object.entries(instDeduct).map(([name, val]) => ({
+          name,
+          value: val,
+          display: `${Math.round(val / 10000)}만원`
+        })).sort((a, b) => b.value - a.value);
+        rawChoices = padChoices(rawChoices, 'inst');
+        break;
+
+      case 4:
+        title = '올 한해 교통비를 가장 많이 지원해준 주최기관은 어디일까요?';
+        emoji = '🚗';
+        const instTransport = {};
+        lecturesForYear.forEach(l => {
+          const name = l.institution;
+          if (!name) return;
+          instTransport[name] = (instTransport[name] || 0) + (l.transportFee || 0);
+        });
+        rawChoices = Object.entries(instTransport).map(([name, val]) => ({
+          name,
+          value: val,
+          display: `${Math.round(val / 10000)}만원`
+        })).sort((a, b) => b.value - a.value);
+        rawChoices = padChoices(rawChoices, 'inst');
+        break;
+
+      case 5:
+        title = '올 한해 누적 강의 시수(총 차시)가 가장 많았던 주최기관은 어디일까요?';
+        emoji = '📚';
+        const instClasses = {};
+        lecturesForYear.forEach(l => {
+          const name = l.institution;
+          if (!name) return;
+          instClasses[name] = (instClasses[name] || 0) + (l.classes || 0);
+        });
+        rawChoices = Object.entries(instClasses).map(([name, val]) => ({
+          name,
+          value: val,
+          display: `${val}차시`
+        })).sort((a, b) => b.value - a.value);
+        rawChoices = padChoices(rawChoices, 'inst');
+        break;
+
+      case 6:
+        title = '올 한해 수입이 가장 많았던 출강 요일은 언제일까요?';
+        emoji = '📅';
+        const dayMap = { 0: '일요일', 1: '월요일', 2: '화요일', 3: '수요일', 4: '목요일', 5: '금요일', 6: '토요일' };
+        const dayIncome = {};
+        lecturesForYear.forEach(l => {
+          if (!l.date) return;
+          const dayNum = new Date(l.date).getDay();
+          const dayName = dayMap[dayNum] || '월요일';
+          const amt = l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0);
+          dayIncome[dayName] = (dayIncome[dayName] || 0) + amt;
+        });
+        rawChoices = Object.entries(dayIncome).map(([name, val]) => ({
+          name,
+          value: val,
+          display: `${Math.round(val / 10000)}만원`
+        })).sort((a, b) => b.value - a.value);
+        rawChoices = padChoices(rawChoices, 'day');
+        break;
+
+      case 7:
+        title = '올 한해 교육장명 중 정산액이 가장 컸던 곳은 어디일까요?';
+        emoji = '🏫';
+        const venueIncome = {};
+        lecturesForYear.forEach(l => {
+          const name = l.venue || l.institution;
+          if (!name) return;
+          const amt = l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0);
+          venueIncome[name] = (venueIncome[name] || 0) + amt;
+        });
+        rawChoices = Object.entries(venueIncome).map(([name, val]) => ({
+          name,
+          value: val,
+          display: `${Math.round(val / 10000)}만원`
+        })).sort((a, b) => b.value - a.value);
+        rawChoices = padChoices(rawChoices, 'venue');
+        break;
+
+      case 8:
+        title = '올 한해 단일 강의 기준으로 수업 차시가 가장 길었던 주최기관은 어디일까요?';
+        emoji = '💪';
+        const singleMaxClass = {};
+        lecturesForYear.forEach(l => {
+          const name = l.institution;
+          if (!name) return;
+          if (l.classes > (singleMaxClass[name] || 0)) {
+            singleMaxClass[name] = l.classes;
+          }
+        });
+        rawChoices = Object.entries(singleMaxClass).map(([name, val]) => ({
+          name,
+          value: val,
+          display: `${val}차시`
+        })).sort((a, b) => b.value - a.value);
+        rawChoices = padChoices(rawChoices, 'inst');
+        break;
+
+      case 9:
+        title = '올 한해 아직 입금 대기 중인 금액(미정산)이 가장 많이 쌓인 주최기관은 어디일까요?';
+        emoji = '⏳';
+        const unpaidAmount = {};
+        lecturesForYear.forEach(l => {
+          if (l.isPaid) return;
+          const name = l.institution;
+          if (!name) return;
+          unpaidAmount[name] = (unpaidAmount[name] || 0) + (l.expectedAmount || 0);
+        });
+        rawChoices = Object.entries(unpaidAmount).map(([name, val]) => ({
+          name,
+          value: val,
+          display: `${Math.round(val / 10000)}만원`
+        })).sort((a, b) => b.value - a.value);
+        rawChoices = padChoices(rawChoices, 'inst');
+        break;
+
+      default:
+        return null;
+    }
+
+    const correctAnswerName = rawChoices[0]?.name;
+    if (!correctAnswerName) return null;
+
+    // 5지선다 옵션을 섞어 정답의 위치가 항상 1번째가 아니도록 보장
+    const shuffledChoices = [...rawChoices].sort(() => Math.random() - 0.5);
+    const correctIndex = shuffledChoices.findIndex(c => c.name === correctAnswerName);
+
+    const maxVal = Math.max(...shuffledChoices.map(c => c.value), 1);
+    const choicesWithPct = shuffledChoices.map(c => ({
+      ...c,
+      pct: Math.round((c.value / maxVal) * 100)
+    }));
+
+    return {
+      title,
+      emoji,
+      choices: choicesWithPct,
+      correctIndex,
+      correctAnswerName
+    };
+  };
+
+  // 탭 전환 및 연도 변경 시 작동하는 퀴즈 라이프사이클 이펙트
+  useEffect(() => {
+    if (activeTab === 'stats') {
+      if (statsYearLectures && statsYearLectures.length > 0) {
+        const q = generateQuiz(statsYearLectures, statsYear);
+        setQuizQuestion(q);
+        setQuizAnswered(false);
+        setSelectedQuizOption(null);
+      } else {
+        setQuizQuestion(null);
+      }
+    } else {
+      // 탭을 이탈하면 데이터를 초기화하여 다음 진입 시 새로운 퀴즈로 갱신
+      setQuizQuestion(null);
+      setQuizAnswered(false);
+      setSelectedQuizOption(null);
+    }
+  }, [activeTab, statsYear, statsYearLectures]);
+
+  // 퀴즈 정답 선택 핸들러
+  const handleSelectQuizOption = (idx) => {
+    if (quizAnswered) return;
+    setSelectedQuizOption(idx);
+    setQuizAnswered(true);
+
+    const isCorrect = idx === quizQuestion.correctIndex;
+    setQuizToast({
+      type: isCorrect ? 'O' : 'X',
+      visible: true
+    });
+
+    // 1.2초 후 토스트를 제거
+    setTimeout(() => {
+      setQuizToast(prev => prev ? { ...prev, visible: false } : null);
+    }, 1200);
+  };
 
   // 자동 완성 추천 목록
   // 이모지 제거 및 공백 정리를 수행하여 동일 기관으로 판단하게 돕는 헬퍼
@@ -2297,7 +2599,7 @@ function doPost(e) {
             <div key="tab-home" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
               
               {/* 연도 조작 셀렉터 - 심플 가로 중앙 정렬 */}
-              <div className="flex items-center justify-center gap-4 py-1.5 animate-fade-in">
+              <div className="flex items-center justify-center gap-4 py-1 animate-fade-in">
                 {homeCanGoPrev ? (
                   <button onClick={() => setStatsYear(y => y - 1)}
                     className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
@@ -2694,9 +2996,9 @@ function doPost(e) {
           )}
 
           {activeTab === 'stats' && (
-            <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-3 pt-2`}>
+            <div key="tab-stats" className={`${getSlideClass()} flex flex-col gap-2.5 pt-1.5`}>
               {/* 연도 조작 셀렉터 - 심플 가로 중앙 정렬 */}
-              <div className="flex items-center justify-center gap-4 py-1.5 animate-fade-in">
+              <div className="flex items-center justify-center gap-4 py-1 animate-fade-in">
                 {statsCanGoPrev ? (
                   <button onClick={() => setStatsYear(y => y - 1)}
                     className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm"
@@ -2722,7 +3024,7 @@ function doPost(e) {
                 </div>
 
                 {/* 출강 성과 요약 */}
-                <div className="bg-white p-5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)'}}>
+                <div className="bg-white p-5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)', marginTop: '-2px'}}>
                   <span className="text-[15px] font-black block mb-4 text-slate-800">출강 성과 및 요약</span>
                   {statsYearLectures.length === 0 ? (
                     <div className="text-[12px] text-slate-400 text-center py-8 font-bold">집계할 출강 데이터가 없습니다.</div>
@@ -2758,6 +3060,108 @@ function doPost(e) {
                     </div>
                   )}
                 </div>
+
+              {/* 🎯 데이터 분석기반 미니 모의고사 퀴즈 카드 */}
+              {quizQuestion && (
+                <div className="bg-gradient-to-br from-indigo-50/70 to-blue-50/60 p-5 rounded-[24px] border border-indigo-100 shadow-sm flex flex-col gap-3.5 animate-fade-in relative overflow-hidden" style={{marginTop: '-2px'}}>
+                  <div className="flex items-center justify-between border-b border-indigo-100/50 pb-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[14px]">{quizQuestion.emoji}</span>
+                      <h4 className="text-[12.5px] font-black text-indigo-900 tracking-tight">올해 나의 출강 모의고사</h4>
+                    </div>
+                    <span className="text-[9px] bg-indigo-600/10 text-indigo-700 px-2 py-0.5 rounded-full font-black">실시간 연산</span>
+                  </div>
+
+                  <div className="min-h-[44px] flex items-center">
+                    <p className="text-[13.5px] font-extrabold text-slate-800 leading-relaxed">
+                      Q. <TypedTitle text={quizQuestion.title} />
+                    </p>
+                  </div>
+
+                  {/* 5지선다 선택지 및 정답 공개 연출 */}
+                  <div className="flex flex-col gap-2.5 mt-1">
+                    {quizQuestion.choices.map((choice, idx) => {
+                      const isSelected = selectedQuizOption === idx;
+                      const isCorrectAnswer = quizQuestion.correctIndex === idx;
+                      
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={quizAnswered}
+                          onClick={() => handleSelectQuizOption(idx)}
+                          className={`w-full relative overflow-hidden rounded-xl py-3 px-4 border text-left transition-all duration-300 flex items-center justify-between cursor-pointer select-none ${
+                            quizAnswered
+                              ? isCorrectAnswer
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-extrabold shadow-sm'
+                                : isSelected
+                                  ? 'bg-rose-50 border-rose-300 text-rose-900 font-extrabold'
+                                  : 'bg-white/80 border-slate-200 text-slate-400'
+                              : 'bg-white hover:bg-indigo-50/50 border-slate-200 hover:border-indigo-300 text-slate-700 active:scale-[0.99] active:bg-slate-50'
+                          }`}
+                        >
+                          {/* 애니메이션 프로그레스 바 백그라운드 (정답 선택 후 동적으로 차오름) */}
+                          {quizAnswered && (
+                            <div 
+                              className={`absolute left-0 top-0 bottom-0 opacity-15 transition-all duration-1000 ease-out ${
+                                isCorrectAnswer ? 'bg-emerald-500' : 'bg-slate-500'
+                              }`}
+                              style={{ width: `${choice.pct}%` }}
+                            />
+                          )}
+
+                          <div className="flex items-center gap-2.5 z-10">
+                            {/* 라디오 버튼 모양 체크박스 */}
+                            <div className={`w-4.5 h-4.5 rounded-full flex items-center justify-center border text-[9px] font-black shrink-0 ${
+                              quizAnswered
+                                ? isCorrectAnswer
+                                  ? 'border-emerald-500 bg-emerald-500 text-white'
+                                  : isSelected
+                                    ? 'border-rose-500 bg-rose-500 text-white'
+                                    : 'border-slate-350 bg-slate-100 text-slate-300'
+                                : 'border-slate-350 bg-white text-slate-400'
+                            }`}>
+                              {quizAnswered ? (
+                                isCorrectAnswer ? '✓' : isSelected ? '✕' : ''
+                              ) : (
+                                idx + 1
+                              )}
+                            </div>
+                            <span className="text-[12.5px] font-bold truncate pr-3">{choice.name}</span>
+                          </div>
+
+                          {/* 정답 공개 시 실제 수치 레이아웃 노출 */}
+                          {quizAnswered && (
+                            <span className={`text-[11.5px] font-black z-10 ${
+                              isCorrectAnswer ? 'text-emerald-600' : isSelected ? 'text-rose-600' : 'text-slate-400'
+                            }`}>
+                              {choice.value > 0 ? choice.display : '0건'}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* 정답 해설 가이드 */}
+                  {quizAnswered && (
+                    <div className="p-3 bg-white/60 rounded-xl border border-indigo-100/30 text-[11.5px] text-slate-500 leading-normal font-semibold animate-fade-in">
+                      {selectedQuizOption === quizQuestion.correctIndex ? (
+                        <p className="text-emerald-700 font-extrabold flex items-center gap-1">
+                          🎉 대단합니다! 단번에 정답 <strong>[{quizQuestion.correctAnswerName}]</strong>을(를) 맞히셨어요!
+                        </p>
+                      ) : (
+                        <p className="text-rose-700 font-extrabold flex items-center gap-1">
+                          😢 아쉬워요! 올해의 정답은 <strong>[{quizQuestion.correctAnswerName}]</strong>입니다.
+                        </p>
+                      )}
+                      <p className="mt-1 text-[11px] text-slate-450">
+                        ※ 다른 탭에 갔다가 다시 들어오면 실시간 강의 통계를 기반으로 새로운 무작위 모의고사가 제시됩니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* 월별 수입 가로 추이 차트 (연도별, 1월~12월) */}
               {(
@@ -4918,6 +5322,25 @@ function doPost(e) {
 
       {/* ── SETTINGS MODAL ── */}
 
+
+      {/* ── 퀴즈 센터 플로팅 토스트 피드백 ── */}
+      {quizToast && quizToast.visible && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center pointer-events-none select-none animate-fade-in">
+          <div className="bg-black/40 backdrop-blur-[3px] absolute inset-0 transition-opacity duration-300" />
+          <div className={`transform scale-100 transition-all duration-300 flex flex-col items-center justify-center p-6 rounded-3xl shadow-2xl backdrop-blur-md border ${
+            quizToast.type === 'O' 
+              ? 'bg-emerald-500/95 border-emerald-400 text-white shadow-emerald-500/20' 
+              : 'bg-rose-500/95 border-rose-400 text-white shadow-rose-500/20'
+          }`} style={{ width: '135px', height: '135px' }}>
+            <span className="text-[64px] font-black leading-none drop-shadow-md select-none">
+              {quizToast.type}
+            </span>
+            <span className="text-[13px] font-black tracking-wider mt-1 select-none">
+              {quizToast.type === 'O' ? '정답입니다!' : '틀렸습니다!'}
+            </span>
+          </div>
+        </div>
+      )}
 
     </div>
   );
