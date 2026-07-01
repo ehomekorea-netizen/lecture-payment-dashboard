@@ -628,15 +628,14 @@ export default function App() {
   // 모달 폼 상태
   const [formData, setFormData] = useState({
     institution: '',
+    venue: '',
     role: 'Main', // 'Main' | 'Assistant'
     rate: 100000,
     classes: 4,
     transportFee: 0,
     date: getKstToday(),
-
     isPaid: false,
     taxRate: '3.3%',
-    taxBase: 'LectureOnly',
     customTax: 0
   });
 
@@ -790,16 +789,26 @@ export default function App() {
   }, [sheetUrl, isInitialPullCompleted]);
 
   // 자동 완성 추천 목록
-  const uniqueInstitutions = Array.from(new Set(lectures.map(l => l?.institution).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  // 이모지 제거 및 공백 정리를 수행하여 동일 기관으로 판단하게 돕는 헬퍼
+  const cleanEmojiAndSpace = (str) => {
+    if (!str) return '';
+    // 이모지 범위 제거
+    const noEmoji = str.replace(/[\u{1F300}-\u{1F9FF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F900}-\u{1F9FF}]|[\u{2600}-\u{27BF}]|[\u{1F1E6}-\u{1F1FF}]|[\u{2700}-\u{27BF}]/gu, '');
+    return noEmoji.replace(/\s+/g, ' ').trim();
+  };
+  const uniqueInstitutions = useMemo(() => {
+    const cleaned = lectures.map(l => cleanEmojiAndSpace(l?.institution)).filter(Boolean);
+    return Array.from(new Set(cleaned)).sort((a, b) => a.localeCompare(b));
+  }, [lectures]);
 
 
 
   // 세금 계산식
-  const calculateFees = (rate, classes, transport, taxRate, taxBase, customTax, isPaid) => {
+  const calculateFees = (rate, classes, transport, taxRate, customTax, isPaid) => {
     const lectureFee = rate * classes;
     const expectedAmount = lectureFee + transport;
     
-    const baseAmount = taxBase === 'LectureOnly' ? lectureFee : expectedAmount;
+    const baseAmount = lectureFee; // Always calculate tax on lecture fee only
     let taxAmount = 0;
 
     if (taxRate === '3.3%') {
@@ -836,7 +845,6 @@ export default function App() {
           updated.rate = prevLecture.rate;
           updated.transportFee = prevLecture.transportFee;
           updated.taxRate = prevLecture.taxRate;
-          updated.taxBase = prevLecture.taxBase || 'LectureOnly';
         }
       }
 
@@ -925,12 +933,12 @@ export default function App() {
       const classes = field === 'classes' ? Number(value) : item.classes;
       const transport = field === 'transportFee' ? Number(value) : item.transportFee;
       const taxRate = field === 'taxRate' ? value : item.taxRate;
-      const taxBase = field === 'taxBase' ? value : item.taxBase;
+      
       const customTax = field === 'customTax' ? Number(value) : item.customTax;
       const isPaid = field === 'isPaid' ? value : item.isPaid;
 
       const { expectedAmount, deduction, netAmount } = calculateFees(
-        rate, classes, transport, taxRate, taxBase, customTax, isPaid
+        rate, classes, transport, taxRate, customTax, isPaid
       );
 
       updated[index] = {
@@ -1107,7 +1115,6 @@ ${aiText}
             item.classes || 2,
             item.transportFee || 0,
             item.taxRate || '3.3%',
-            item.taxBase || 'LectureOnly',
             0,
             item.isPaid || false
           );
@@ -1125,7 +1132,7 @@ ${aiText}
 
             isPaid: item.isPaid || false,
             taxRate: item.taxRate || '3.3%',
-            taxBase: item.taxBase || 'LectureOnly',
+            
             customTax: 0
           };
         });
@@ -1401,7 +1408,6 @@ ${aiText}
       Number(formData.classes),
       Number(formData.transportFee),
       formData.taxRate,
-      formData.taxBase,
       Number(formData.customTax),
       formData.isPaid
     );
@@ -1412,6 +1418,7 @@ ${aiText}
     const newLecture = {
       id: editingLecture ? editingLecture.id : String(Date.now()),
       institution: formData.institution,
+      venue: formData.venue || '',
       role: formData.role || 'Main',
       rate: Number(formData.rate),
       classes: Number(formData.classes),
@@ -1421,10 +1428,8 @@ ${aiText}
       netAmount,
       date: dateVal,
       month: extractMonth(dateVal),
-
       isPaid: formData.isPaid,
       taxRate: formData.taxRate,
-      taxBase: formData.taxBase,
       customTax: Number(formData.customTax)
     };
 
@@ -1441,15 +1446,14 @@ ${aiText}
 
     setFormData({
       institution: '',
+      venue: '',
       role: 'Main',
       rate: 100000,
       classes: 4,
       transportFee: 0,
       date: new Date().toISOString().slice(0, 10),
-
       isPaid: false,
       taxRate: '3.3%',
-      taxBase: 'LectureOnly',
       customTax: 0,
       _newPresetName: '',
       _newPresetRate: '',
@@ -1501,7 +1505,6 @@ ${aiText}
         lecture.classes,
         lecture.transportFee,
         lecture.taxRate || '3.3%',
-        lecture.taxBase || 'LectureOnly',
         lecture.customTax || 0,
         true
       );
@@ -1586,16 +1589,15 @@ ${aiText}
     setEditingLecture(lecture);
     setFormData({
       institution: lecture.institution,
+      venue: lecture.venue || '',
       role: lecture.role || 'Main',
       rate: lecture.rate,
       classes: lecture.classes,
       transportFee: lecture.transportFee,
       month: lecture.month,
       date: lecture.date,
-
       isPaid: lecture.isPaid,
       taxRate: lecture.taxRate || '3.3%',
-      taxBase: lecture.taxBase || 'LectureOnly',
       customTax: lecture.customTax || 0,
       _tab: 'record',
       _newPresetName: '',
@@ -1611,9 +1613,10 @@ ${aiText}
 
   // CSV 내보내기
   const handleExportCSV = () => {
-    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
+    const headers = ['기관명/학교', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
     const rows = lectures.map(l => [
       l.institution,
+      l.venue || '',
       l.role === 'Assistant' ? '보조강사' : '주강사',
       l.rate,
       l.classes,
@@ -1639,12 +1642,12 @@ ${aiText}
   };
 
   const handleDownloadSampleCSV = () => {
-    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
+    const headers = ['기관명/학교', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
     const rows = [
-      ['창의융합/광주전남중', '주강사', '25000', '12', '300000', '0', '3.3', '-10660', '10월', '193400', '2025-10-15', '정산완료'],
-      ['TMD교육/고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '3.3', '-6335', '12월', '185665', '2025-12-10', '정산완료'],
-      ['TMD교육/고흥동초A (1)', '보조강사', '50000', '3', '192000', '42000', '8.8', '-16896', '12월', '217104', '2025-12-11', '정산완료'],
-      ['코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)', '보조강사', '50000', '3', '175787', '25787', '3.3', '-4950', '1월', '170837', '2026-01-12', '정산완료']
+      ['창의융합', '광주전남중', '주강사', '25000', '12', '300000', '0', '3.3', '-10660', '10월', '193400', '2025-10-15', '정산완료'],
+      ['TMD교육', '고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '3.3', '-6335', '12월', '185665', '2025-12-10', '정산완료'],
+      ['TMD교육', '고흥동초A (1)', '보조강사', '50000', '3', '192000', '42000', '8.8', '-16896', '12월', '217104', '2025-12-11', '정산완료'],
+      ['코딩 스피드 레이스!', '청풍초등학교(3차시)', '보조강사', '50000', '3', '175787', '25787', '3.3', '-4950', '1월', '170837', '2026-01-12', '정산완료']
     ];
 
     const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -1700,15 +1703,28 @@ ${aiText}
         const cleanFields = parseCSVLine(line).map(f => f.replace(/^"|"$/g, '').trim());
 
         if (cleanFields.length < 12) {
-          invalidRows.push({ lineNum: i + 1, reason: `열 개수가 부족합니다. (필요: 12개, 현재: ${cleanFields.length}개)` });
+          invalidRows.push({ lineNum: i + 1, reason: `열 개수가 부족합니다. (필요: 최소 12개, 현재: ${cleanFields.length}개)` });
           continue;
         }
 
+        // Determine if this is the new 13-column format or the old 12-column format
+        const hasVenueCol = cleanFields.length >= 13;
         const inst = cleanFields[0];
-        const roleStr = cleanFields[1];
-        const rateStr = cleanFields[2];
-        const classesStr = cleanFields[3];
-        const dateStr = cleanFields[10];
+        const venue = hasVenueCol ? cleanFields[1] : '';
+        const roleStr = hasVenueCol ? cleanFields[2] : cleanFields[1];
+        const rateStr = hasVenueCol ? cleanFields[3] : cleanFields[2];
+        const classesStr = hasVenueCol ? cleanFields[4] : cleanFields[3];
+        
+        const expectedIdx = hasVenueCol ? 5 : 4;
+        const transportIdx = hasVenueCol ? 6 : 5;
+        const taxRateIdx = hasVenueCol ? 7 : 6;
+        const deductionIdx = hasVenueCol ? 8 : 7;
+        const monthIdx = hasVenueCol ? 9 : 8;
+        const netIdx = hasVenueCol ? 10 : 9;
+        const dateIdx = hasVenueCol ? 11 : 10;
+        const isPaidIdx = hasVenueCol ? 12 : 11;
+
+        const dateStr = cleanFields[dateIdx];
 
         if (!inst) {
           invalidRows.push({ lineNum: i + 1, reason: "기관명/학교가 비어 있습니다." });
@@ -1730,14 +1746,14 @@ ${aiText}
         }
 
         const role = roleStr === '보조강사' ? 'Assistant' : 'Main';
-        const expected = Number(cleanFields[4]) || 0;
-        const transport = Number(cleanFields[5]) || 0;
-        const taxRateVal = cleanFields[6]; // 공제율
-        const deduction = Number(cleanFields[7]) || 0;
-        const month = cleanFields[8] && cleanFields[8] !== 'undefined' ? cleanFields[8] : extractMonth(dateStr);
-        const net = cleanFields[9] ? Number(cleanFields[9]) : 0;
+        const expected = Number(cleanFields[expectedIdx]) || 0;
+        const transport = Number(cleanFields[transportIdx]) || 0;
+        const taxRateVal = cleanFields[taxRateIdx]; // 공제율
+        const deduction = Number(cleanFields[deductionIdx]) || 0;
+        const month = cleanFields[monthIdx] && cleanFields[monthIdx] !== 'undefined' ? cleanFields[monthIdx] : extractMonth(dateStr);
+        const net = cleanFields[netIdx] ? Number(cleanFields[netIdx]) : 0;
         const date = dateStr;
-        const isPaid = (cleanFields.length >= 13 ? cleanFields[12] : cleanFields[11]) === '정산완료' || net > 0;
+        const isPaid = cleanFields[isPaidIdx] === '정산완료' || net > 0;
 
         let parsedTaxRate = '3.3%';
         if (taxRateVal) {
@@ -1767,6 +1783,7 @@ ${aiText}
         newLectures.push({
           id: `csv-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 5)}`,
           institution: inst,
+          venue,
           role,
           rate,
           classes,
@@ -1776,10 +1793,8 @@ ${aiText}
           netAmount: net,
           month,
           date,
-
           isPaid,
           taxRate: parsedTaxRate,
-          taxBase: 'LectureOnly',
           customTax: Math.abs(deduction)
         });
       }
@@ -1857,12 +1872,10 @@ ${aiText}
   const homeSummaryLectures = useMemo(() => {
     return lectures.filter(l => {
       if (!l) return false;
-      if (selectedMonth === 'All') {
-        if (getLectureYear(l) !== statsYear) return false;
-      } else {
-        if (extractMonth(l.date) !== selectedMonth) return false;
-      }
-      return selectedInstitution === 'All' || l.institution === selectedInstitution;
+      // Always filter by year first
+      if (getLectureYear(l) !== statsYear) return false;
+      if (selectedMonth !== 'All' && extractMonth(l.date) !== selectedMonth) return false;
+      return selectedInstitution === 'All' || cleanEmojiAndSpace(l.institution) === cleanEmojiAndSpace(selectedInstitution);
     });
   }, [lectures, statsYear, selectedMonth, selectedInstitution]);
 
@@ -2005,15 +2018,12 @@ ${aiText}
   const filteredLectures = lectures.filter(l => {
     if (!l) return false;
     
-    // 1. Year/Month Filter: If selectedMonth is 'All', only show lectures of statsYear.
-    // Otherwise, show matching month regardless of statsYear (implicit year match).
-    if (selectedMonth === 'All') {
-      if (getLectureYear(l) !== statsYear) return false;
-    } else {
-      if (extractMonth(l.date) !== selectedMonth) return false;
-    }
+    // Always filter by year first
+    if (getLectureYear(l) !== statsYear) return false;
+    
+    if (selectedMonth !== 'All' && extractMonth(l.date) !== selectedMonth) return false;
 
-    const matchesInst = selectedInstitution === 'All' || l.institution === selectedInstitution;
+    const matchesInst = selectedInstitution === 'All' || cleanEmojiAndSpace(l.institution) === cleanEmojiAndSpace(selectedInstitution);
     const matchesStatus = 
       selectedStatus === 'All' || 
       (selectedStatus === 'Paid' && l.isPaid) || 
@@ -2057,7 +2067,7 @@ ${aiText}
   
   // 만약 빈 시트이거나 행이 전혀 없는 경우 초기화
   if (data.length <= 1 || (data.length === 2 && !data[1][0])) {
-    var headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
+    var headers = ['기관명/학교', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
     sheet.clearContents();
     sheet.appendRow(headers);
     data = [headers];
@@ -2134,7 +2144,7 @@ function doPost(e) {
   
   if (action === "sync_all") {
     sheet.clearContents();
-    var headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
+    var headers = ['기관명/학교', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
     var outputData = [headers];
     
     if (payload.lectures && payload.lectures.length > 0) {
@@ -2147,6 +2157,7 @@ function doPost(e) {
         
         outputData.push([
           l.institution,
+          l.venue || "",
           roleKorean,
           Number(l.rate) || 0,
           Number(l.classes) || 0,
@@ -2348,7 +2359,7 @@ function doPost(e) {
                     <AnimatedNumber value={totalNet} />
                   </span>
                   <div className="text-[11px] text-emerald-600 font-bold mt-0.5">
-                    총 {lectures.filter(l=>l.isPaid).length}건 완료
+                    총 {homeSummaryLectures.filter(l=>l.isPaid).length}건 완료
                   </div>
                 </div>
               </div>
@@ -2486,7 +2497,10 @@ function doPost(e) {
                                 <span className="text-[13px] font-black px-3 py-1 rounded-lg inline-block flex-shrink-0" style={{background:'rgba(30,58,138,0.07)',color:'#1E3A8A'}}>{l.date || '날짜 미지정'}</span>
                                 {l.role === 'Assistant' && <span className="text-[11px] font-black text-slate-400 border border-slate-200 px-1.5 rounded flex-shrink-0">보조</span>}
                               </div>
-                              <h3 className="text-[17.5px] font-black text-[#0F172A] leading-tight tracking-tight relative z-10 break-all">{l.institution}</h3>
+                              <h3 className="text-[17.5px] font-black text-[#0F172A] leading-tight tracking-tight relative z-10 break-all">
+                                {l.institution}
+                                {l.venue && <span className="text-slate-500 font-bold ml-1.5 text-[14px]">({l.venue})</span>}
+                              </h3>
                             </div>
                             <div className="flex items-center gap-2 relative z-10 flex-shrink-0">
                               <button onClick={() => handleTogglePaid(l)} className="btn-press text-[13px] font-black px-3.5 py-1.5 rounded-xl transition flex-shrink-0 whitespace-nowrap" style={l.isPaid?{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.25)',color:'#10B981'}:{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.25)',color:'#F59E0B'}}>
@@ -3447,15 +3461,14 @@ function doPost(e) {
                       setEditingLecture(null);
                       setFormData({
                         institution: '',
+                        venue: '',
                         role: 'Main',
                         rate: 100000,
                         classes: 4,
                         transportFee: 0,
                         date: new Date().toISOString().slice(0, 10),
-
                         isPaid: false,
                         taxRate: '3.3%',
-                        taxBase: 'LectureOnly',
                         customTax: 0,
                         _newPresetName: '',
                         _newPresetRate: '',
@@ -3566,7 +3579,7 @@ function doPost(e) {
                     onChange={(e) => {
                       const presetId = e.target.value;
                       if (!presetId) {
-                        setFormData(prev => ({ ...prev, _selectedPreset: '', _presetLocked: false }));
+                        setFormData(prev => ({ ...prev, _selectedPreset: '', _presetLocked: false, institution: '' }));
                         return;
                       }
                       const preset = presets.find(p => p.id === presetId);
@@ -3604,28 +3617,82 @@ function doPost(e) {
 
                 {/* 기관명 */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-bold text-slate-600 text-[11.5px]">기관 / 교육장명 <span className="text-red-500 font-extrabold">*</span></label>
-                  <input
-                    type="text"
-                    name="institution"
-                    required
-                    value={formData.institution}
-                    onChange={handleInputChange}
-                    readOnly={!!formData._presetLocked}
-                    placeholder="예: 사회복지협의회/목포경애원"
-                    list="presets-modal"
-                    className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-semibold transition-all"
-                    style={{
-                      background: formData._presetLocked ? '#F1F5F9' : 'white',
-                      borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(30,58,138,0.15)',
-                      color: formData._presetLocked ? '#64748B' : '#0F172A'
-                    }}
-                  />
+                  <label className="font-bold text-slate-600 text-[11.5px]">기관명 <span className="text-red-500 font-extrabold">*</span></label>
+                  {formData._presetLocked ? (
+                    <select
+                      value={formData._selectedPreset || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (!val) {
+                          setFormData(prev => ({
+                            ...prev,
+                            _selectedPreset: '',
+                            _presetLocked: false,
+                            institution: ''
+                          }));
+                        } else {
+                          const preset = presets.find(p => p.id === val);
+                          if (preset) {
+                            setFormData(prev => ({
+                              ...prev,
+                              _selectedPreset: val,
+                              _presetLocked: true,
+                              institution: preset.name,
+                              role: preset.role || 'Main',
+                              rate: preset.rate,
+                              classes: preset.classes || prev.classes || 2,
+                              transportFee: preset.transportFee || 0,
+                              taxRate: preset.taxRate || '3.3%'
+                            }));
+                          }
+                        }
+                      }}
+                      className="w-full px-4 py-3 border border-blue-200 rounded-xl text-[12px] font-bold text-slate-800 bg-[#F1F5F9]"
+                    >
+                      <option value="">직접 입력하기 (잠금 해제)</option>
+                      {presets.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      name="institution"
+                      required
+                      value={formData.institution}
+                      onChange={handleInputChange}
+                      placeholder="예: 사회복지협의회"
+                      list="presets-modal"
+                      className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-semibold transition-all"
+                      style={{
+                        borderColor: 'rgba(30,58,138,0.15)',
+                        color: '#0F172A'
+                      }}
+                    />
+                  )}
                   {!formData._presetLocked && (
                     <datalist id="presets-modal">
                       {uniqueInstitutions.map((i, idx) => <option key={idx} value={i} />)}
                     </datalist>
                   )}
+                </div>
+
+                {/* 교육장명 */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-bold text-slate-600 text-[11.5px]">교육장명 <span className="text-red-500 font-extrabold">*</span></label>
+                  <input
+                    type="text"
+                    name="venue"
+                    required
+                    value={formData.venue || ''}
+                    onChange={handleInputChange}
+                    placeholder="예: 목포경애원, 남중"
+                    className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-semibold transition-all"
+                    style={{
+                      borderColor: 'rgba(30,58,138,0.15)',
+                      color: '#0F172A'
+                    }}
+                  />
                 </div>
 
                 {/* 출강 구분 */}
@@ -3648,7 +3715,7 @@ function doPost(e) {
                       onClick={() => setFormData(prev => ({ ...prev, role: 'Assistant' }))}
                       className={`py-2 text-[11px] font-bold rounded-lg transition-all ${
                         formData.role === 'Assistant'
-                          ? 'bg-[#1E3A8A] text-white shadow-sm font-black'
+                          ? 'bg-emerald-600 text-white shadow-sm font-black'
                           : 'text-slate-500 hover:text-slate-800'
                       }`}
                     >
@@ -3729,7 +3796,7 @@ function doPost(e) {
                 {/* 공제 세율 설정 (선택) */}
                 <div className="p-4 rounded-2xl flex flex-col gap-3" style={{background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)', border: '1px solid rgba(30,58,138,0.08)'}}>
                   <span className="font-black text-[11px] text-slate-700">공제 세율 설정 (선택)</span>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-3">
                     <div className="flex flex-col gap-1">
                       <label className="text-[10px] text-slate-400 font-semibold">세율</label>
                       <select
@@ -3746,18 +3813,7 @@ function doPost(e) {
                         <option value="Custom">직접 입력</option>
                       </select>
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <label className="text-[10px] text-slate-400 font-semibold">과세기준</label>
-                      <select
-                        name="taxBase"
-                        value={formData.taxBase}
-                        onChange={handleInputChange}
-                        className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold"
-                      >
-                        <option value="LectureOnly">강의료만 과세</option>
-                        <option value="Total">합계액 전체 과세</option>
-                      </select>
-                    </div>
+
                   </div>
                   {formData.taxRate === 'Custom' && (
                     <input
@@ -3981,15 +4037,14 @@ function doPost(e) {
                       setEditingLecture(null);
                       setFormData({
                         institution: '',
+                        venue: '',
                         role: 'Main',
                         rate: 100000,
                         classes: 4,
                         transportFee: 0,
                         date: new Date().toISOString().slice(0, 10),
-
                         isPaid: false,
                         taxRate: '3.3%',
-                        taxBase: 'LectureOnly',
                         customTax: 0,
                         _newPresetName: '',
                         _newPresetRate: '',
@@ -4405,7 +4460,7 @@ function doPost(e) {
         return (
           <div className="fixed inset-0 flex items-stretch md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
             {/* Modal Container: Fullscreen on mobile, Centered Modal card on PC */}
-            <div className="bg-[#F8FAFC] w-full h-full md:w-full md:max-w-xl md:h-auto md:max-h-[85vh] md:rounded-[28px] flex flex-col shadow-2xl overflow-hidden border-none md:border md:border-slate-200 modal-zoom-in">
+            <div className="bg-[#F8FAFC] w-full h-full md:w-full md:max-w-3xl md:h-auto md:max-h-[85vh] md:rounded-[28px] flex flex-col shadow-2xl overflow-hidden border-none md:border md:border-slate-200 modal-zoom-in">
               
               {/* Header */}
               <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white shadow-sm flex-shrink-0">
@@ -4445,7 +4500,7 @@ function doPost(e) {
                 </div>
 
                 {/* 2. 강의 상세 명세 카드 리스트 */}
-                <div className={`flex flex-col gap-4 ${totalCount === 1 ? 'flex-1 justify-center' : ''}`}>
+                <div className="flex flex-col gap-4">
                   {dailyLectures.map((l) => (
                     <div 
                       key={l.id} 
@@ -4455,7 +4510,10 @@ function doPost(e) {
                       <div className="flex justify-between items-center gap-2">
                         <div className="flex flex-col gap-0.5 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <h4 className="font-extrabold text-slate-800 text-[14px] truncate">{l.institution}</h4>
+                            <h4 className="font-extrabold text-slate-800 text-[14px] truncate">
+                              {l.institution}
+                              {l.venue && <span className="text-slate-500 text-[12.5px] font-bold ml-1">({l.venue})</span>}
+                            </h4>
                             <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded border flex-shrink-0 ${
                               l.role === 'Assistant' 
                                 ? 'text-slate-500 bg-slate-50 border-slate-200' 
