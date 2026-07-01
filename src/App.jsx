@@ -598,6 +598,7 @@ export default function App() {
   const [sheetUrl, setSheetUrl] = useState(() => safeLocalStorage.getItem('google_sheet_url') || '');
   const [spreadsheetUrl, setSpreadsheetUrl] = useState(() => safeLocalStorage.getItem('google_spreadsheet_url') || '');
   const [isCsvImported, setIsCsvImported] = useState(() => safeLocalStorage.getItem('is_csv_imported') === 'true');
+  const [isPromptCopied, setIsPromptCopied] = useState(false);
   const [isInitialPullCompleted, setIsInitialPullCompleted] = useState(false);
   const [isEditingApiKey, setIsEditingApiKey] = useState(!apiKey);
   const [isEditingSheetUrl, setIsEditingSheetUrl] = useState(!sheetUrl);
