@@ -3063,109 +3063,7 @@ function doPost(e) {
                   )}
                 </div>
 
-              {/* 🎯 데이터 분석기반 미니 모의고사 퀴즈 카드 */}
-              {quizQuestion && (
-                <div className="bg-gradient-to-br from-indigo-50/70 to-blue-50/60 p-5 rounded-[24px] border border-indigo-100 shadow-sm flex flex-col gap-3.5 animate-fade-in relative overflow-hidden" style={{marginTop: '-2px'}}>
-                  <div className="flex items-center justify-between border-b border-indigo-100/50 pb-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[14px]">{quizQuestion.emoji}</span>
-                      <h4 className="text-[12.5px] font-black text-indigo-900 tracking-tight">올해 나의 출강 모의고사</h4>
-                    </div>
-                    <span className="text-[9px] bg-indigo-600/10 text-indigo-700 px-2 py-0.5 rounded-full font-black">실시간 연산</span>
-                  </div>
-
-                  <div className="min-h-[44px] flex items-center">
-                    <p className="text-[13.5px] font-extrabold text-slate-800 leading-relaxed">
-                      Q. <TypedTitle text={quizQuestion.title} />
-                    </p>
-                  </div>
-
-                  {/* 5지선다 선택지 및 정답 공개 연출 */}
-                  <div className="flex flex-col gap-2.5 mt-1">
-                    {quizQuestion.choices.map((choice, idx) => {
-                      const isSelected = selectedQuizOption === idx;
-                      const isCorrectAnswer = quizQuestion.correctIndex === idx;
-                      
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          disabled={quizAnswered}
-                          onClick={() => handleSelectQuizOption(idx)}
-                          className={`w-full relative overflow-hidden rounded-xl py-3 px-4 border text-left transition-all duration-300 flex items-center justify-between cursor-pointer select-none ${
-                            quizAnswered
-                              ? isCorrectAnswer
-                                ? 'bg-emerald-50 border-emerald-300 text-emerald-900 font-extrabold shadow-sm'
-                                : isSelected
-                                  ? 'bg-rose-50 border-rose-300 text-rose-900 font-extrabold'
-                                  : 'bg-white/80 border-slate-200 text-slate-400'
-                              : 'bg-white hover:bg-indigo-50/50 border-slate-200 hover:border-indigo-300 text-slate-700 active:scale-[0.99] active:bg-slate-50'
-                          }`}
-                        >
-                          {/* 애니메이션 프로그레스 바 백그라운드 (정답 선택 후 동적으로 차오름) */}
-                          {quizAnswered && (
-                            <div 
-                              className={`absolute left-0 top-0 bottom-0 opacity-15 transition-all duration-1000 ease-out ${
-                                isCorrectAnswer ? 'bg-emerald-500' : 'bg-slate-500'
-                              }`}
-                              style={{ width: `${choice.pct}%` }}
-                            />
-                          )}
-
-                          <div className="flex items-center gap-2.5 z-10">
-                            {/* 라디오 버튼 모양 체크박스 */}
-                            <div className={`w-4.5 h-4.5 rounded-full flex items-center justify-center border text-[9px] font-black shrink-0 ${
-                              quizAnswered
-                                ? isCorrectAnswer
-                                  ? 'border-emerald-500 bg-emerald-500 text-white'
-                                  : isSelected
-                                    ? 'border-rose-500 bg-rose-500 text-white'
-                                    : 'border-slate-350 bg-slate-100 text-slate-300'
-                                : 'border-slate-350 bg-white text-slate-400'
-                            }`}>
-                              {quizAnswered ? (
-                                isCorrectAnswer ? '✓' : isSelected ? '✕' : ''
-                              ) : (
-                                idx + 1
-                              )}
-                            </div>
-                            <span className="text-[12.5px] font-bold truncate pr-3">{choice.name}</span>
-                          </div>
-
-                          {/* 정답 공개 시 실제 수치 레이아웃 노출 */}
-                          {quizAnswered && (
-                            <span className={`text-[11.5px] font-black z-10 ${
-                              isCorrectAnswer ? 'text-emerald-600' : isSelected ? 'text-rose-600' : 'text-slate-400'
-                            }`}>
-                              {choice.value > 0 ? choice.display : '0건'}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* 정답 해설 가이드 */}
-                  {quizAnswered && (
-                    <div className="p-3 bg-white/60 rounded-xl border border-indigo-100/30 text-[11.5px] text-slate-500 leading-normal font-semibold animate-fade-in">
-                      {selectedQuizOption === quizQuestion.correctIndex ? (
-                        <p className="text-emerald-700 font-extrabold flex items-center gap-1">
-                          🎉 대단합니다! 단번에 정답 <strong>[{quizQuestion.correctAnswerName}]</strong>을(를) 맞히셨어요!
-                        </p>
-                      ) : (
-                        <p className="text-rose-700 font-extrabold flex items-center gap-1">
-                          😢 아쉬워요! 올해의 정답은 <strong>[{quizQuestion.correctAnswerName}]</strong>입니다.
-                        </p>
-                      )}
-                      <p className="mt-1 text-[11px] text-slate-450">
-                        ※ 다른 탭에 갔다가 다시 들어오면 실시간 강의 통계를 기반으로 새로운 무작위 모의고사가 제시됩니다.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 월별 수입 가로 추이 차트 (연도별, 1월~12월) */}
+                            {/* 월별 수입 가로 추이 차트 (연도별, 1월~12월) */}
               {(
                   <div className="bg-white rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-0 animate-fade-in overflow-hidden">
                     {/* 연도 네비게이션 헤더 */}
@@ -3333,43 +3231,99 @@ function doPost(e) {
               )}
 
 
-              {/* 주관사(기관)별 출강 비중 */}
-              <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3">
-                <div>
-                  <h4 className="text-[15px] font-black text-slate-800">올 한해 어느 기관에서 가장 수입이 많았을까요?</h4>
-                  <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">기관별 수입 기여도 순위</p>
-                </div>
-                {statsYearLectures.length === 0 ? (
-                  <div className="text-[12px] text-slate-400 text-center py-10 font-bold">데이터가 없습니다.</div>
-                ) : (
-                  <div className="flex flex-col gap-3.5">
-                    {statsSortedInsts.map((inst, i) => {
-                      return (
-                        <div key={i} className="flex flex-col gap-1.5">
-                          <div className="flex justify-between items-center text-[12px] font-bold">
-                            <span 
-                              className="text-slate-700 truncate max-w-[200px] cursor-help" 
-                              title={inst.name}
-                            >
-                              {inst.name}
-                            </span>
-                            <span className="text-slate-500 flex-shrink-0">
-                              {Math.round(inst.pct)}% ({formatWon(inst.val)}원)
-                            </span>
-                          </div>
-                          {/* 가로 프로그레스 바 비중 시각화 */}
-                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-gradient-to-r from-indigo-500 to-[#2563EB] rounded-full transition-all duration-1000 ease-out"
-                              style={{ width: `${inst.pct}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+              {/* 🎯 데이터 분석기반 미니 퀴즈 카드 (주관사 비중 영역 대체) */}
+              {quizQuestion && (
+                <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3.5 animate-fade-in relative overflow-hidden">
+                  
+                  {/* 질문 섹션 */}
+                  <div className="min-h-[40px] flex items-center">
+                    <p className="text-[14.5px] font-black text-slate-800 leading-relaxed">
+                      Q. <TypedTitle text={quizQuestion.title} />
+                    </p>
                   </div>
-                )}
-              </div>
+
+                  {/* 5지선다 선택지 혹은 정답 공개 연출 */}
+                  {!quizAnswered ? (
+                    // 답변 전: 5지선다 선택지 버튼
+                    <div className="flex flex-col gap-2.5 mt-1">
+                      {quizQuestion.choices.map((choice, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => handleSelectQuizOption(idx)}
+                          className="w-full rounded-xl py-3 px-4 border border-slate-200 hover:border-indigo-300 bg-white hover:bg-indigo-50/20 text-left transition duration-300 flex items-center gap-2.5 cursor-pointer select-none active:scale-[0.99] font-bold text-slate-700"
+                        >
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center border border-slate-300 bg-white text-[10px] font-black text-slate-400 shrink-0">
+                            {idx + 1}
+                          </div>
+                          <span className="text-[13px] font-bold truncate pr-3">{choice.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    // 답변 후: 기여도 차트와 동일한 형태의 랭킹 결과 그래프 연출
+                    <div className="flex flex-col gap-3.5 mt-1.5">
+                      {quizQuestion.choices.map((choice, idx) => {
+                        const isSelected = selectedQuizOption === idx;
+                        const isCorrectAnswer = quizQuestion.correctIndex === idx;
+
+                        let barColorClass = "from-indigo-500 to-[#2563EB]";
+                        let textColorClass = "text-slate-700";
+                        let badgeText = "";
+
+                        if (isCorrectAnswer) {
+                          barColorClass = "from-emerald-400 to-emerald-600";
+                          textColorClass = "text-emerald-700 font-extrabold";
+                          badgeText = " (정답)";
+                        } else if (isSelected) {
+                          barColorClass = "from-rose-400 to-rose-600";
+                          textColorClass = "text-rose-700 font-extrabold";
+                          badgeText = " (나의 선택)";
+                        }
+
+                        return (
+                          <div key={idx} className="flex flex-col gap-1.5">
+                            <div className="flex justify-between items-center text-[12px] font-bold">
+                              <span className={`truncate max-w-[220px] ${textColorClass}`} title={choice.name}>
+                                {idx + 1}. {choice.name}{badgeText}
+                              </span>
+                              <span className={`flex-shrink-0 ${textColorClass}`}>
+                                {choice.value > 0 ? `${choice.pct}% (${choice.display})` : '0% (0건)'}
+                              </span>
+                            </div>
+                            
+                            {/* 가로 프로그레스 바 비중 시각화 - 부드럽게 차오르는 애니메이션 */}
+                            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden relative">
+                              <div
+                                className={`h-full bg-gradient-to-r ${barColorClass} rounded-full transition-all duration-1000 ease-out`}
+                                style={{ width: `${choice.pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* 정답 해설 및 안내 가이드 */}
+                  {quizAnswered && (
+                    <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-[11.5px] text-slate-500 leading-relaxed font-semibold mt-2 animate-fade-in">
+                      {selectedQuizOption === quizQuestion.correctIndex ? (
+                        <p className="text-emerald-700 font-black flex items-center gap-1">
+                          🎉 대단합니다! 단번에 정답 <strong>[{quizQuestion.correctAnswerName}]</strong>을(를) 맞히셨어요!
+                        </p>
+                      ) : (
+                        <p className="text-rose-700 font-black flex items-center gap-1">
+                          😢 아쉬워요! 정답은 <strong>[{quizQuestion.correctAnswerName}]</strong>입니다.
+                        </p>
+                      )}
+                      <p className="mt-1 text-[10.5px] text-slate-400">
+                        ※ 다른 탭에 다녀오거나 연도를 이동하면 새로운 질문이 출제됩니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
