@@ -1058,7 +1058,8 @@ export default function App() {
 아래의 텍스트에서 강의 일정을 추출해서 JSON 배열로 반환해줘.
 
 각 강의 일정 객체는 다음 필드를 가져야 해:
-1. institution: 기관명 또는 학교명 (예: "사회복지협의회/목포경애원", "해남종합사회복지관" 등)
+1. institution: 주최기관 (예: "사회복지협의회", "해남종합사회복지관" 등)
+2. venue: 굕육장명 (예: "목포경애원", "남중" 등)
 2. rate: 강의 시간당 단가 (숫자만, 예: 100000)
 3. classes: 총 차시 또는 강의 시간 (숫자만, 예: 3)
 4. transportFee: 교통비 (숫자만, 없으면 0)
@@ -1468,7 +1469,7 @@ ${aiText}
   // 즐겨찾기 신규 등록
   const handleAddPreset = () => {
     if (!formData.institution.trim()) {
-      alert('기관명을 입력해 주세요.');
+      alert('주최기관명을 입력해 주세요.');
       return;
     }
     const newPreset = {
@@ -1613,7 +1614,7 @@ ${aiText}
 
   // CSV 내보내기
   const handleExportCSV = () => {
-    const headers = ['기관명/학교', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
+    const headers = ['주갅기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
     const rows = lectures.map(l => [
       l.institution,
       l.venue || '',
@@ -1642,7 +1643,7 @@ ${aiText}
   };
 
   const handleDownloadSampleCSV = () => {
-    const headers = ['기관명/학교', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
+    const headers = ['주갅기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
     const rows = [
       ['창의융합', '광주전남중', '주강사', '25000', '12', '300000', '0', '3.3', '-10660', '10월', '193400', '2025-10-15', '정산완료'],
       ['TMD교육', '고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '3.3', '-6335', '12월', '185665', '2025-12-10', '정산완료'],
@@ -1727,7 +1728,7 @@ ${aiText}
         const dateStr = cleanFields[dateIdx];
 
         if (!inst) {
-          invalidRows.push({ lineNum: i + 1, reason: "기관명/학교가 비어 있습니다." });
+          invalidRows.push({ lineNum: i + 1, reason: "주걭기관이 비어 있습니다." });
           continue;
         }
 
@@ -2067,7 +2068,7 @@ ${aiText}
   
   // 만약 빈 시트이거나 행이 전혀 없는 경우 초기화
   if (data.length <= 1 || (data.length === 2 && !data[1][0])) {
-    var headers = ['기관명/학교', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
+    var headers = ['주갅기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
     sheet.clearContents();
     sheet.appendRow(headers);
     data = [headers];
@@ -2090,7 +2091,7 @@ ${aiText}
     var rowData = data[i];
     if (rowData.length === 0 || (!rowData[0] && rowData.length <= 1)) continue;
     
-    var inst = getVal(rowData, '기관명/학교', "") || "";
+    var inst = getVal(rowData, '주갅기관', "") || "";
     // 기관명이 비어있는 행은 패스 (빈 행 패싱)
     if (!inst.trim()) continue;
 
@@ -2144,7 +2145,7 @@ function doPost(e) {
   
   if (action === "sync_all") {
     sheet.clearContents();
-    var headers = ['기관명/학교', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
+    var headers = ['주갅기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
     var outputData = [headers];
     
     if (payload.lectures && payload.lectures.length > 0) {
@@ -2381,7 +2382,7 @@ function doPost(e) {
                       backgroundPosition: 'right 12px center',
                     }}
                   >
-                    <option value="All">전체 교육기관 선택</option>
+                    <option value="All">전체 주최기관 선택</option>
                     {uniqueInstitutions.map(inst => (
                       <option key={inst} value={inst}>{inst}</option>
                     ))}
@@ -3034,10 +3035,10 @@ function doPost(e) {
                             const promptText = `첨부한 두 개의 파일(나의 기존 데이터 파일 & 양식 예시 CSV 파일)을 참고하여, 나의 데이터를 양식 예시 CSV 파일의 헤더 규격 및 서식 규칙에 맞춰 완벽하게 변환해줘.
 
 [CSV 헤더 규격]
-기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제율(%),공제금액(-),월,실수령액,날짜,정산여부
+주최기관,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제율(%),공제금액(-),월,실수령액,날짜,정산여부
 
 [출력 데이터 규격 및 형식 규칙]
-- 헤더 규격: '기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제율(%),공제금액(-),월,실수령액,날짜,정산여부' 순서의 열로 만들어줘.
+- 헤더 규격: '주최기관,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제율(%),공제금액(-),월,실수령액,날짜,정산여부' 순서의 열로 만들어줘.
 - '날짜' 서식: 반드시 'YYYY-MM-DD' 형식 (예: 2026-06-30)이어야 합니다.
 - '출강역할' 서식: '주강사' 또는 '보조강사' 중 하나로 표준화해줘.
 - '정산여부' 서식: 이미 돈을 지급받은 강의는 '정산완료', 아직 지급 대기 중인 강의는 '정산대기'로 변환해줘.
@@ -3159,86 +3160,7 @@ function doPost(e) {
                 )}
               </div>
 
-              {/* API Settings Accordion - Moved to Second */}
-              <div className="rounded-[24px] bg-violet-50/10 border border-violet-200 overflow-hidden shadow-sm transition-all">
-                <button
-                  type="button"
-                  onClick={() => setIsApiSettingsOpen(!isApiSettingsOpen)}
-                  className="w-full px-6 py-6 flex items-center justify-between bg-violet-100 hover:bg-violet-200/70 transition-colors border-none text-left cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-[22px]">🤖</span>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">AI 분석 연동 설정</h3>
-                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded text-white flex-shrink-0 ${apiKey ? 'bg-violet-600' : 'bg-slate-400'}`}>
-                        {apiKey ? '연동 완료' : '미연동'}
-                      </span>
-                    </div>
-                  </div>
-                  <ChevronDown
-                    size={20}
-                    className={`text-slate-500 transition-transform duration-200 ${isApiSettingsOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-                {isApiSettingsOpen && (
-                  <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
-                          <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com/api-keys)에서 무료 발급\n\n1. https://aistudio.google.com/api-keys 접속\n2. Create API Key 클릭\n3. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
-                        </div>
-                        <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2563EB] hover:text-blue-800 underline font-extrabold">👉 API Key 무료 발급 바로가기</a>
-                      </div>
-                      {!isEditingApiKey && apiKey ? (
-                        <div className="flex flex-col gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm w-full">
-                          <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
-                            🔒 API 키가 등록되었습니다.
-                          </span>
-                          <div className="flex flex-col gap-2 mt-1">
-                            <button
-                              type="button"
-                              onClick={() => setIsEditingApiKey(true)}
-                              className="w-full py-2 bg-white border border-slate-250 text-slate-600 font-black rounded-xl text-[11.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
-                            >
-                              API 키 변경
-                            </button>
-                            <button 
-                              type="button" 
-                              onClick={() => {
-                                if (window.confirm("Gemini API 키를 해제하고 완전히 삭제하시겠습니까?")) {
-                                  safeLocalStorage.removeItem('gemini_api_key');
-                                  setApiKey('');
-                                  setIsEditingApiKey(true);
-                                  alert('API 키가 완전히 해제 및 삭제되었습니다.');
-                                }
-                              }} 
-                              className="w-full py-2 bg-red-50 border border-red-200 text-[#E11D48] font-black rounded-xl text-[11.5px] hover:bg-red-100 transition active:scale-95 cursor-pointer flex items-center justify-center gap-1"
-                            >
-                              <span>⚠️ API 키 해제 및 삭제</span>
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-450" />
-                          <button 
-                            onClick={() => {
-                              const k = document.getElementById('settings-api-key-mobile').value;
-                              handleSaveSettings(k, sheetUrl, spreadsheetUrl);
-                            }}
-                            className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
-                          >
-                            저장
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Cloud Sync Accordion - Moved to Third */}
+              {/* Cloud Sync Accordion - Moved to Second */}
               <div className="rounded-[24px] bg-sky-50/10 border border-sky-200 overflow-hidden shadow-sm transition-all">
                 <button
                   type="button"
@@ -3379,6 +3301,85 @@ function doPost(e) {
                         </div>
                       </div>
                     )}
+                  </div>
+                )}
+              </div>
+
+              {/* API Settings Accordion - Moved to Second */}
+              <div className="rounded-[24px] bg-violet-50/10 border border-violet-200 overflow-hidden shadow-sm transition-all">
+                <button
+                  type="button"
+                  onClick={() => setIsApiSettingsOpen(!isApiSettingsOpen)}
+                  className="w-full px-6 py-6 flex items-center justify-between bg-violet-100 hover:bg-violet-200/70 transition-colors border-none text-left cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-[22px]">🤖</span>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">AI 분석 연동 설정</h3>
+                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded text-white flex-shrink-0 ${apiKey ? 'bg-violet-600' : 'bg-slate-400'}`}>
+                        {apiKey ? '연동 완료' : '미연동'}
+                      </span>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    size={20}
+                    className={`text-slate-500 transition-transform duration-200 ${isApiSettingsOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {isApiSettingsOpen && (
+                  <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
+                          <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com/api-keys)에서 무료 발급\n\n1. https://aistudio.google.com/api-keys 접속\n2. Create API Key 클릭\n3. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
+                        </div>
+                        <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2563EB] hover:text-blue-800 underline font-extrabold">👉 API Key 무료 발급 바로가기</a>
+                      </div>
+                      {!isEditingApiKey && apiKey ? (
+                        <div className="flex flex-col gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm w-full">
+                          <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
+                            🔒 API 키가 등록되었습니다.
+                          </span>
+                          <div className="flex flex-col gap-2 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingApiKey(true)}
+                              className="w-full py-2 bg-white border border-slate-250 text-slate-600 font-black rounded-xl text-[11.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                            >
+                              API 키 변경
+                            </button>
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                if (window.confirm("Gemini API 키를 해제하고 완전히 삭제하시겠습니까?")) {
+                                  safeLocalStorage.removeItem('gemini_api_key');
+                                  setApiKey('');
+                                  setIsEditingApiKey(true);
+                                  alert('API 키가 완전히 해제 및 삭제되었습니다.');
+                                }
+                              }} 
+                              className="w-full py-2 bg-red-50 border border-red-200 text-[#E11D48] font-black rounded-xl text-[11.5px] hover:bg-red-100 transition active:scale-95 cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              <span>⚠️ API 키 해제 및 삭제</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-450" />
+                          <button 
+                            onClick={() => {
+                              const k = document.getElementById('settings-api-key-mobile').value;
+                              handleSaveSettings(k, sheetUrl, spreadsheetUrl);
+                            }}
+                            className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
+                          >
+                            저장
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -3610,14 +3611,14 @@ function doPost(e) {
                   </select>
                   {formData._presetLocked && (
                     <p className="text-[9.5px] text-blue-600 font-semibold mt-0.5">
-                      ✓ 즐겨찾기가 적용되었습니다. 기관명/단가/세율이 잠금 처리됩니다.
+                      ✓ 즐겨찾기가 적용되었습니다. 주최기관/단가/세율이 잠금 처리됩니다.
                     </p>
                   )}
                 </div>
 
-                {/* 기관명 */}
+                {/* 주최기관 */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-bold text-slate-600 text-[11.5px]">기관명 <span className="text-red-500 font-extrabold">*</span></label>
+                  <label className="font-bold text-slate-600 text-[11.5px]">주최기관 <span className="text-red-500 font-extrabold">*</span></label>
                   {formData._presetLocked ? (
                     <select
                       value={formData._selectedPreset || ''}
@@ -3882,7 +3883,7 @@ function doPost(e) {
                     <button type="button" onClick={() => setFormData(prev => ({ ...prev, _showEmojiPicker: !prev._showEmojiPicker }))} className="w-10 h-10 rounded-xl bg-white border border-blue-200 flex items-center justify-center text-lg shadow-sm flex-shrink-0">
                       {formData._newPresetEmoji || <span className="text-[10px] text-slate-400 font-extrabold">없음</span>}
                     </button>
-                    <input type="text" placeholder="기관명 입력" value={formData._newPresetName || ''} onChange={e => setFormData(prev => ({ ...prev, _newPresetName: e.target.value }))} className="flex-1 px-3 py-2 border border-blue-200 rounded-xl bg-white text-[11px] font-bold focus:outline-none focus:border-[#1E3A8A]" />
+                    <input type="text" placeholder="주최기관명 입력" value={formData._newPresetName || ''} onChange={e => setFormData(prev => ({ ...prev, _newPresetName: e.target.value }))} className="flex-1 px-3 py-2 border border-blue-200 rounded-xl bg-white text-[11px] font-bold focus:outline-none focus:border-[#1E3A8A]" />
                   </div>
                   {formData._showEmojiPicker && (
                     <div className="bg-white border border-slate-200 shadow-xl rounded-2xl p-3 flex flex-col gap-2 mt-1">
@@ -3903,7 +3904,7 @@ function doPost(e) {
                   <button type="button" onClick={() => {
                     const name = (formData._newPresetName || '').trim();
                     if (!name) {
-                      alert('기관명을 입력해 주세요.');
+                      alert('주최기관명을 입력해 주세요.');
                       return;
                     }
                     const emoji = formData._newPresetEmoji;
@@ -4100,7 +4101,7 @@ function doPost(e) {
                       </span>
                       
                       <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-toss-textSub">교육장 / 기관명</label>
+                        <label className="text-[10px] text-toss-textSub">교육장 / 주최기관</label>
                         <input 
                           type="text"
                           value={item.institution}
@@ -4506,7 +4507,7 @@ function doPost(e) {
                       key={l.id} 
                       className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col gap-4 relative"
                     >
-                      {/* 카드 헤더: 기관명, 역할, 정산여부 상태 뱃지 (읽기 전용) */}
+                      {/* 카드 헤더: 주최기관, 역할, 정산여부 상태 뱃지 (읽기 전용) */}
                       <div className="flex justify-between items-center gap-2">
                         <div className="flex flex-col gap-0.5 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
