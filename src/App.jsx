@@ -585,6 +585,7 @@ export default function App() {
   // AI 및 설정 관련 상태
   const [apiKey, setApiKey] = useState(() => safeLocalStorage.getItem('gemini_api_key') || '');
   const [sheetUrl, setSheetUrl] = useState(() => safeLocalStorage.getItem('google_sheet_url') || '');
+  const [spreadsheetUrl, setSpreadsheetUrl] = useState(() => safeLocalStorage.getItem('google_spreadsheet_url') || '');
   const [isEditingApiKey, setIsEditingApiKey] = useState(!apiKey);
   const [isEditingSheetUrl, setIsEditingSheetUrl] = useState(!sheetUrl);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -800,11 +801,13 @@ export default function App() {
 
 
   // 설정 저장
-  const handleSaveSettings = (geminiKey, sheetApiUrl) => {
+  const handleSaveSettings = (geminiKey, sheetApiUrl, googleSpreadsheetUrl) => {
     safeLocalStorage.setItem('gemini_api_key', geminiKey);
     safeLocalStorage.setItem('google_sheet_url', sheetApiUrl);
+    safeLocalStorage.setItem('google_spreadsheet_url', googleSpreadsheetUrl || '');
     setApiKey(geminiKey);
     setSheetUrl(sheetApiUrl);
+    setSpreadsheetUrl(googleSpreadsheetUrl || '');
     setIsEditingApiKey(!geminiKey);
     setIsEditingSheetUrl(!sheetApiUrl);
     alert('설정이 저장되었습니다.');
@@ -2677,7 +2680,7 @@ function doPost(e) {
                           </span>
                           <div className="flex gap-2 mt-1">
                             <a
-                              href={`${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
+                              href={spreadsheetUrl || `${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-[11.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
@@ -2694,20 +2697,36 @@ function doPost(e) {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex gap-2">
-                          <input 
-                            type="text" 
-                            id="settings-sheet-url-mobile" 
-                            defaultValue={sheetUrl} 
-                            placeholder="https://script.google.com/macros/s/.../exec" 
-                            className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-400" 
-                          />
+                        <div className="flex flex-col gap-2.5">
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-[11px] text-slate-400 font-semibold">1단계: Apps Script 웹 앱 URL (배포 주소)</span>
+                            <input 
+                              type="text" 
+                              id="settings-sheet-url-mobile" 
+                              defaultValue={sheetUrl} 
+                              placeholder="https://script.google.com/macros/s/.../exec" 
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-400" 
+                            />
+                          </div>
+                          
+                          <div className="flex flex-col gap-1.5">
+                            <span className="text-[11px] text-slate-400 font-semibold">2단계 (선택): 실제 구글 스프레드시트 주소 (바로가기용)</span>
+                            <input 
+                              type="text" 
+                              id="settings-spreadsheet-url-mobile" 
+                              defaultValue={spreadsheetUrl} 
+                              placeholder="https://docs.google.com/spreadsheets/d/.../edit" 
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-400" 
+                            />
+                          </div>
+                          
                           <button 
                             onClick={() => {
                               const u = document.getElementById('settings-sheet-url-mobile').value;
-                              handleSaveSettings(apiKey, u);
+                              const s = document.getElementById('settings-spreadsheet-url-mobile').value;
+                              handleSaveSettings(apiKey, u, s);
                             }}
-                            className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
+                            className="w-full py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
                           >
                             저장
                           </button>
@@ -3714,7 +3733,7 @@ function doPost(e) {
                       </span>
                       <div className="flex gap-2">
                         <a
-                          href={`${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
+                          href={spreadsheetUrl || `${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg text-[10.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
@@ -3731,7 +3750,16 @@ function doPost(e) {
                       </div>
                     </div>
                   ) : (
-                    <input type="text" id="settings-sheet-url-desktop" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/.../exec" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-slate-400 font-semibold">1단계: Apps Script 웹 앱 URL (배포 주소)</span>
+                        <input type="text" id="settings-sheet-url-desktop" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/.../exec" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] text-slate-400 font-semibold">2단계 (선택): 실제 구글 스프레드시트 주소 (바로가기용)</span>
+                        <input type="text" id="settings-spreadsheet-url-desktop" defaultValue={spreadsheetUrl} placeholder="https://docs.google.com/spreadsheets/d/.../edit" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -3745,9 +3773,11 @@ function doPost(e) {
               <button type="button" onClick={() => { 
                 const kEl = document.getElementById('settings-api-key-desktop'); 
                 const uEl = document.getElementById('settings-sheet-url-desktop'); 
+                const sEl = document.getElementById('settings-spreadsheet-url-desktop'); 
                 const k = kEl ? kEl.value : apiKey; 
                 const u = uEl ? uEl.value : sheetUrl; 
-                handleSaveSettings(k, u); 
+                const s = sEl ? sEl.value : spreadsheetUrl; 
+                handleSaveSettings(k, u, s); 
                 setIsSettingsOpen(false); 
               }} className="w-full py-2.5 bg-[#2563EB] text-white font-black rounded-xl shadow-md hover:bg-blue-700 transition">설정 저장</button>
             </div>
