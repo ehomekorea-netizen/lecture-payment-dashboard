@@ -553,12 +553,12 @@ export default function App() {
   useEffect(() => {
     if (lectures.length > 0) {
       const sorted = [...lectures].sort((a, b) => {
-        const da = a.registrationDate ? new Date(a.registrationDate).getTime() : 0;
-        const db = b.registrationDate ? new Date(b.registrationDate).getTime() : 0;
+        const da = a.date && a.date.includes('-') ? new Date(a.date).getTime() : 0;
+        const db = b.date && b.date.includes('-') ? new Date(b.date).getTime() : 0;
         return db - da;
       });
       const latest = sorted[0];
-      const targetDateStr = latest.registrationDate || latest.date || '';
+      const targetDateStr = latest.date || '';
       if (targetDateStr) {
         let yr = new Date().getFullYear();
         let mo = new Date().getMonth();
@@ -633,7 +633,7 @@ export default function App() {
     classes: 4,
     transportFee: 0,
     date: getKstToday(),
-    registrationDate: getKstToday(),
+
     isPaid: false,
     taxRate: '3.3%',
     taxBase: 'LectureOnly',
@@ -684,11 +684,6 @@ export default function App() {
 
   const getLectureYear = (l) => {
     if (!l) return statsYear;
-    // 1. Try registrationDate first (format YYYY-MM-DD)
-    if (l.registrationDate && l.registrationDate.startsWith('20')) {
-      const match = l.registrationDate.match(/^(\d{4})/);
-      if (match) return parseInt(match[1], 10);
-    }
     // 2. Try date (format YYYY-MM-DD)
     if (l.date && l.date.startsWith('20')) {
       const match = l.date.match(/^(\d{4})/);
@@ -999,7 +994,7 @@ export default function App() {
               netAmount: 309440,
               month: '11월',
               date: '11월 19일',
-              registrationDate: new Date().toISOString().slice(0, 10),
+
               isPaid: false,
               taxRate: '3.3%',
               taxBase: 'LectureOnly',
@@ -1016,7 +1011,7 @@ export default function App() {
               netAmount: 193400,
               month: '11월',
               date: '11월 24일',
-              registrationDate: new Date().toISOString().slice(0, 10),
+
               isPaid: false,
               taxRate: '3.3%',
               taxBase: 'LectureOnly',
@@ -1061,7 +1056,7 @@ export default function App() {
 4. transportFee: 교통비 (숫자만, 없으면 0)
 5. date: 강의 날짜 (문자열, 예: "6월 19일")
 6. month: 정산 기준 월 (문자열, 예: "6월" 또는 "25/11월")
-7. registrationDate: 게시등록일 (문자열, YYYY-MM-DD 형식. 텍스트에서 알 수 없으면 오늘 날짜인 "${new Date().toISOString().slice(0, 10)}" 기재)
+
 8. taxRate: 세율 (일반적인 복지관/사회복지협의회는 8.8% 기본 설정, 사기업은 3.3% 설정)
 9. taxBase: 과세 기준 ("LectureOnly" 또는 "Total". 기본값 "LectureOnly")
 10. isPaid: 정산 완료 여부 (기본 false)
@@ -1081,7 +1076,7 @@ export default function App() {
     "transportFee": 0,
     "date": "11월 19일",
     "month": "11월",
-    "registrationDate": "2026-11-10",
+
     "taxRate": "8.8%",
     "taxBase": "LectureOnly",
     "isPaid": false
@@ -1127,7 +1122,7 @@ ${aiText}
             netAmount,
             month: item.month || '6월',
             date: item.date || '6월 29일',
-            registrationDate: item.registrationDate || new Date().toISOString().slice(0, 10),
+
             isPaid: item.isPaid || false,
             taxRate: item.taxRate || '3.3%',
             taxBase: item.taxBase || 'LectureOnly',
@@ -1189,7 +1184,7 @@ ${aiText}
             netAmount: Number(row.netAmount) || 0,
             month: String(row.month || '6월'),
             date: String(row.date || '6월 29일'),
-            registrationDate: row.registrationDate ? String(row.registrationDate) : '',
+
             isPaid: String(row.isPaid) === 'true' || row.isPaid === true,
             taxRate: String(row.taxRate || '8.8%'),
             taxBase: String(row.taxBase || 'LectureOnly'),
@@ -1252,7 +1247,7 @@ ${aiText}
               netAmount: Number(row.netAmount) || 0,
               month: String(row.month),
               date: String(row.date),
-              registrationDate: row.registrationDate ? String(row.registrationDate) : '',
+
               isPaid: String(row.isPaid) === 'true' || row.isPaid === true,
               taxRate: String(row.taxRate),
               taxBase: String(row.taxBase || 'LectureOnly'),
@@ -1426,7 +1421,7 @@ ${aiText}
       netAmount,
       date: dateVal,
       month: extractMonth(dateVal),
-      registrationDate: formData.registrationDate || new Date().toISOString().slice(0, 10),
+
       isPaid: formData.isPaid,
       taxRate: formData.taxRate,
       taxBase: formData.taxBase,
@@ -1451,7 +1446,7 @@ ${aiText}
       classes: 4,
       transportFee: 0,
       date: new Date().toISOString().slice(0, 10),
-      registrationDate: new Date().toISOString().slice(0, 10),
+
       isPaid: false,
       taxRate: '3.3%',
       taxBase: 'LectureOnly',
@@ -1597,7 +1592,7 @@ ${aiText}
       transportFee: lecture.transportFee,
       month: lecture.month,
       date: lecture.date,
-      registrationDate: lecture.registrationDate || new Date().toISOString().slice(0, 10),
+
       isPaid: lecture.isPaid,
       taxRate: lecture.taxRate || '3.3%',
       taxBase: lecture.taxBase || 'LectureOnly',
@@ -1616,7 +1611,7 @@ ${aiText}
 
   // CSV 내보내기
   const handleExportCSV = () => {
-    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부'];
+    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
     const rows = lectures.map(l => [
       l.institution,
       l.role === 'Assistant' ? '보조강사' : '주강사',
@@ -1629,7 +1624,6 @@ ${aiText}
       l.month,
       l.isPaid ? l.netAmount : '',
       l.date,
-      l.registrationDate || '',
       l.isPaid ? '정산완료' : '정산대기'
     ]);
 
@@ -1645,12 +1639,12 @@ ${aiText}
   };
 
   const handleDownloadSampleCSV = () => {
-    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부'];
+    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
     const rows = [
-      ['창의융합/광주전남중', '주강사', '25000', '12', '300000', '0', '3.3', '-10660', '10월', '193400', '2025-10-15', '2025-10-15', '정산완료'],
-      ['TMD교육/고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '3.3', '-6335', '12월', '185665', '2025-12-10', '2025-12-10', '정산완료'],
-      ['TMD교육/고흥동초A (1)', '보조강사', '50000', '3', '192000', '42000', '8.8', '-16896', '12월', '217104', '2025-12-11', '2025-12-11', '정산완료'],
-      ['코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)', '보조강사', '50000', '3', '175787', '25787', '3.3', '-4950', '1월', '170837', '2026-01-12', '2026-01-12', '정산완료']
+      ['창의융합/광주전남중', '주강사', '25000', '12', '300000', '0', '3.3', '-10660', '10월', '193400', '2025-10-15', '정산완료'],
+      ['TMD교육/고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '3.3', '-6335', '12월', '185665', '2025-12-10', '정산완료'],
+      ['TMD교육/고흥동초A (1)', '보조강사', '50000', '3', '192000', '42000', '8.8', '-16896', '12월', '217104', '2025-12-11', '정산완료'],
+      ['코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)', '보조강사', '50000', '3', '175787', '25787', '3.3', '-4950', '1월', '170837', '2026-01-12', '정산완료']
     ];
 
     const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -1705,8 +1699,8 @@ ${aiText}
 
         const cleanFields = parseCSVLine(line).map(f => f.replace(/^"|"$/g, '').trim());
 
-        if (cleanFields.length < 13) {
-          invalidRows.push({ lineNum: i + 1, reason: `열 개수가 부족합니다. (필요: 13개, 현재: ${cleanFields.length}개)` });
+        if (cleanFields.length < 12) {
+          invalidRows.push({ lineNum: i + 1, reason: `열 개수가 부족합니다. (필요: 12개, 현재: ${cleanFields.length}개)` });
           continue;
         }
 
@@ -1743,8 +1737,7 @@ ${aiText}
         const month = cleanFields[8] && cleanFields[8] !== 'undefined' ? cleanFields[8] : extractMonth(dateStr);
         const net = cleanFields[9] ? Number(cleanFields[9]) : 0;
         const date = dateStr;
-        const regDate = cleanFields[11] && dateRegex.test(cleanFields[11]) ? cleanFields[11] : '';
-        const isPaid = cleanFields[12] === '정산완료' || net > 0;
+        const isPaid = (cleanFields.length >= 13 ? cleanFields[12] : cleanFields[11]) === '정산완료' || net > 0;
 
         let parsedTaxRate = '3.3%';
         if (taxRateVal) {
@@ -1783,7 +1776,7 @@ ${aiText}
           netAmount: net,
           month,
           date,
-          registrationDate: regDate,
+
           isPaid,
           taxRate: parsedTaxRate,
           taxBase: 'LectureOnly',
@@ -2064,7 +2057,7 @@ ${aiText}
   
   // 만약 빈 시트이거나 행이 전혀 없는 경우 초기화
   if (data.length <= 1 || (data.length === 2 && !data[1][0])) {
-    var headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부', 'ID'];
+    var headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
     sheet.clearContents();
     sheet.appendRow(headers);
     data = [headers];
@@ -2113,12 +2106,8 @@ ${aiText}
     }
     item.date = String(dateVal || "");
     
-    var regDateVal = getVal(rowData, '등록일', "");
-    if (regDateVal instanceof Date) {
-      regDateVal = Utilities.formatDate(regDateVal, Session.getScriptTimeZone(), "yyyy-MM-dd");
-    }
-    item.registrationDate = String(regDateVal || "");
     
+
     var isPaidStr = getVal(rowData, '정산여부', "정산대기") || "정산대기";
     item.isPaid = (isPaidStr === "정산완료");
     
@@ -2145,7 +2134,7 @@ function doPost(e) {
   
   if (action === "sync_all") {
     sheet.clearContents();
-    var headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부', 'ID'];
+    var headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
     var outputData = [headers];
     
     if (payload.lectures && payload.lectures.length > 0) {
@@ -2168,7 +2157,6 @@ function doPost(e) {
           l.month || "",
           l.isPaid ? Number(l.netAmount) : "",
           l.date || "",
-          l.registrationDate || "",
           isPaidKorean,
           l.id
         ]);
@@ -2638,11 +2626,11 @@ function doPost(e) {
                     const hasPaid = dayLectures.some(l => l.isPaid);
                     const hasUnpaid = dayLectures.some(l => !l.isPaid);
                     
-                    // 30일 경고
                     const hasWarning = dayLectures.some(l => {
                       if (l.isPaid) return false;
-                      const regDate = new Date(l.registrationDate);
-                      const diffTime = Math.abs(new Date() - regDate);
+                      const lectureDate = new Date(l.date);
+                      if (isNaN(lectureDate.getTime())) return false;
+                      const diffTime = Math.abs(new Date() - lectureDate);
                       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                       return diffDays >= 30;
                     });
@@ -2672,9 +2660,17 @@ function doPost(e) {
                           {day}
                         </span>
                         {/* 도트 */}
-                        <div className="flex gap-0.5 justify-center mt-0.5 h-1">
-                          {hasPaid && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDelay: `${(day % 5) * 0.3}s`, animationDuration: '1.5s' }} />}
-                          {hasUnpaid && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" style={{ animationDelay: `${(day % 5) * 0.3}s`, animationDuration: '1.5s' }} />}
+                        <div className="flex gap-1 justify-center mt-0.5 h-1 flex-wrap max-w-full px-1">
+                          {dayLectures.map((l, idx) => (
+                            <span 
+                              key={l.id || idx} 
+                              className={`w-1.5 h-1.5 rounded-full animate-pulse ${l.isPaid ? 'bg-emerald-500' : 'bg-amber-500'}`} 
+                              style={{ 
+                                animationDelay: `${((day + idx) % 5) * 0.3}s`, 
+                                animationDuration: '1.5s' 
+                              }} 
+                            />
+                          ))}
                         </div>
                       </div>
                     );
@@ -3024,11 +3020,11 @@ function doPost(e) {
                             const promptText = `첨부한 두 개의 파일(나의 기존 데이터 파일 & 양식 예시 CSV 파일)을 참고하여, 나의 데이터를 양식 예시 CSV 파일의 헤더 규격 및 서식 규칙에 맞춰 완벽하게 변환해줘.
 
 [CSV 헤더 규격]
-기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제율(%),공제금액(-),월,실수령액,날짜,등록일,정산여부
+기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제율(%),공제금액(-),월,실수령액,날짜,정산여부
 
 [출력 데이터 규격 및 형식 규칙]
-- 헤더 규격: '기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제율(%),공제금액(-),월,실수령액,날짜,등록일,정산여부' 순서의 열로 만들어줘.
-- '날짜'와 '등록일' 서식: 반드시 'YYYY-MM-DD' 형식 (예: 2026-06-30)이어야 합니다. 날짜와 등록일의 연도는 일치해야 합니다. (등록일이 누락된 항목은 날짜의 연도를 복사해줘.)
+- 헤더 규격: '기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제율(%),공제금액(-),월,실수령액,날짜,정산여부' 순서의 열로 만들어줘.
+- '날짜' 서식: 반드시 'YYYY-MM-DD' 형식 (예: 2026-06-30)이어야 합니다.
 - '출강역할' 서식: '주강사' 또는 '보조강사' 중 하나로 표준화해줘.
 - '정산여부' 서식: 이미 돈을 지급받은 강의는 '정산완료', 아직 지급 대기 중인 강의는 '정산대기'로 변환해줘.
 - '공제율(%)' 서식: '3.3' 또는 '8.8' 형태의 숫자만 입력해줘 (퍼센트 기호 '%'는 생략). 만약 기존 데이터에 공제율 정보가 없거나 비어있는 경우:
@@ -3456,7 +3452,7 @@ function doPost(e) {
                         classes: 4,
                         transportFee: 0,
                         date: new Date().toISOString().slice(0, 10),
-                        registrationDate: new Date().toISOString().slice(0, 10),
+
                         isPaid: false,
                         taxRate: '3.3%',
                         taxBase: 'LectureOnly',
@@ -3990,7 +3986,7 @@ function doPost(e) {
                         classes: 4,
                         transportFee: 0,
                         date: new Date().toISOString().slice(0, 10),
-                        registrationDate: new Date().toISOString().slice(0, 10),
+
                         isPaid: false,
                         taxRate: '3.3%',
                         taxBase: 'LectureOnly',
@@ -4407,58 +4403,59 @@ function doPost(e) {
         const totalClasses = dailyLectures.reduce((sum, l) => sum + (l.classes || 0), 0);
 
         return (
-          <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
-            {/* Bottom Sheet wrapper */}
-            <div className="bg-[#F8FAFC] w-full md:max-w-md rounded-t-[32px] md:rounded-[28px] max-h-[80vh] md:max-h-[85vh] flex flex-col pb-8 md:pb-6 shadow-2xl bottom-sheet-enter md:modal-zoom-in overflow-hidden border md:border-slate-200">
-              {/* Drag Handle (Mobile only) */}
-              <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 flex-shrink-0 md:hidden" />
+          <div className="fixed inset-0 flex items-stretch md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
+            {/* Modal Container: Fullscreen on mobile, Centered Modal card on PC */}
+            <div className="bg-[#F8FAFC] w-full h-full md:w-full md:max-w-xl md:h-auto md:max-h-[85vh] md:rounded-[28px] flex flex-col shadow-2xl overflow-hidden border-none md:border md:border-slate-200 modal-zoom-in">
               
               {/* Header */}
-              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-black text-[#2563EB] uppercase tracking-wider">출강 현황 및 정산 명세</span>
-                  <h3 className="text-sm font-black text-slate-800">{selectedCalendarDate} 출강 내역</h3>
+              <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-white shadow-sm flex-shrink-0">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-wider">달력 출강 명세</span>
+                  <h3 className="text-base font-black text-slate-800 flex items-center gap-1.5">
+                    <span>📅 {selectedCalendarDate}</span>
+                  </h3>
                 </div>
                 <button 
                   onClick={() => setSelectedCalendarDate(null)} 
-                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition cursor-pointer"
+                  className="p-3 text-[#2563EB] hover:bg-blue-50 active:scale-90 rounded-full transition cursor-pointer flex items-center justify-center w-11 h-11"
+                  aria-label="닫기"
                 >
-                  <X size={18} />
+                  <X size={24} className="stroke-[3]" />
                 </button>
               </div>
               
               {/* Body */}
-              <div className="p-4 flex-1 flex flex-col gap-3.5 overflow-y-auto">
+              <div className="p-5 flex-1 flex flex-col gap-4 overflow-y-auto">
                 {/* 1. 재정 및 성과 요약 카드 (구글시트 데이터 집계) */}
-                <div className="grid grid-cols-3 gap-2 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex-shrink-0">
+                <div className="grid grid-cols-3 gap-3 bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm flex-shrink-0">
                   <div className="flex flex-col gap-0.5 text-center">
                     <span className="text-[9.5px] font-bold text-slate-400">총 일정 / 차시</span>
-                    <span className="text-[13px] font-black text-slate-800">{totalCount}건 ({totalClasses}차시)</span>
+                    <span className="text-[13.5px] font-black text-slate-800">{totalCount}건 ({totalClasses}차시)</span>
                   </div>
                   <div className="flex flex-col gap-0.5 text-center border-x border-slate-200">
                     <span className="text-[9.5px] font-bold text-slate-400">총 공제 / 교통비</span>
-                    <span className="text-[10px] font-black text-slate-600">
+                    <span className="text-[11px] font-extrabold text-slate-600">
                       -{formatWon(totalDeduction)} / +{formatWon(totalTransport)}
                     </span>
                   </div>
                   <div className="flex flex-col gap-0.5 text-center">
                     <span className="text-[9.5px] font-bold text-[#2563EB]">총 실수령(예정)</span>
-                    <span className="text-[13px] font-black text-[#2563EB]">{formatWon(totalNet)}원</span>
+                    <span className="text-[13.5px] font-black text-[#2563EB]">{formatWon(totalNet)}원</span>
                   </div>
                 </div>
 
                 {/* 2. 강의 상세 명세 카드 리스트 */}
-                <div className="flex flex-col gap-3">
+                <div className={`flex flex-col gap-4 ${totalCount === 1 ? 'flex-1 justify-center' : ''}`}>
                   {dailyLectures.map((l) => (
                     <div 
                       key={l.id} 
-                      className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col gap-3 relative"
+                      className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col gap-4 relative"
                     >
-                      {/* 카드 헤더: 기관명, 역할, 정산여부 토글 버튼 */}
-                      <div className="flex justify-between items-start gap-2">
+                      {/* 카드 헤더: 기관명, 역할, 정산여부 상태 뱃지 (읽기 전용) */}
+                      <div className="flex justify-between items-center gap-2">
                         <div className="flex flex-col gap-0.5 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <h4 className="font-extrabold text-slate-800 text-[13px] truncate">{l.institution}</h4>
+                            <h4 className="font-extrabold text-slate-800 text-[14px] truncate">{l.institution}</h4>
                             <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded border flex-shrink-0 ${
                               l.role === 'Assistant' 
                                 ? 'text-slate-500 bg-slate-50 border-slate-200' 
@@ -4467,101 +4464,42 @@ function doPost(e) {
                               {l.role === 'Assistant' ? '보조강사' : '주강사'}
                             </span>
                           </div>
-                          <span className="text-[9px] text-slate-400 font-semibold">등록일: {l.registrationDate || '-'}</span>
                         </div>
                         
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!l.isPaid) {
-                              handleTogglePaid(l);
-                            } else {
-                              if (window.confirm("이미 완료된 항목을 대기 상태로 변경하시겠습니까?\n\n연동된 구글 시트의 정보도 함께 변경됩니다.")) {
-                                handleTogglePaid(l);
-                              }
-                            }
-                          }}
-                          className={`text-[9.5px] font-black px-2.5 py-1 rounded-xl transition active:scale-95 border cursor-pointer flex-shrink-0 ${
-                            l.isPaid
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
-                              : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
-                          }`}
-                        >
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-xl border flex-shrink-0 ${
+                          l.isPaid
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
+                            : 'bg-slate-50 border-slate-200 text-slate-500'
+                        }`}>
                           {l.isPaid ? '✓ 정산완료' : '⏳ 정산대기'}
-                        </button>
+                        </span>
                       </div>
 
                       {/* 카드 본문: 구글 시트 컬럼에 정확히 부합하는 정산 수학 명세식 */}
-                      <div className="bg-[#F8FAFC] rounded-xl p-3 text-[10.5px] text-slate-600 flex flex-col gap-1.5 font-medium">
+                      <div className="bg-[#F8FAFC] rounded-xl p-4 text-[11px] text-slate-600 flex flex-col gap-2 font-medium">
                         <div className="flex justify-between">
-                          <span className="text-slate-400">강의료 계산</span>
-                          <span className="font-bold text-slate-800">
+                          <span className="text-slate-400 font-bold">기본 강의료</span>
+                          <span className="font-extrabold text-slate-800">
                             {formatWon(l.rate)}원 × {l.classes}차시 = {formatWon(l.rate * l.classes)}원
                           </span>
                         </div>
                         {l.transportFee > 0 && (
                           <div className="flex justify-between">
-                            <span className="text-slate-400">교통비 추가</span>
-                            <span className="font-bold text-emerald-600">+{formatWon(l.transportFee)}원</span>
+                            <span className="text-slate-400 font-bold">교통비 추가</span>
+                            <span className="font-extrabold text-emerald-600">+{formatWon(l.transportFee)}원</span>
                           </div>
                         )}
                         <div className="flex justify-between">
-                          <span className="text-slate-400">공제금액 ({l.taxRate || '3.3%'})</span>
-                          <span className="font-bold text-red-500">-{formatWon(l.deduction || 0)}원</span>
+                          <span className="text-slate-400 font-bold">공제금액 ({l.taxRate || '3.3%'})</span>
+                          <span className="font-extrabold text-red-500">-{formatWon(l.deduction || 0)}원</span>
                         </div>
-                        <div className="h-px bg-slate-200/60 my-0.5" />
+                        <div className="h-px bg-slate-200/60 my-1" />
                         <div className="flex justify-between text-xs font-black">
-                          <span className="text-slate-800">최종 실수령액</span>
-                          <span className="text-[#1E3A8A] text-[12.5px]">
+                          <span className="text-slate-800 text-[11.5px]">최종 실수령액</span>
+                          <span className="text-[#1E3A8A] text-[13.5px]">
                             {formatWon(l.isPaid ? l.netAmount : l.expectedAmount)}원
                           </span>
                         </div>
-                      </div>
-
-                      {/* 카드 하단: 빠른 편집/일정복사/삭제 액션 버튼들 */}
-                      <div className="flex gap-2 justify-end">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setEditingLecture(l);
-                            setIsAddModalOpen(true);
-                          }}
-                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200/70 text-slate-600 font-bold rounded-lg text-[10.5px] transition active:scale-95 cursor-pointer"
-                        >
-                          수정
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setFormData({
-                              institution: l.institution,
-                              role: l.role,
-                              rate: l.rate,
-                              classes: l.classes,
-                              transportFee: l.transportFee,
-                              taxRate: l.taxRate || '3.3%',
-                              date: getKstToday()
-                            });
-                            setIsAddModalOpen(true);
-                            setSelectedCalendarDate(null);
-                            alert("강의 상세 정보가 복사되었습니다. 날짜를 지정하여 새 강의로 등록해 주세요.");
-                          }}
-                          className="px-3 py-1.5 bg-[#EFF6FF] hover:bg-blue-100 text-blue-600 font-bold rounded-lg text-[10.5px] transition active:scale-95 cursor-pointer"
-                        >
-                          복사
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm("이 강의 정보를 삭제하시겠습니까?")) {
-                              handleDelete(l.id);
-                              setSelectedCalendarDate(null);
-                            }
-                          }}
-                          className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-lg text-[10.5px] transition active:scale-95 cursor-pointer"
-                        >
-                          삭제
-                        </button>
                       </div>
                     </div>
                   ))}
