@@ -2275,8 +2275,9 @@ ${aiText}
   // 탭 전환 및 연도 변경 시 작동하는 퀴즈 라이프사이클 이펙트
   useEffect(() => {
     if (activeTab === 'stats') {
-      if (statsYearLectures && statsYearLectures.length > 0) {
-        const q = generateQuiz(statsYearLectures, statsYear);
+      const lecturesForYear = lectures.filter(l => getLectureYear(l) === statsYear);
+      if (lecturesForYear && lecturesForYear.length > 0) {
+        const q = generateQuiz(lecturesForYear, statsYear);
         setQuizQuestion(q);
         setQuizAnswered(false);
         setSelectedQuizOption(null);
@@ -2289,7 +2290,8 @@ ${aiText}
       setQuizAnswered(false);
       setSelectedQuizOption(null);
     }
-  }, [activeTab, statsYear, statsYearLectures]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, statsYear]);
 
   // 퀴즈 정답 선택 핸들러
   const handleSelectQuizOption = (idx) => {
@@ -3238,7 +3240,7 @@ function doPost(e) {
                   {/* 질문 섹션 */}
                   <div className="min-h-[40px] flex items-center">
                     <p className="text-[14.5px] font-black text-slate-800 leading-relaxed">
-                      Q. <TypedTitle text={quizQuestion.title} />
+                      Q. <span className="text-[16px] mr-1.5">{quizQuestion.emoji}</span><TypedTitle text={quizQuestion.title} />
                     </p>
                   </div>
 
