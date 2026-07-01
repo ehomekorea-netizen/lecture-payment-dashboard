@@ -577,6 +577,7 @@ export default function App() {
   const [spreadsheetUrl, setSpreadsheetUrl] = useState(() => safeLocalStorage.getItem('google_spreadsheet_url') || '');
   const [isCsvImported, setIsCsvImported] = useState(() => safeLocalStorage.getItem('is_csv_imported') === 'true');
   const [isPromptCopied, setIsPromptCopied] = useState(false);
+  const [isAppsScriptCodeOpen, setIsAppsScriptCodeOpen] = useState(false);
   const [isInitialPullCompleted, setIsInitialPullCompleted] = useState(false);
   const [isEditingApiKey, setIsEditingApiKey] = useState(!apiKey);
   const [isEditingSheetUrl, setIsEditingSheetUrl] = useState(!sheetUrl);
@@ -4212,9 +4213,21 @@ function doPost(e) {
                   )}
                 </div>
                 {isMockParseResult && (
-                  <div className="text-center mt-2 text-[11.5px] font-bold text-indigo-650 bg-indigo-50/80 py-2.5 px-3 rounded-lg border border-indigo-100 leading-normal">
-                    ※ 체험용 목업(가상) 데이터입니다. 본인의 실제 강의 내역을 정산하려면 <strong>[설정]</strong> 탭에서 <strong>Gemini API Key</strong>를 등록한 후 진짜 일정을 자동으로 분석해 보세요!
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAiModalOpen(false);
+                      setIsAiVerifying(false);
+                      setIsMockParseResult(false);
+                      setActiveTab('settings');
+                      setIsApiSettingsOpen(true);
+                      // Scroll to top of settings to make it visible
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="w-full mt-3 py-3 bg-gradient-to-r from-[#1E3A8A] to-[#2563EB] hover:from-[#172C6E] hover:to-blue-700 text-white font-black rounded-xl shadow-md transition-all active:scale-95 cursor-pointer text-[12.5px] text-center flex items-center justify-center gap-1.5"
+                  >
+                    ⚡ 지금은 체험 예시입니다 - API 키 등록하러 가기
+                  </button>
                 )}
               </div>
             )}
@@ -4420,7 +4433,33 @@ function doPost(e) {
                     <span className="block mt-1 text-slate-500 font-medium leading-normal">※ 참고: 대시보드의 실시간 연동은 4번 단계의 웹 앱 실행 권한(나)에 의해 처리되므로, 시트를 <strong>'뷰어'</strong>로만 열어두셔도 동기화는 정상 작동합니다.</span>
                   </li>
                   <li>스프레드시트 상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
-                  <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣고 상단의 <strong>[저장] (또는 Ctrl+S)</strong>을 클릭합니다.</li>
+                  <li>
+                    편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣고 상단의 <strong>[저장] (또는 Ctrl+S)</strong>을 클릭합니다.
+                    <div className="mt-2.5">
+                      <button
+                        type="button"
+                        onClick={() => setIsAppsScriptCodeOpen(!isAppsScriptCodeOpen)}
+                        className="px-3.5 py-2 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[11px] shadow-sm transition active:scale-95 cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>{isAppsScriptCodeOpen ? '▲ 템플릿 코드 접기' : '▼ 템플릿 코드 보기 (복사)'}</span>
+                      </button>
+                      {isAppsScriptCodeOpen && (
+                        <div className="bg-slate-900 rounded-xl p-4 flex flex-col gap-2.5 mt-2.5 text-left border border-slate-800 animate-fade-in">
+                          <div className="flex justify-between items-center">
+                            <span className="font-black text-[10px] text-sky-400">Apps Script 템플릿 코드</span>
+                            <button 
+                              type="button"
+                              onClick={() => { copyToClipboard(gasTemplateCode, () => { setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000); }); }} 
+                              className="px-2.5 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[9.5px] font-black flex items-center gap-1 transition cursor-pointer border-none"
+                            >
+                              <Copy size={10} />{copiedCode ? '복사 완료!' : '전체 복사'}
+                            </button>
+                          </div>
+                          <pre className="p-3 bg-slate-950 text-indigo-200 rounded-xl overflow-x-auto text-[9.5px] font-mono leading-relaxed max-h-[160px] overflow-y-auto w-full select-all">{gasTemplateCode}</pre>
+                        </div>
+                      )}
+                    </div>
+                  </li>
                   <li>
                     우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 버튼을 클릭합니다.
                     <ul className="list-disc pl-4 mt-1.5 text-slate-500 flex flex-col gap-1 font-medium">
@@ -4445,20 +4484,12 @@ function doPost(e) {
                   </li>
                   <li>
                     배포 완료 후 화면에 표시되는 **웹 앱 URL**을 복사해 설정창에 저장합니다.
-                    <span className="block mt-1 text-[#EF4444] font-black text-[11.5px]">※ 필수 확인: 복사한 주소 끝부분이 반드시 `/exec`로 끝나는 주소여야 합니다!</span>
+                    <span className="block mt-1 text-[#EF4444] font-black text-[11.5px]">※ 필수!: 복사한 주소 끝부분이 반드시 `/exec`로 끝나는 주소여야 합니다!</span>
                   </li>
                 </ol>
               </div>
 
-              <div className="bg-slate-900 rounded-2xl p-4 flex flex-col gap-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-black text-[11px] text-sky-400">Apps Script 템플릿 코드</span>
-                  <button onClick={() => { copyToClipboard(gasTemplateCode, () => { setCopiedCode(true); setTimeout(() => setCopiedCode(false), 2000); }); }} className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded-lg text-[10px] font-black flex items-center gap-1.5 transition">
-                    <Copy size={11} />{copiedCode ? '복사 완료!' : '전체 복사'}
-                  </button>
-                </div>
-                <pre className="p-3 bg-slate-950 text-indigo-200 rounded-xl overflow-x-auto text-[10px] font-mono leading-relaxed max-h-[160px] overflow-y-auto">{gasTemplateCode}</pre>
-              </div>
+
             </div>
             <div className="p-4 border-t border-slate-100 bg-slate-50">
               <button onClick={() => setIsScriptModalOpen(false)} className="w-full py-3 bg-[#1E3A8A] text-white font-black rounded-xl text-xs hover:bg-[#0F172A] transition">가이드 읽기 완료</button>
