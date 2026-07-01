@@ -3891,7 +3891,8 @@ function doPost(e) {
                       </a>
                     </li>
                     <li>
-                      <strong className="text-slate-800 font-extrabold">시트 [공유] 설정 (매우 중요)</strong>: 구글 계정 로그인 없이 접속하는 기기/브라우저에서도 바로가기가 즉시 동작하도록, 구글 시트 우측 상단의 <strong>[공유]</strong> 버튼을 누르고 일반 액세스를 <strong className="text-blue-600 underline font-black">"링크가 있는 모든 사용자 (뷰어 또는 편집자)"</strong>로 반드시 변경해 줍니다.
+                      <strong className="text-slate-800 font-extrabold">시트 [공유] 설정</strong>: 구글 계정 로그인 없이 접속하는 기기/브라우저에서도 바로가기가 즉시 동작하도록, 구글 시트 우측 상단의 <strong>[공유]</strong> 버튼을 누르고 일반 액세스를 <strong className="text-blue-600 underline font-black">"링크가 있는 모든 사용자 (뷰어 또는 편집자)"</strong>로 변경해 줍니다.
+                      <span className="block mt-1 text-slate-500 font-medium leading-normal">※ 참고: 앱의 실시간 저장/삭제 연동은 5번 단계의 웹 앱 실행 권한(나)에 의해 처리되므로, 시트를 <strong>'뷰어'</strong>로만 열어두셔도 동기화는 정상 작동합니다. 단, 로그인이 안 된 폰에서 시트 화면을 직접 확인하려면 최소 '뷰어' 설정이 필요합니다.</span>
                     </li>
                     <li>스프레드시트 상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
                     <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
@@ -3926,7 +3927,8 @@ function doPost(e) {
                       구글 스프레드시트 메뉴에서 <strong>[파일] ➡️ [가져오기] (File ➡️ Import)</strong>를 누르고, AI가 만들어준 정제된 CSV 파일을 업로드하여 가져옵니다. (시트에 행들이 올바르게 들어갔는지 확인합니다.)
                     </li>
                     <li>
-                      <strong className="text-slate-800 font-extrabold">시트 [공유] 설정 (매우 중요)</strong>: 구글 계정 로그인 없이 접속하는 기기/브라우저에서도 바로가기가 즉시 동작하도록, 구글 시트 우측 상단의 <strong>[공유]</strong> 버튼을 누르고 일반 액세스를 <strong className="text-blue-600 underline font-black">"링크가 있는 모든 사용자 (뷰어 또는 편집자)"</strong>로 반드시 변경해 줍니다.
+                      <strong className="text-slate-800 font-extrabold">시트 [공유] 설정</strong>: 구글 계정 로그인 없이 접속하는 기기/브라우저에서도 바로가기가 즉시 동작하도록, 구글 시트 우측 상단의 <strong>[공유]</strong> 버튼을 누르고 일반 액세스를 <strong className="text-blue-600 underline font-black">"링크가 있는 모든 사용자 (뷰어 또는 편집자)"</strong>로 변경해 줍니다.
+                      <span className="block mt-1 text-slate-500 font-medium leading-normal">※ 참고: 앱의 실시간 저장/삭제 연동은 6번 단계의 웹 앱 실행 권한(나)에 의해 처리되므로, 시트를 <strong>'뷰어'</strong>로만 열어두셔도 동기화는 정상 작동합니다. 단, 로그인이 안 된 폰에서 시트 화면을 직접 확인하려면 최소 '뷰어' 설정이 필요합니다.</span>
                     </li>
                     <li>상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
                     <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
