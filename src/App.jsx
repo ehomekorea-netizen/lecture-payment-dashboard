@@ -3769,22 +3769,29 @@ function doPost(e) {
               <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5"><Database size={15} className="text-[#1E3A8A]" /> Apps Script 연동 가이드</h3>
               <button onClick={() => setIsScriptModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-xl transition"><X size={18} /></button>
             </div>
-            <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5 text-xs text-slate-700">
-              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                <p className="font-black text-[#1E3A8A] text-[11px] mb-1">Q. PC와 스마트폰 데이터가 따로 노는 이유?</p>
-                <p className="text-slate-600 font-semibold leading-relaxed">본 앱은 브라우저 로컬 저장소에 데이터를 보관하므로, PC와 폰은 자동 동기화되지 않습니다.</p>
-                <p className="font-black text-emerald-600 text-[11px] mt-2 mb-1">A. 구글 시트 URL로 수동 동기화 가능!</p>
-                <p className="text-slate-600 font-semibold leading-relaxed">양쪽 기기에 동일한 구글 시트 URL을 등록 후, <strong>[Push]</strong>로 업로드, <strong>[Pull]</strong>로 다운로드하세요.</p>
+            <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5 text-slate-700">
+              <div className="bg-blue-50 p-4.5 rounded-2xl border border-blue-100 flex flex-col gap-2">
+                <p className="font-black text-[#1E3A8A] text-[13px] flex items-center gap-1.5">⚡ 기기 간 실시간 자동 동기화 지원</p>
+                <p className="text-slate-600 font-semibold leading-relaxed text-[11.5px]">
+                  구글 스프레드시트를 연동하시면 PC, 스마트폰, 태블릿 등 여러 기기에서 번거로운 백업/다운로드 버튼 조작 없이 **실시간으로 데이터가 자동 동기화**됩니다. 연동되지 않은 상태에서는 브라우저 캐시에만 임시 보관됩니다.
+                </p>
               </div>
-              <div className="flex flex-col gap-2">
-                <h4 className="font-black text-sm text-[#0F172A]">⚙️ 구글 스프레드시트 연동 방법</h4>
-                <ol className="list-decimal pl-5 flex flex-col gap-1.5 text-slate-500 font-semibold leading-relaxed">
-                  <li>Google 스프레드시트를 새로 만듭니다.</li>
-                  <li>상단 메뉴 <strong>[확장 프로그램] → [Apps Script]</strong> 클릭</li>
-                  <li>기존 코드 삭제 후 아래 코드 붙여넣기</li>
-                  <li><strong>[배포] → [새 배포]</strong> 클릭</li>
-                  <li>유형: <strong>"웹 앱"</strong>, 액세스: <strong>"모든 사용자"</strong> 설정 후 배포</li>
-                  <li>발급된 URL을 설정 탭에 입력</li>
+              <div className="flex flex-col gap-3">
+                <h4 className="font-black text-sm text-[#0F172A] flex items-center gap-1">⚙️ 구글 스프레드시트 연동 방법</h4>
+                <ol className="list-decimal pl-5 flex flex-col gap-2.5 text-slate-600 font-bold leading-relaxed text-[12px]">
+                  <li>
+                    <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="text-[#2563EB] hover:text-blue-800 underline font-black">
+                      [Google 스프레드시트] 새 문서 만들기 ↗
+                    </a>
+                  </li>
+                  <li>스프레드시트 상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
+                  <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
+                  <li>우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 버튼을 클릭합니다.</li>
+                  <li>설정에서 유형: <strong>"웹 앱"</strong>, 웹 앱 실행 대상: <strong>"나"</strong>, 액세스 권한: <strong>"모든 사용자"</strong>로 선택 후 배포합니다.</li>
+                  <li>
+                    배포 완료 후 화면에 표시되는 **웹 앱 URL**을 복사합니다. 
+                    <span className="block mt-1 text-[#EF4444] font-black text-[11.5px]">※ 필수 확인: 복사한 주소 끝부분이 반드시 `/exec`로 끝나는 주소여야 합니다!</span>
+                  </li>
                 </ol>
               </div>
               <div className="bg-slate-900 rounded-2xl p-4 flex flex-col gap-3">
