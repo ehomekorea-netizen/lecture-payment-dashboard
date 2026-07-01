@@ -586,6 +586,7 @@ export default function App() {
   const [apiKey, setApiKey] = useState(() => safeLocalStorage.getItem('gemini_api_key') || '');
   const [sheetUrl, setSheetUrl] = useState(() => safeLocalStorage.getItem('google_sheet_url') || '');
   const [spreadsheetUrl, setSpreadsheetUrl] = useState(() => safeLocalStorage.getItem('google_spreadsheet_url') || '');
+  const [isInitialPullCompleted, setIsInitialPullCompleted] = useState(false);
   const [isEditingApiKey, setIsEditingApiKey] = useState(!apiKey);
   const [isEditingSheetUrl, setIsEditingSheetUrl] = useState(!sheetUrl);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -723,6 +724,9 @@ export default function App() {
     safeLocalStorage.setItem('lectures', JSON.stringify(lectures));
     
     if (sheetUrl) {
+      if (!isInitialPullCompleted) {
+        return;
+      }
       if (prevSheetUrlRef.current !== sheetUrl) {
         // sheetUrl 자체가 변경된 것이면, 푸시를 하지 않고 단순히 레퍼런스만 업데이트
         prevSheetUrlRef.current = sheetUrl;
@@ -739,7 +743,7 @@ export default function App() {
     } else {
       prevSheetUrlRef.current = '';
     }
-  }, [lectures, sheetUrl]);
+  }, [lectures, sheetUrl, isInitialPullCompleted]);
 
   // Reset card swipe offsets on filter or search changes to prevent rendering anomalies (Placed safely below state initialization)
   useEffect(() => {
@@ -750,7 +754,10 @@ export default function App() {
   // 최초 로드 시 시트 연동 되어있으면 백그라운드 데이터 풀
   useEffect(() => {
     if (sheetUrl) {
+      setIsInitialPullCompleted(false);
       fetchFromGoogleSheetSilent();
+    } else {
+      setIsInitialPullCompleted(true);
     }
   }, [sheetUrl]);
 
@@ -1074,26 +1081,33 @@ ${aiText}
       }
 
       if (lecturesList) {
-        const mapped = lecturesList.map(row => ({
-          id: String(row.id || Date.now() + Math.random()),
-          institution: String(row.institution || '기타 기관'),
-          rate: Number(row.rate) || 0,
-          classes: Number(row.classes) || 0,
-          expectedAmount: Number(row.expectedAmount) || 0,
-          transportFee: Number(row.transportFee) || 0,
-          deduction: Number(row.deduction) || 0,
-          netAmount: Number(row.netAmount) || 0,
-          month: String(row.month || '6월'),
-          date: String(row.date || '6월 29일'),
-          registrationDate: row.registrationDate ? String(row.registrationDate) : '',
-          isPaid: String(row.isPaid) === 'true' || row.isPaid === true,
-          taxRate: String(row.taxRate || '8.8%'),
-          taxBase: String(row.taxBase || 'LectureOnly'),
-          customTax: Number(row.customTax) || 0
-        }));
-        skipNextSyncRef.current = true;
-        setLectures(mapped);
-        setSyncMessage({ type: 'success', text: `구글 시트에서 ${mapped.length}개의 강의 내역을 동기화하여 가져왔습니다.` });
+        if (lecturesList.length === 0 && lectures.length > 0) {
+          // 구글 시트는 비어있고 로컬에 데이터가 있는 경우 -> 로컬 데이터를 구글 시트에 백업(Push)
+          syncToGoogleSheetSilent(lectures);
+        } else {
+          // 구글 시트에 데이터가 있거나 로컬도 비어있는 경우 -> 구글 시트 데이터로 로컬 덮어쓰기
+          const mapped = lecturesList.map(row => ({
+            id: String(row.id || Date.now() + Math.random()),
+            institution: String(row.institution || '기타 기관'),
+            rate: Number(row.rate) || 0,
+            classes: Number(row.classes) || 0,
+            expectedAmount: Number(row.expectedAmount) || 0,
+            transportFee: Number(row.transportFee) || 0,
+            deduction: Number(row.deduction) || 0,
+            netAmount: Number(row.netAmount) || 0,
+            month: String(row.month || '6월'),
+            date: String(row.date || '6월 29일'),
+            registrationDate: row.registrationDate ? String(row.registrationDate) : '',
+            isPaid: String(row.isPaid) === 'true' || row.isPaid === true,
+            taxRate: String(row.taxRate || '8.8%'),
+            taxBase: String(row.taxBase || 'LectureOnly'),
+            customTax: Number(row.customTax) || 0
+          }));
+          skipNextSyncRef.current = true;
+          setLectures(mapped);
+        }
+        setIsInitialPullCompleted(true);
+        setSyncMessage({ type: 'success', text: `구글 시트에서 ${lecturesList.length}개의 강의 내역을 동기화하여 가져왔습니다.` });
       } else {
         throw new Error('올바르지 않은 API 포맷');
       }
@@ -1123,25 +1137,32 @@ ${aiText}
         }
 
         if (lecturesList) {
-          const mapped = lecturesList.map(row => ({
-            id: String(row.id),
-            institution: String(row.institution),
-            rate: Number(row.rate) || 0,
-            classes: Number(row.classes) || 0,
-            expectedAmount: Number(row.expectedAmount) || 0,
-            transportFee: Number(row.transportFee) || 0,
-            deduction: Number(row.deduction) || 0,
-            netAmount: Number(row.netAmount) || 0,
-            month: String(row.month),
-            date: String(row.date),
-            registrationDate: row.registrationDate ? String(row.registrationDate) : '',
-            isPaid: String(row.isPaid) === 'true' || row.isPaid === true,
-            taxRate: String(row.taxRate),
-            taxBase: String(row.taxBase || 'LectureOnly'),
-            customTax: Number(row.customTax) || 0
-          }));
-          skipNextSyncRef.current = true;
-          setLectures(mapped);
+          if (lecturesList.length === 0 && lectures.length > 0) {
+            // 구글 시트는 비어있고 로컬에 데이터가 있는 경우 -> 로컬 데이터를 구글 시트에 백업(Push)
+            syncToGoogleSheetSilent(lectures);
+          } else {
+            // 구글 시트에 데이터가 있거나 로컬도 비어있는 경우 -> 구글 시트 데이터로 로컬 덮어쓰기
+            const mapped = lecturesList.map(row => ({
+              id: String(row.id),
+              institution: String(row.institution),
+              rate: Number(row.rate) || 0,
+              classes: Number(row.classes) || 0,
+              expectedAmount: Number(row.expectedAmount) || 0,
+              transportFee: Number(row.transportFee) || 0,
+              deduction: Number(row.deduction) || 0,
+              netAmount: Number(row.netAmount) || 0,
+              month: String(row.month),
+              date: String(row.date),
+              registrationDate: row.registrationDate ? String(row.registrationDate) : '',
+              isPaid: String(row.isPaid) === 'true' || row.isPaid === true,
+              taxRate: String(row.taxRate),
+              taxBase: String(row.taxBase || 'LectureOnly'),
+              customTax: Number(row.customTax) || 0
+            }));
+            skipNextSyncRef.current = true;
+            setLectures(mapped);
+          }
+          setIsInitialPullCompleted(true);
         }
       }
     } catch (e) {
