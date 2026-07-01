@@ -589,6 +589,8 @@ export default function App() {
   const [isInitialPullCompleted, setIsInitialPullCompleted] = useState(false);
   const [isEditingApiKey, setIsEditingApiKey] = useState(!apiKey);
   const [isEditingSheetUrl, setIsEditingSheetUrl] = useState(!sheetUrl);
+  const [sheetUrlError, setSheetUrlError] = useState(null);
+  const [isTestingSheetUrl, setIsTestingSheetUrl] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [activeGuideCase, setActiveGuideCase] = useState('new'); // 'new' | 'existing'
   
@@ -829,6 +831,43 @@ export default function App() {
     setIsEditingApiKey(!geminiKey);
     setIsEditingSheetUrl(!sheetApiUrl);
     alert('설정이 저장되었습니다.');
+  };
+
+  const handleTestAndSaveSheetUrl = async (url, isDesktop = false) => {
+    if (!url) {
+      handleSaveSettings(apiKey, '', '');
+      setSheetUrlError(null);
+      if (isDesktop) setIsSettingsOpen(false);
+      return;
+    }
+
+    setIsTestingSheetUrl(true);
+    setSheetUrlError(null);
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('웹 앱 응답 실패');
+      }
+      const data = await response.json();
+      
+      let retrievedSpreadsheetUrl = '';
+      if (data && data.spreadsheetUrl) {
+        retrievedSpreadsheetUrl = data.spreadsheetUrl;
+      }
+      
+      handleSaveSettings(apiKey, url, retrievedSpreadsheetUrl);
+      setSheetUrlError(null);
+      if (isDesktop) setIsSettingsOpen(false);
+    } catch (err) {
+      console.error('Connection test failed:', err);
+      setSheetUrlError({
+        type: 'auth_required',
+        message: '최초 연동을 위한 구글 권한 승인이 필요합니다. 아래 버튼을 눌러 승인 단계를 진행해 주세요.'
+      });
+    } finally {
+      setIsTestingSheetUrl(false);
+    }
   };
 
   // AI 분석 필드 변경
@@ -2923,7 +2962,7 @@ function doPost(e) {
                           <button 
                             onClick={() => {
                               const k = document.getElementById('settings-api-key-mobile').value;
-                              handleSaveSettings(k, sheetUrl);
+                              handleSaveSettings(k, sheetUrl, spreadsheetUrl);
                             }}
                             className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
                           >
@@ -2995,24 +3034,52 @@ function doPost(e) {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex gap-2">
-                          <input 
-                            type="text" 
-                            id="settings-sheet-url-mobile" 
-                            defaultValue={sheetUrl} 
-                            placeholder="예시주소: https://script.google.com/macros/s/.../exec" 
-                            className="flex-1 px-4 py-3 border border-slate-250 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-450" 
-                          />
-                          <button 
-                            onClick={() => {
-                              const u = document.getElementById('settings-sheet-url-mobile').value;
-                              handleSaveSettings(apiKey, u, '');
-                            }}
-                            className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
-                          >
-                            저장
-                          </button>
-                        </div>
+                        <>
+                          <div className="flex gap-2">
+                            <input 
+                              type="text" 
+                              id="settings-sheet-url-mobile" 
+                              defaultValue={sheetUrl} 
+                              placeholder="예시주소: https://script.google.com/macros/s/.../exec" 
+                              className="flex-1 px-4 py-3 border border-slate-250 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-450" 
+                            />
+                            <button 
+                              onClick={() => {
+                                const u = document.getElementById('settings-sheet-url-mobile').value;
+                                handleTestAndSaveSheetUrl(u, false);
+                              }}
+                              disabled={isTestingSheetUrl}
+                              className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center min-w-[70px]"
+                            >
+                              {isTestingSheetUrl ? '확인중...' : '저장'}
+                            </button>
+                          </div>
+                          
+                          {sheetUrlError && (
+                            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4.5 mt-2 flex flex-col gap-2.5">
+                              <p className="font-black text-amber-800 text-[12.5px] flex items-center gap-1.5">
+                                ⚠️ 최초 연동을 위한 구글 권한 승인이 필요합니다
+                              </p>
+                              <p className="text-slate-600 font-semibold leading-relaxed text-[11px]">
+                                구글의 보안 정책상, 최초 1회는 브라우저를 통해 웹 앱 사용 권한을 허용해 주셔야 대시보드 연동이 활성화됩니다.
+                              </p>
+                              <a
+                                href={`${document.getElementById('settings-sheet-url-mobile')?.value || ''}${
+                                  (document.getElementById('settings-sheet-url-mobile')?.value || '').includes('?') ? '&' : '?'
+                                }open=true`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl text-center text-[11.5px] no-underline block shadow-sm transition active:scale-95 cursor-pointer"
+                              >
+                                🔑 구글 권한 승인 완료하기 (새 창)
+                              </a>
+                              <p className="text-slate-450 text-[10px] leading-normal font-medium mt-0.5">
+                                ※ 위 버튼을 누르면 구글 권한 검토 화면이 열립니다. <br/>
+                                <strong>[Review Permissions] (권한 검토) ➡️ [고급] ➡️ [이동] ➡️ [허용]</strong>을 완료해 주신 후, 다시 위의 <strong>[저장]</strong> 버튼을 눌러주세요.
+                              </p>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -3884,6 +3951,32 @@ function doPost(e) {
                 <button type="button" onClick={() => { if (window.confirm('정말 전체 초기화하시겠습니까? 등록된 모든 데이터가 삭제됩니다.')) { safeLocalStorage.clear(); setLectures([]); setApiKey(''); setSheetUrl(''); alert('초기화 완료. 새로고침합니다.'); window.location.reload(); } }} className="py-2 bg-red-600 hover:bg-red-700 text-white font-black rounded-xl shadow-md transition text-[11px]">앱 전체 데이터 초기화</button>
               </div>
             </div>
+            {sheetUrlError && (
+              <div className="p-5 border-t border-slate-100 bg-white">
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4.5 flex flex-col gap-2.5">
+                  <p className="font-black text-amber-800 text-[12.5px] flex items-center gap-1.5">
+                    ⚠️ 최초 연동을 위한 구글 권한 승인이 필요합니다
+                  </p>
+                  <p className="text-slate-600 font-semibold leading-relaxed text-[11px]">
+                    구글의 보안 정책상, 최초 1회는 브라우저를 통해 웹 앱 사용 권한을 허용해 주셔야 대시보드 연동이 활성화됩니다.
+                  </p>
+                  <a
+                    href={`${document.getElementById('settings-sheet-url-desktop')?.value || ''}${
+                      (document.getElementById('settings-sheet-url-desktop')?.value || '').includes('?') ? '&' : '?'
+                    }open=true`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-black rounded-xl text-center text-[11.5px] no-underline block shadow-sm transition active:scale-95 cursor-pointer"
+                  >
+                    🔑 구글 권한 승인 완료하기 (새 창)
+                  </a>
+                  <p className="text-slate-450 text-[10px] leading-normal font-medium mt-0.5">
+                    ※ 위 버튼을 누르면 구글 권한 검토 화면이 열립니다. <br/>
+                    <strong>[Review Permissions] (권한 검토) ➡️ [고급] ➡️ [이동] ➡️ [허용]</strong>을 완료해 주신 후, 다시 아래의 <strong>[설정 저장]</strong> 버튼을 눌러주세요.
+                  </p>
+                </div>
+              </div>
+            )}
             <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
               <button type="button" onClick={() => setIsSettingsOpen(false)} className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl transition">닫기</button>
               <button type="button" onClick={() => { 
@@ -3891,9 +3984,16 @@ function doPost(e) {
                 const uEl = document.getElementById('settings-sheet-url-desktop'); 
                 const k = kEl ? kEl.value : apiKey; 
                 const u = uEl ? uEl.value : sheetUrl; 
-                handleSaveSettings(k, u, ''); 
-                setIsSettingsOpen(false); 
-              }} className="w-full py-2.5 bg-[#2563EB] text-white font-black rounded-xl shadow-md hover:bg-blue-700 transition">설정 저장</button>
+                if (k !== apiKey) {
+                  safeLocalStorage.setItem('gemini_api_key', k);
+                  setApiKey(k);
+                }
+                handleTestAndSaveSheetUrl(u, true);
+              }} 
+              disabled={isTestingSheetUrl}
+              className="w-full py-2.5 bg-[#2563EB] text-white font-black rounded-xl shadow-md hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                {isTestingSheetUrl ? '연결 확인 중...' : '설정 저장'}
+              </button>
             </div>
           </div>
         </div>
