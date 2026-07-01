@@ -1806,7 +1806,7 @@ ${aiText}
   // 연동된 스프레드시트 열기 요청 처리
   if (e && e.parameter && e.parameter.open === "true") {
     var url = SpreadsheetApp.getActiveSpreadsheet().getUrl();
-    return HtmlService.createHtmlOutput("<div style='font-family:sans-serif; text-align:center; padding:30px;'><h3 style='color:#1E3A8A;'>출강바이브 연동 스프레드시트</h3><p style='color:#475569;'>아래 링크를 클릭하여 연동된 시트로 이동해 주세요.</p><br/><a href='" + url + "' target='_blank' style='display:inline-block; background-color:#10B981; color:white; padding:12px 24px; text-decoration:none; font-weight:bold; border-radius:10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>스프레드시트 열기 ↗</a></div>");
+    return HtmlService.createHtmlOutput("<meta http-equiv='refresh' content='0; url=" + url + "'><script>window.location.href = '" + url + "';</script><div style='font-family:sans-serif; text-align:center; padding:30px;'><h3 style='color:#1E3A8A;'>출강바이브 연동 스프레드시트</h3><p style='color:#475569;'>구글 스프레드시트로 이동 중입니다...</p></div>");
   }
 
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
@@ -3890,10 +3890,15 @@ function doPost(e) {
                         [Google 스프레드시트] 새 문서 만들기 ↗
                       </a>
                     </li>
+                    <li>
+                      <strong className="text-slate-800 font-extrabold">시트 [공유] 설정 (매우 중요)</strong>: 구글 계정 로그인 없이 접속하는 기기/브라우저에서도 바로가기가 즉시 동작하도록, 구글 시트 우측 상단의 <strong>[공유]</strong> 버튼을 누르고 일반 액세스를 <strong className="text-blue-600 underline font-black">"링크가 있는 모든 사용자 (뷰어 또는 편집자)"</strong>로 반드시 변경해 줍니다.
+                    </li>
                     <li>스프레드시트 상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
                     <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
                     <li>우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 버튼을 클릭합니다.</li>
-                    <li>설정에서 유형: <strong>"웹 앱"</strong>, 웹 앱 실행 대상: <strong>"나"</strong>, 액세스 권한: <strong>"모든 사용자"</strong>로 선택 후 배포합니다.</li>
+                    <li>
+                      설정에서 유형: <strong>"웹 앱"</strong>, 웹 앱 실행 대상: <strong>"나"</strong>, 액세스 권한: <strong className="text-[#EF4444] font-black underline">"모든 사용자" (Anyone)</strong>로 선택한 뒤 배포합니다. <span className="text-[#EF4444] font-black text-[11px]">(※ 주의: '나만' 혹은 '구글계정 사용자만'으로 하면 연동이 실패합니다!)</span>
+                    </li>
                     <li>
                       배포 완료 후 화면에 표시되는 **웹 앱 URL**을 복사해 설정창에 저장합니다.
                       <span className="block mt-1 text-[#EF4444] font-black text-[11.5px]">※ 필수 확인: 복사한 주소 끝부분이 반드시 `/exec`로 끝나는 배포 URL이어야 합니다!</span>
@@ -3920,9 +3925,12 @@ function doPost(e) {
                     <li>
                       구글 스프레드시트 메뉴에서 <strong>[파일] ➡️ [가져오기] (File ➡️ Import)</strong>를 누르고, AI가 만들어준 정제된 CSV 파일을 업로드하여 가져옵니다. (시트에 행들이 올바르게 들어갔는지 확인합니다.)
                     </li>
+                    <li>
+                      <strong className="text-slate-800 font-extrabold">시트 [공유] 설정 (매우 중요)</strong>: 구글 계정 로그인 없이 접속하는 기기/브라우저에서도 바로가기가 즉시 동작하도록, 구글 시트 우측 상단의 <strong>[공유]</strong> 버튼을 누르고 일반 액세스를 <strong className="text-blue-600 underline font-black">"링크가 있는 모든 사용자 (뷰어 또는 편집자)"</strong>로 반드시 변경해 줍니다.
+                    </li>
                     <li>상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
                     <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
-                    <li>우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 클릭 후, 유형: <strong>"웹 앱"</strong>, 웹 앱 실행 대상: <strong>"나"</strong>, 액세스 권한: <strong>"모든 사용자"</strong>로 선택 후 배포합니다.</li>
+                    <li>우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 클릭 후, 유형: <strong>"웹 앱"</strong>, 웹 앱 실행 대상: <strong>"나"</strong>, 액세스 권한: <strong className="text-[#EF4444] font-black underline">"모든 사용자" (Anyone)</strong>로 선택한 뒤 배포합니다. <span className="text-[#EF4444] font-black text-[11px]">(※ 주의: '나만' 혹은 '구글계정 사용자만'으로 하면 연동이 실패합니다!)</span></li>
                     <li>
                       발급된 **웹 앱 URL (끝부분이 반드시 `/exec`)**을 대시보드 설정창에 등록하면 연동이 완료됩니다!
                     </li>
