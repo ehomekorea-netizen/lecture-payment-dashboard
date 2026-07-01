@@ -1162,12 +1162,15 @@ ${aiText}
       }
 
       if (lecturesList) {
-        if (lecturesList.length === 0 && lectures.length > 0) {
+        // 기관명이 비어있거나 공백만 있는 빈 행 필터링 (구글 시트 빈 행 꼬임 방지)
+        const validList = lecturesList.filter(row => row.institution && String(row.institution).trim() !== "");
+
+        if (validList.length === 0 && lectures.length > 0) {
           // 구글 시트는 비어있고 로컬에 데이터가 있는 경우 -> 로컬 데이터를 구글 시트에 백업(Push)
           syncToGoogleSheetSilent(lectures);
         } else {
           // 구글 시트에 데이터가 있거나 로컬도 비어있는 경우 -> 구글 시트 데이터로 로컬 덮어쓰기
-          const mapped = lecturesList.map(row => ({
+          const mapped = validList.map(row => ({
             id: String(row.id || Date.now() + Math.random()),
             institution: String(row.institution || '기타 기관'),
             rate: Number(row.rate) || 0,
@@ -1222,12 +1225,15 @@ ${aiText}
           // → fetch가 완료되는 순간 이미 연동이 끊겼을 수 있으므로 stale closure 방지
           if (!sheetUrlRef.current) return;
 
-          if (lecturesList.length === 0 && lectures.length > 0) {
+          // 기관명이 비어있거나 공백만 있는 빈 행 필터링 (구글 시트 빈 행 꼬임 방지)
+          const validList = lecturesList.filter(row => row.institution && String(row.institution).trim() !== "");
+
+          if (validList.length === 0 && lectures.length > 0) {
             // 구글 시트는 비어있고 로컬에 데이터가 있는 경우 -> 로컬 데이터를 구글 시트에 백업(Push)
             syncToGoogleSheetSilent(lectures);
           } else {
             // 구글 시트에 데이터가 있거나 로컬도 비어있는 경우 -> 구글 시트 데이터로 로컬 덮어쓰기
-            const mapped = lecturesList.map(row => ({
+            const mapped = validList.map(row => ({
               id: String(row.id),
               institution: String(row.institution),
               rate: Number(row.rate) || 0,
@@ -1267,6 +1273,35 @@ ${aiText}
       });
     } catch (e) {
       console.warn('Silent auto-sync push failed:', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // 단일 행 실시간 동기화 (토글 시 해당 ID만 업데이트)
+  const updateSingleRowOnGoogleSheet = async (id, isPaid, netAmount, deduction) => {
+    if (!sheetUrl) return;
+    setIsSyncing(true);
+    try {
+      const response = await fetch(sheetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'update_row',
+          id: id,
+          isPaid: isPaid,
+          netAmount: netAmount,
+          deduction: deduction
+        })
+      });
+      const data = await response.json();
+      if (data && data.status === 'error') {
+        // ID가 시트에 존재하지 않는 등 오류 시 전체 동기화로 백업 실행
+        syncToGoogleSheetSilent(lectures);
+      }
+    } catch (e) {
+      console.warn('Single-row update failed, falling back to full sync', e);
+      syncToGoogleSheetSilent(lectures);
     } finally {
       setIsSyncing(false);
     }
@@ -1421,6 +1456,14 @@ ${aiText}
   const handleTogglePaid = (lecture) => {
     const nextPaid = !lecture.isPaid;
 
+    // 대기 상태로 되돌릴 때 확인 절차 추가
+    if (!nextPaid) {
+      const confirmed = window.confirm(
+        '이 강의를 "정산 대기" 상태로 되돌리시겠습니까?\n(실수령액과 공제금액이 다시 0원으로 변경됩니다.)'
+      );
+      if (!confirmed) return;
+    }
+
     let updatedFields = { isPaid: nextPaid };
 
     if (nextPaid) {
@@ -1442,6 +1485,10 @@ ${aiText}
       updatedFields.netAmount = 0;
       updatedFields.deduction = 0;
     }
+
+    // 다음 변경은 실시간 전체 동기를 건너뛰고 단일 업데이트만 요청하도록 플래그 세팅
+    skipNextSyncRef.current = true;
+    updateSingleRowOnGoogleSheet(lecture.id, nextPaid, updatedFields.netAmount || 0, updatedFields.deduction || 0);
 
     const updatedList = lectures.map(l => {
       if (l.id === lecture.id) {
@@ -1997,9 +2044,12 @@ ${aiText}
     var rowData = data[i];
     if (rowData.length === 0 || (!rowData[0] && rowData.length <= 1)) continue;
     
+    var inst = getVal(rowData, '기관명/학교', "") || "";
+    // 기관명이 비어있는 행은 패스 (빈 행 패싱)
+    if (!inst.trim()) continue;
+
     var item = {};
-    
-    item.institution = getVal(rowData, '기관명/학교', "") || "";
+    item.institution = inst;
     var roleStr = getVal(rowData, '출강역할', "주강사") || "주강사";
     item.role = roleStr === "보조강사" ? "Assistant" : "Main";
     item.rate = Number(getVal(rowData, '강의단가', 0)) || 0;
@@ -2053,15 +2103,17 @@ function doPost(e) {
   if (action === "sync_all") {
     sheet.clearContents();
     var headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부', 'ID'];
-    sheet.appendRow(headers);
+    var outputData = [headers];
     
     if (payload.lectures && payload.lectures.length > 0) {
       payload.lectures.forEach(function(l) {
+        if (!l.institution || !String(l.institution).trim()) return;
+        
         var roleKorean = l.role === 'Assistant' ? '보조강사' : '주강사';
-        var taxRateNum = l.taxRate === 'None' ? '0' : (l.taxRate || '3.3').replace('%', '');
+        var taxRateNum = l.taxRate === 'None' ? '0' : String(l.taxRate || '3.3').replace('%', '');
         var isPaidKorean = l.isPaid ? '정산완료' : '정산대기';
         
-        sheet.appendRow([
+        outputData.push([
           l.institution,
           roleKorean,
           Number(l.rate) || 0,
@@ -2070,17 +2122,62 @@ function doPost(e) {
           Number(l.transportFee) || 0,
           taxRateNum,
           Number(l.deduction) || 0,
-          l.month,
+          l.month || "",
           l.isPaid ? Number(l.netAmount) : "",
-          l.date,
+          l.date || "",
           l.registrationDate || "",
           isPaidKorean,
           l.id
         ]);
       });
     }
-    return ContentService.createTextOutput(JSON.stringify({ status: "success", count: payload.lectures.length }))
+    
+    if (outputData.length > 0) {
+      sheet.getRange(1, 1, outputData.length, headers.length).setValues(outputData);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: "success", count: outputData.length - 1 }))
       .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  if (action === "update_row") {
+    var data = sheet.getDataRange().getValues();
+    var headers = data[0];
+    var colMap = {};
+    for (var k = 0; k < headers.length; k++) {
+      colMap[String(headers[k]).trim()] = k;
+    }
+    
+    var idColIdx = colMap['ID'];
+    if (idColIdx === undefined) {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "ID 컬럼을 찾을 수 없습니다." }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var targetRowIndex = -1;
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][idColIdx]).trim() === String(payload.id).trim()) {
+        targetRowIndex = i + 1;
+        break;
+      }
+    }
+    
+    if (targetRowIndex !== -1) {
+      var isPaidKorean = payload.isPaid ? '정산완료' : '정산대기';
+      if (colMap['실수령액'] !== undefined) {
+        sheet.getRange(targetRowIndex, colMap['실수령액'] + 1).setValue(payload.isPaid ? Number(payload.netAmount) : "");
+      }
+      if (colMap['공제금액(-)'] !== undefined) {
+        sheet.getRange(targetRowIndex, colMap['공제금액(-)'] + 1).setValue(Number(payload.deduction) || 0);
+      }
+      if (colMap['정산여부'] !== undefined) {
+        sheet.getRange(targetRowIndex, colMap['정산여부'] + 1).setValue(isPaidKorean);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", updatedId: payload.id }))
+        .setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "ID를 찾을 수 없습니다." }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
   }
 }`;
 
