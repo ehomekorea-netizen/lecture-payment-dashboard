@@ -1772,6 +1772,12 @@ ${aiText}
   })();
 
   const gasTemplateCode = `function doGet(e) {
+  // 연동된 스프레드시트 열기 요청 처리
+  if (e && e.parameter && e.parameter.open === "true") {
+    var url = SpreadsheetApp.getActiveSpreadsheet().getUrl();
+    return HtmlService.createHtmlOutput("<div style='font-family:sans-serif; text-align:center; padding:30px;'><h3 style='color:#1E3A8A;'>출강바이브 연동 스프레드시트</h3><p style='color:#475569;'>아래 링크를 클릭하여 연동된 시트로 이동해 주세요.</p><br/><a href='" + url + "' target='_blank' style='display:inline-block; background-color:#10B981; color:white; padding:12px 24px; text-decoration:none; font-weight:bold; border-radius:10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'>스프레드시트 열기 ↗</a></div>");
+  }
+
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = sheet.getDataRange().getValues();
   
@@ -2665,17 +2671,27 @@ function doPost(e) {
                     <div className="flex flex-col gap-2">
                       <label className="text-[13px] font-black text-slate-600">구글 시트 웹 앱 URL <span className="text-[#EF4444] font-black text-[11.5px]">(반드시 배포된 *exec 주소여야 합니다)</span></label>
                       {!isEditingSheetUrl && sheetUrl ? (
-                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 shadow-sm">
+                        <div className="flex flex-col gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm w-full">
                           <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
                             ☁️ 구글 시트 연동 주소(exec)가 등록되었습니다.
                           </span>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsEditingSheetUrl(true)} 
-                            className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-xs hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
-                          >
-                            변경
-                          </button>
+                          <div className="flex gap-2 mt-1">
+                            <a
+                              href={`${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-[11.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              <span>📊 연동된 시트 확인하기</span>
+                            </a>
+                            <button 
+                              type="button" 
+                              onClick={() => setIsEditingSheetUrl(true)} 
+                              className="px-4 py-2 bg-white border border-slate-250 text-slate-600 font-black rounded-xl text-[11.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                            >
+                              변경
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex gap-2">
@@ -3692,17 +3708,27 @@ function doPost(e) {
                     <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[10px] font-black text-[#1E3A8A] bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-lg hover:bg-blue-100 transition cursor-pointer">연동 방법</button>
                   </div>
                   {!isEditingSheetUrl && sheetUrl ? (
-                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                    <div className="flex flex-col gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 w-full">
                       <span className="text-[11.5px] font-extrabold text-emerald-800">
                         ☁️ 구글 시트 연동 주소(exec)가 등록되었습니다.
                       </span>
-                      <button 
-                        type="button" 
-                        onClick={() => setIsEditingSheetUrl(true)} 
-                        className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-[10.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
-                      >
-                        변경
-                      </button>
+                      <div className="flex gap-2">
+                        <a
+                          href={`${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg text-[10.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
+                        >
+                          <span>📊 연동된 시트 확인하기</span>
+                        </a>
+                        <button 
+                          type="button" 
+                          onClick={() => setIsEditingSheetUrl(true)} 
+                          className="px-2.5 py-1.5 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-[10.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                        >
+                          변경
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <input type="text" id="settings-sheet-url-desktop" defaultValue={sheetUrl} placeholder="https://script.google.com/macros/s/.../exec" className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
