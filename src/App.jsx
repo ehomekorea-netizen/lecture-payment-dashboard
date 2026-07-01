@@ -1265,11 +1265,24 @@ ${aiText}
   const syncToGoogleSheetSilent = async (lecturesList) => {
     if (!sheetUrl) return;
     setIsSyncing(true);
+
+    // 날짜 오름차순 정렬 (과거 -> 미래 순으로 시트에 아래로 쌓이도록)
+    const sortedLectures = [...lecturesList].sort((a, b) => {
+      const dateA = a.date || '';
+      const dateB = b.date || '';
+      if (!dateA && !dateB) return a.id.localeCompare(b.id);
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      const cmp = dateA.localeCompare(dateB);
+      if (cmp !== 0) return cmp;
+      return a.id.localeCompare(b.id);
+    });
+
     try {
       await fetch(sheetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'sync_all', lectures: lecturesList })
+        body: JSON.stringify({ action: 'sync_all', lectures: sortedLectures })
       });
     } catch (e) {
       console.warn('Silent auto-sync push failed:', e);
@@ -1313,11 +1326,23 @@ ${aiText}
     setSyncLoading(true);
     setSyncMessage(null);
 
+    // 날짜 오름차순 정렬 (과거 -> 미래 순으로 시트에 아래로 쌓이도록)
+    const sortedLectures = [...lecturesList].sort((a, b) => {
+      const dateA = a.date || '';
+      const dateB = b.date || '';
+      if (!dateA && !dateB) return a.id.localeCompare(b.id);
+      if (!dateA) return 1;
+      if (!dateB) return -1;
+      const cmp = dateA.localeCompare(dateB);
+      if (cmp !== 0) return cmp;
+      return a.id.localeCompare(b.id);
+    });
+
     try {
       const response = await fetch(sheetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'sync_all', lectures: lecturesList })
+        body: JSON.stringify({ action: 'sync_all', lectures: sortedLectures })
       });
 
       if (!response.ok) throw new Error('시트 전송 실패');
@@ -1997,7 +2022,15 @@ ${aiText}
     if (a.isPaid !== b.isPaid) {
       return a.isPaid ? 1 : -1;
     }
-    // 2. 최신 등록 순 정렬 (ID 내림차순)
+    // 2. 날짜 내림차순 정렬 (미래/최근 날짜가 위로 오도록)
+    const dateA = a.date || '';
+    const dateB = b.date || '';
+    if (!dateA && !dateB) return b.id.localeCompare(a.id);
+    if (!dateA) return 1;  // 날짜 없는 카드는 아래로 배치
+    if (!dateB) return -1;
+    
+    const cmp = dateB.localeCompare(dateA);
+    if (cmp !== 0) return cmp;
     return b.id.localeCompare(a.id);
   });
 
