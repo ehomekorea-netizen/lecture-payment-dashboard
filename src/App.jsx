@@ -717,10 +717,18 @@ export default function App() {
   });
 
   // 로컬 스토리지 데이터 동기화 및 구글 시트 백그라운드 자동 동기화(Push)
+  const prevSheetUrlRef = useRef(sheetUrl);
+
   useEffect(() => {
     safeLocalStorage.setItem('lectures', JSON.stringify(lectures));
     
     if (sheetUrl) {
+      if (prevSheetUrlRef.current !== sheetUrl) {
+        // sheetUrl 자체가 변경된 것이면, 푸시를 하지 않고 단순히 레퍼런스만 업데이트
+        prevSheetUrlRef.current = sheetUrl;
+        return;
+      }
+      
       if (skipNextSyncRef.current) {
         // Pull 등 외부 연동에 의한 업데이트 시 중복 전송 방지
         skipNextSyncRef.current = false;
@@ -728,6 +736,8 @@ export default function App() {
       }
       // 백그라운드 실시간 동기화 실행
       syncToGoogleSheetSilent(lectures);
+    } else {
+      prevSheetUrlRef.current = '';
     }
   }, [lectures, sheetUrl]);
 
@@ -1812,31 +1822,12 @@ ${aiText}
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   var data = sheet.getDataRange().getValues();
   
-  // 만약 빈 시트이거나 행이 전혀 없는 경우 초기화 및 예시 데이터 생성
+  // 만약 빈 시트이거나 행이 전혀 없는 경우 초기화
   if (data.length <= 1 || (data.length === 2 && !data[1][0])) {
     var headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부', 'ID'];
     sheet.clearContents();
     sheet.appendRow(headers);
-    
-    // 예시 데이터 추가 (로컬데이터관리 출강기록 양식)
-    var sampleRow = [
-      "🌱 디지털새싹-대시보드개발",
-      "주강사",
-      100000,
-      4,
-      400000,
-      0,
-      "3.3",
-      -13200,
-      "6월",
-      386800,
-      "2026-06-30",
-      "2026-06-30",
-      "정산대기",
-      "init-1782793714523"
-    ];
-    sheet.appendRow(sampleRow);
-    data = [headers, sampleRow];
+    data = [headers];
   }
   
   var headers = data[0];
@@ -2661,155 +2652,8 @@ function doPost(e) {
           {/* TAB 4: SETTINGS (merged with Sync) */}
           {activeTab === 'settings' && (
             <div key="tab-settings" className={`${getSlideClass()} flex flex-col gap-4 pt-2`}>
-              {/* API Settings Accordion */}
-              <div className="rounded-[24px] bg-violet-50/10 border border-violet-200 overflow-hidden shadow-sm transition-all">
-                <button
-                  type="button"
-                  onClick={() => setIsApiSettingsOpen(!isApiSettingsOpen)}
-                  className="w-full px-6 py-6 flex items-center justify-between bg-violet-100 hover:bg-violet-200/70 transition-colors border-none text-left cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-[22px]">⚙️</span>
-                    <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">API 연동 설정</h3>
-                  </div>
-                  <ChevronDown
-                    size={20}
-                    className={`text-slate-500 transition-transform duration-200 ${isApiSettingsOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-                {isApiSettingsOpen && (
-                  <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
-                          <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
-                        </div>
-                        <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2563EB] hover:text-blue-800 underline font-extrabold">👉 API Key 무료 발급 바로가기</a>
-                      </div>
-                      {!isEditingApiKey && apiKey ? (
-                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 shadow-sm">
-                          <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
-                            🔒 API 키가 등록되었습니다.
-                          </span>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsEditingApiKey(true)} 
-                            className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-xs hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
-                          >
-                            변경
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-400" />
-                          <button 
-                            onClick={() => {
-                              const k = document.getElementById('settings-api-key-mobile').value;
-                              handleSaveSettings(k, sheetUrl);
-                            }}
-                            className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
-                          >
-                            저장
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Cloud Sync Accordion */}
-              <div className="rounded-[24px] bg-sky-50/10 border border-sky-200 overflow-hidden shadow-sm transition-all">
-                <button
-                  type="button"
-                  onClick={() => setIsCloudBackupOpen(!isCloudBackupOpen)}
-                  className="w-full px-6 py-6 flex items-center justify-between bg-sky-100 hover:bg-sky-200/70 transition-colors border-none text-left cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-[22px]">☁️</span>
-                    <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">클라우드 실시간 동기</h3>
-                  </div>
-                  <ChevronDown
-                    size={20}
-                    className={`text-slate-500 transition-transform duration-200 ${isCloudBackupOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-                {isCloudBackupOpen && (
-                  <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
-                    <div className="p-4 bg-blue-50/70 border border-blue-100 text-[#1E3A8A] rounded-xl font-semibold leading-relaxed flex flex-col gap-1.5 text-[13px]">
-                      <p className="font-black text-[14px] flex items-center gap-1">☁️ 클라우드 동기화 안내</p>
-                      <p className="text-slate-500">구글 스프레드시트 배포 URL을 연동하면 기기 간 데이터가 백업 버튼 조작 없이 저장 시 실시간으로 자동 동기화됩니다. 인터넷 연결 시 자동으로 최신 데이터가 반영됩니다.</p>
-                      <div className="mt-1">
-                        <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[12px] font-black text-white bg-[#1E3A8A] px-3 py-2 rounded-lg hover:bg-[#0F172A] transition border-none cursor-pointer">구글 시트 연동 방법 보기</button>
-                      </div>
-                    </div>
-
-                    {/* 구글 시트 URL 입력 및 저장란 */}
-                    <div className="flex flex-col gap-2">
-                      <label className="text-[13px] font-black text-slate-600">구글 시트 웹 앱 URL <span className="text-[#EF4444] font-black text-[11.5px]">(반드시 배포된 *exec 주소여야 합니다)</span></label>
-                      {!isEditingSheetUrl && sheetUrl ? (
-                        <div className="flex flex-col gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm w-full">
-                          <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
-                            ☁️ 구글 시트 연동 주소(exec)가 등록되었습니다.
-                          </span>
-                          <div className="flex gap-2 mt-1">
-                            <a
-                              href={`${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-[11.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
-                            >
-                              <span>📊 연동된 시트 확인하기</span>
-                            </a>
-                            <button 
-                              type="button" 
-                              onClick={() => setIsEditingSheetUrl(true)} 
-                              className="px-4 py-2 bg-white border border-slate-250 text-slate-600 font-black rounded-xl text-[11.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
-                            >
-                              변경
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex gap-2">
-                          <input 
-                            type="text" 
-                            id="settings-sheet-url-mobile" 
-                            defaultValue={sheetUrl} 
-                            placeholder="예시주소: https://script.google.com/macros/s/.../exec" 
-                            className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-450" 
-                          />
-                          <button 
-                            onClick={() => {
-                              const u = document.getElementById('settings-sheet-url-mobile').value;
-                              handleSaveSettings(apiKey, u, '');
-                            }}
-                            className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
-                          >
-                            저장
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {!sheetUrl ? (
-                      <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl font-semibold text-center text-[10.5px]">
-                        구글 시트 웹 앱 URL을 입력하고 저장하시면 클라우드 실시간 동기가 활성화됩니다.
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2 mt-1">
-                        <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl font-semibold text-[13px] leading-relaxed flex flex-col gap-1.5">
-                          <span className="font-black text-[14px] flex items-center gap-1">✨ 실시간 자동 동기화 활성화됨</span>
-                          <span className="text-emerald-700 text-[12px]">대시보드에서 일정을 등록, 수정, 삭제하거나 정산 완료 처리를 하시면 백업 버튼을 따로 누르지 않아도 사용자의 구글 시트에 실시간으로 자동 저장됩니다.</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Local Export/Import Accordion */}
+              
+              {/* Local Export/Import Accordion - Moved to Top */}
               <div className="rounded-[24px] bg-emerald-50/10 border border-emerald-200 overflow-hidden shadow-sm transition-all">
                 <button
                   type="button"
@@ -2818,7 +2662,10 @@ function doPost(e) {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-[22px]">📂</span>
-                    <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">로컬 데이터 관리</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">데이터 백업 및 가져오기</h3>
+                      <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-emerald-500 text-white flex-shrink-0">추천 / 무설정</span>
+                    </div>
                   </div>
                   <ChevronDown
                     size={20}
@@ -2843,7 +2690,7 @@ function doPost(e) {
                           <ol className="list-decimal pl-4.5 flex flex-col gap-1.5 text-slate-500">
                             <li>바로 아래의 <strong>[출강기록 양식 예시 CSV 받기]</strong>를 클릭하여 표준 서식 파일을 다운로드합니다.</li>
                             <li><strong>ChatGPT</strong> 또는 <strong>Claude</strong> 대화창에 <strong>선생님이 기존에 사용하시던 장부 파일</strong>과 <strong>방금 내려받은 예시 파일</strong> 두 개를 함께 업로드합니다.</li>
-                            <li>아래 <strong>[AI 변환 프롬프트 복사하기]</strong> 버튼을 눌러 문구를 복사한 뒤 AI 대화창에 붙여넣어(Ctrl+V) 전송합니다.</li>
+                            <li>아래 <strong>[AI 변환 프롬프트 복사하기]</strong> 버튼을 눌러 문구를 복사한 뒤 AI 대화창에 붙여넣기(Ctrl+V)하여 전송합니다.</li>
                             <li>AI가 생성해 준 결과 파일(또는 CSV 문구)을 저장해 하단의 <strong>[백업 파일 불러오기]</strong>로 가져오면 즉시 연동됩니다!</li>
                           </ol>
                         </div>
@@ -2882,7 +2729,7 @@ function doPost(e) {
                             href="https://chatgpt.com/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
+                            className="py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
                           >
                             <img src="/images/chatgpt.png" alt="ChatGPT" className="h-[35px] max-w-[95%] object-contain" />
                           </a>
@@ -2890,7 +2737,7 @@ function doPost(e) {
                             href="https://claude.ai/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
+                            className="py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
                           >
                             <img src="/images/claude.png" alt="Claude" className="h-[42px] max-w-[95%] object-contain" />
                           </a>
@@ -2898,7 +2745,7 @@ function doPost(e) {
                             href="https://gemini.google.com/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
+                            className="py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
                           >
                             <img src="/images/gemini.png" alt="Gemini" className="h-[42px] max-w-[95%] object-contain" />
                           </a>
@@ -2918,7 +2765,7 @@ function doPost(e) {
                         </button>
                       </div>
                     </div>
-                                        <div className="h-px bg-slate-100" />
+                    <div className="h-px bg-slate-100" />
 
                     {/* Section B: 내 데이터 백업 & 복원 */}
                     <div className="flex flex-col gap-3">
@@ -2941,7 +2788,7 @@ function doPost(e) {
                       <div className="border border-slate-200 rounded-2xl p-5 flex flex-col gap-3 bg-white shadow-sm">
                         <span className="text-[14px] font-extrabold text-slate-800">📥 [가져오기] 백업 파일 불러오기</span>
                         <p className="text-[13px] text-slate-500 font-semibold leading-relaxed">
-                          이전에 백업해둔 CSV 파일을 불러와 현재 강의 리스트 뒤에 추가 및 병합합니다. 날짜 형식은 반드시 YYYY-MM-DD(예: 2026-06-30)여야 하며, 다른 형식인 경우 가져오기가 거부됩니다.
+                          이전에 백업해둔 CSV 파일을 불러와 현재 강의 리스트 뒤에 추가 및 병합합니다. 날짜 형식은 반드시 YYYY-MM-DD(예: 2026-06-30)여야 합니다.
                         </p>
                         <div className="relative border-2 border-dashed border-slate-200 rounded-xl p-6 bg-[#F8FAF8] hover:bg-slate-50 transition-colors flex flex-col items-center justify-center text-center">
                           <input type="file" accept=".csv" onChange={handleAnimatedUpload} className="absolute inset-0 opacity-0 cursor-pointer z-10" disabled={isUploading} />
@@ -2954,7 +2801,7 @@ function doPost(e) {
                               <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-[#2563EB] transition-all duration-75" style={{width: `${uploadProgress}%`}} />
                               </div>
-                              <span className="text-[11px] text-slate-400 font-extrabold">{uploadProgress}%</span>
+                              <span className="text-[11px] text-slate-450 font-extrabold">{uploadProgress}%</span>
                             </div>
                           ) : (
                             <>
@@ -2965,6 +2812,163 @@ function doPost(e) {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+              </div>
+
+              {/* API Settings Accordion - Moved to Second */}
+              <div className="rounded-[24px] bg-violet-50/10 border border-violet-200 overflow-hidden shadow-sm transition-all">
+                <button
+                  type="button"
+                  onClick={() => setIsApiSettingsOpen(!isApiSettingsOpen)}
+                  className="w-full px-6 py-6 flex items-center justify-between bg-violet-100 hover:bg-violet-200/70 transition-colors border-none text-left cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-[22px]">🤖</span>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">AI 분석 연동 설정</h3>
+                      <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-violet-500 text-white flex-shrink-0" style={{backgroundColor: '#8B5CF6'}}>선택 사항</span>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    size={20}
+                    className={`text-slate-500 transition-transform duration-200 ${isApiSettingsOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {isApiSettingsOpen && (
+                  <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
+                          <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
+                        </div>
+                        <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2563EB] hover:text-blue-800 underline font-extrabold">👉 API Key 무료 발급 바로가기</a>
+                      </div>
+                      {!isEditingApiKey && apiKey ? (
+                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 shadow-sm">
+                          <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
+                            🔒 API 키가 등록되었습니다.
+                          </span>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsEditingApiKey(true)} 
+                            className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-xs hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                          >
+                            변경
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input type="password" id="settings-api-key-mobile" defaultValue={apiKey} placeholder="AIzaSy... (Gemini API Key)" className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-450" />
+                          <button 
+                            onClick={() => {
+                              const k = document.getElementById('settings-api-key-mobile').value;
+                              handleSaveSettings(k, sheetUrl);
+                            }}
+                            className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
+                          >
+                            저장
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Cloud Sync Accordion - Moved to Third */}
+              <div className="rounded-[24px] bg-sky-50/10 border border-sky-200 overflow-hidden shadow-sm transition-all">
+                <button
+                  type="button"
+                  onClick={() => setIsCloudBackupOpen(!isCloudBackupOpen)}
+                  className="w-full px-6 py-6 flex items-center justify-between bg-sky-100 hover:bg-sky-200/70 transition-colors border-none text-left cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-[22px]">☁️</span>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">실시간 클라우드 동기</h3>
+                      <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-sky-500 text-white flex-shrink-0">고급 기능</span>
+                    </div>
+                  </div>
+                  <ChevronDown
+                    size={20}
+                    className={`text-slate-500 transition-transform duration-200 ${isCloudBackupOpen ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {isCloudBackupOpen && (
+                  <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
+                    <div className="p-4 bg-blue-50/70 border border-blue-100 text-[#1E3A8A] rounded-xl font-semibold leading-relaxed flex flex-col gap-1.5 text-[13px]">
+                      <p className="font-black text-[14px] flex items-center gap-1">☁️ 클라우드 동기화 안내</p>
+                      <p className="text-slate-500">구글 스프레드시트 배포 URL을 연동하면 기기 간 데이터가 백업 버튼 조작 없이 저장 시 실시간으로 자동 동기화됩니다. 인터넷 연결 시 자동으로 최신 데이터가 반영됩니다.</p>
+                      <p className="text-[11.5px] text-[#2563EB] font-black mt-1 leading-normal">
+                        💡 안내: 구글 시트 연동이 복잡하다면 생략하셔도 좋습니다. 대시보드는 로컬 데이터로도 한계 없이 안전하게 동작하며, 주기적으로 위의 [데이터 백업 및 가져오기]에서 백업 파일을 받아 보관하시는 방법이 가장 쉽고 편리합니다.
+                      </p>
+                      <div className="mt-1.5">
+                        <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[12px] font-black text-white bg-[#1E3A8A] px-3.5 py-2 rounded-lg hover:bg-[#0F172A] transition border-none cursor-pointer">구글 시트 연동 방법 보기</button>
+                      </div>
+                    </div>
+
+                    {/* 구글 시트 URL 입력 및 저장란 */}
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[13px] font-black text-slate-600">구글 시트 웹 앱 URL <span className="text-[#EF4444] font-black text-[11.5px]">(반드시 배포된 *exec 주소여야 합니다)</span></label>
+                      {!isEditingSheetUrl && sheetUrl ? (
+                        <div className="flex flex-col gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm w-full">
+                          <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
+                            ☁️ 구글 시트 연동 주소(exec)가 등록되었습니다.
+                          </span>
+                          <div className="flex gap-2 mt-1">
+                            <a
+                              href={`${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-[11.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              <span>📊 연동된 시트 확인하기</span>
+                            </a>
+                            <button 
+                              type="button" 
+                              onClick={() => setIsEditingSheetUrl(true)} 
+                              className="px-4 py-2 bg-white border border-slate-250 text-slate-600 font-black rounded-xl text-[11.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                            >
+                              변경
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            id="settings-sheet-url-mobile" 
+                            defaultValue={sheetUrl} 
+                            placeholder="예시주소: https://script.google.com/macros/s/.../exec" 
+                            className="flex-1 px-4 py-3 border border-slate-250 rounded-xl text-[13px] font-semibold focus:outline-none focus:border-[#2563EB] bg-[#F8FAFC] text-slate-800 placeholder-slate-450" 
+                          />
+                          <button 
+                            onClick={() => {
+                              const u = document.getElementById('settings-sheet-url-mobile').value;
+                              handleSaveSettings(apiKey, u, '');
+                            }}
+                            className="px-4 py-3 bg-[#2563EB] hover:bg-blue-700 text-white font-black rounded-xl text-[13px] transition shadow-sm cursor-pointer"
+                          >
+                            저장
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {!sheetUrl ? (
+                      <div className="p-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl font-semibold text-center text-[10.5px]">
+                        구글 시트 웹 앱 URL을 입력하고 저장하시면 클라우드 실시간 동기가 활성화됩니다.
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2 mt-1">
+                        <div className="p-4 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl font-semibold text-[13px] leading-relaxed flex flex-col gap-1.5">
+                          <span className="font-black text-[14px] flex items-center gap-1">✨ 실시간 자동 동기화 활성화됨</span>
+                          <span className="text-emerald-700 text-[12px]">대시보드에서 일정을 등록, 수정, 삭제하거나 정산 완료 처리를 하시면 백업 버튼을 따로 누르지 않아도 사용자의 구글 시트에 실시간으로 자동 저장됩니다.</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -3844,105 +3848,51 @@ function doPost(e) {
           <div className="bg-white w-full md:max-w-xl rounded-t-[32px] md:rounded-[28px] max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-3 md:hidden flex-shrink-0" />
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5"><Database size={15} className="text-[#1E3A8A]" /> Apps Script 연동 가이드</h3>
+              <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5"><Database size={15} className="text-[#1E3A8A]" /> 구글 시트 실시간 연동 가이드</h3>
               <button onClick={() => setIsScriptModalOpen(false)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-xl transition"><X size={18} /></button>
             </div>
             <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5 text-slate-700">
               <div className="bg-blue-50 p-4.5 rounded-2xl border border-blue-100 flex flex-col gap-2">
-                <p className="font-black text-[#1E3A8A] text-[13px] flex items-center gap-1.5">⚡ 기기 간 실시간 자동 동기화 지원</p>
+                <p className="font-black text-[#1E3A8A] text-[13px] flex items-center gap-1.5">⚡ 기기 간 실시간 자동 동기화</p>
                 <p className="text-slate-600 font-semibold leading-relaxed text-[11.5px]">
-                  구글 스프레드시트를 연동하시면 PC, 스마트폰, 태블릿 등 여러 기기에서 번거로운 백업/다운로드 버튼 조작 없이 **실시간으로 데이터가 자동 동기화**됩니다. 연동되지 않은 상태에서는 브라우저 캐시에만 임시 보관됩니다.
+                  구글 스프레드시트를 연동하시면 PC, 스마트폰, 태블릿 등 여러 기기에서 백업/다운로드 버튼 조작 없이 **실시간으로 데이터가 자동 동기화**됩니다.
                 </p>
               </div>
 
-              {/* 케이스 선택 탭 */}
-              <div className="flex bg-slate-100 p-1 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setActiveGuideCase('new')}
-                  className={`flex-1 py-2 text-center rounded-lg text-[11.5px] font-black transition-all cursor-pointer ${
-                    activeGuideCase === 'new'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Case 1. 처음 시작해요 (새 시트)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveGuideCase('existing')}
-                  className={`flex-1 py-2 text-center rounded-lg text-[11.5px] font-black transition-all cursor-pointer ${
-                    activeGuideCase === 'existing'
-                      ? 'bg-white text-blue-600 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800'
-                  }`}
-                >
-                  Case 2. 기존 장부가 있어요
-                </button>
+              <div className="flex flex-col gap-3">
+                <h4 className="font-black text-sm text-[#0F172A] flex items-center gap-1">🛠️ 구글 시트 연동 순서 (딱 5단계)</h4>
+                <ol className="list-decimal pl-5 flex flex-col gap-3.5 text-slate-600 font-bold leading-relaxed text-[12px]">
+                  <li>
+                    <strong className="text-slate-800">구글 시트 개설</strong>: 
+                    <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="text-[#2563EB] hover:text-blue-800 underline font-black ml-1">
+                      새 문서 만들기 ↗
+                    </a>
+                    <span className="block mt-1.5 text-emerald-600 font-black bg-emerald-50 border border-emerald-100 rounded-lg p-2.5">
+                      💡 기존에 관리하시던 강의 장부 데이터가 있으신가요?<br/>
+                      <span className="text-slate-500 font-medium">연동하기 전에 먼저 [데이터 백업 및 가져오기] 메뉴에서 AI 변환 프롬프트로 생성한 CSV 데이터를 대시보드에 업로드하거나, 구글 시트 메뉴 [파일] ➡️ [가져오기]를 통해 기존 데이터를 시트에 채워두고 진행해 주세요!</span>
+                    </span>
+                  </li>
+                  <li>
+                    <strong className="text-slate-800">시트 [공유] 범위 설정</strong>: 구글 시트 우측 상단의 <strong>[공유]</strong> 버튼을 누르고 일반 액세스를 <strong className="text-blue-600 underline font-black">"링크가 있는 모든 사용자 (뷰어)"</strong>로 변경해 줍니다.
+                    <span className="block mt-1 text-slate-500 font-medium leading-normal">※ 참고: 대시보드의 실시간 연동은 4번 단계의 웹 앱 실행 권한(나)에 의해 처리되므로, 시트를 <strong>'뷰어'</strong>로만 열어두셔도 동기화는 정상 작동합니다.</span>
+                  </li>
+                  <li>스프레드시트 상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
+                  <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
+                  <li>
+                    우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 버튼을 클릭합니다.
+                    <ul className="list-disc pl-4 mt-1.5 text-slate-500 flex flex-col gap-1 font-medium">
+                      <li>유형: <strong>"웹 앱"</strong> 선택</li>
+                      <li>웹 앱 실행 대상: <strong>"나"</strong> 선택</li>
+                      <li>액세스 권한: <strong className="text-[#EF4444] font-black underline">"모든 사용자" (Anyone)</strong> 선택 후 배포합니다.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    배포 완료 후 화면에 표시되는 **웹 앱 URL**을 복사해 설정창에 저장합니다.
+                    <span className="block mt-1 text-[#EF4444] font-black text-[11.5px]">※ 필수 확인: 복사한 주소 끝부분이 반드시 `/exec`로 끝나는 주소여야 합니다!</span>
+                  </li>
+                </ol>
               </div>
 
-              {activeGuideCase === 'new' && (
-                <div className="flex flex-col gap-3 animate-fade-in">
-                  <h4 className="font-black text-sm text-[#0F172A] flex items-center gap-1">🌱 새 스프레드시트로 연동하기</h4>
-                  <ol className="list-decimal pl-5 flex flex-col gap-2.5 text-slate-600 font-bold leading-relaxed text-[12px]">
-                    <li>
-                      <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="text-[#2563EB] hover:text-blue-800 underline font-black">
-                        [Google 스프레드시트] 새 문서 만들기 ↗
-                      </a>
-                    </li>
-                    <li>
-                      <strong className="text-slate-800 font-extrabold">시트 [공유] 설정</strong>: 구글 계정 로그인 없이 접속하는 기기/브라우저에서도 바로가기가 즉시 동작하도록, 구글 시트 우측 상단의 <strong>[공유]</strong> 버튼을 누르고 일반 액세스를 <strong className="text-blue-600 underline font-black">"링크가 있는 모든 사용자 (뷰어 또는 편집자)"</strong>로 변경해 줍니다.
-                      <span className="block mt-1 text-slate-500 font-medium leading-normal">※ 참고: 앱의 실시간 저장/삭제 연동은 5번 단계의 웹 앱 실행 권한(나)에 의해 처리되므로, 시트를 <strong>'뷰어'</strong>로만 열어두셔도 동기화는 정상 작동합니다. 단, 로그인이 안 된 폰에서 시트 화면을 직접 확인하려면 최소 '뷰어' 설정이 필요합니다.</span>
-                    </li>
-                    <li>스프레드시트 상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
-                    <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
-                    <li>우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 버튼을 클릭합니다.</li>
-                    <li>
-                      설정에서 유형: <strong>"웹 앱"</strong>, 웹 앱 실행 대상: <strong>"나"</strong>, 액세스 권한: <strong className="text-[#EF4444] font-black underline">"모든 사용자" (Anyone)</strong>로 선택한 뒤 배포합니다. <span className="text-[#EF4444] font-black text-[11px]">(※ 주의: '나만' 혹은 '구글계정 사용자만'으로 하면 연동이 실패합니다!)</span>
-                    </li>
-                    <li>
-                      배포 완료 후 화면에 표시되는 **웹 앱 URL**을 복사해 설정창에 저장합니다.
-                      <span className="block mt-1 text-[#EF4444] font-black text-[11.5px]">※ 필수 확인: 복사한 주소 끝부분이 반드시 `/exec`로 끝나는 배포 URL이어야 합니다!</span>
-                    </li>
-                    <li className="text-slate-500 font-medium">
-                      💡 연동 완료 후 대시보드에 일정을 등록하면 구글 시트에 자동으로 열(헤더)과 첫 데이터행이 생성됩니다.
-                    </li>
-                  </ol>
-                </div>
-              )}
-
-              {activeGuideCase === 'existing' && (
-                <div className="flex flex-col gap-3 animate-fade-in">
-                  <h4 className="font-black text-sm text-[#0F172A] flex items-center gap-1">📂 기존 장부 데이터 넣어서 연동하기</h4>
-                  <ol className="list-decimal pl-5 flex flex-col gap-2.5 text-slate-600 font-bold leading-relaxed text-[12px]">
-                    <li>
-                      위쪽의 <strong>[AI 변환 프롬프트 복사하기]</strong> 기능을 사용하여 기존 강의 데이터를 양식에 맞는 CSV 파일로 정제하여 다운로드합니다.
-                    </li>
-                    <li>
-                      <a href="https://sheets.new" target="_blank" rel="noopener noreferrer" className="text-[#2563EB] hover:text-blue-800 underline font-black">
-                        [Google 스프레드시트] 새 문서 만들기 ↗
-                      </a>
-                    </li>
-                    <li>
-                      구글 스프레드시트 메뉴에서 <strong>[파일] ➡️ [가져오기] (File ➡️ Import)</strong>를 누르고, AI가 만들어준 정제된 CSV 파일을 업로드하여 가져옵니다. (시트에 행들이 올바르게 들어갔는지 확인합니다.)
-                    </li>
-                    <li>
-                      <strong className="text-slate-800 font-extrabold">시트 [공유] 설정</strong>: 구글 계정 로그인 없이 접속하는 기기/브라우저에서도 바로가기가 즉시 동작하도록, 구글 시트 우측 상단의 <strong>[공유]</strong> 버튼을 누르고 일반 액세스를 <strong className="text-blue-600 underline font-black">"링크가 있는 모든 사용자 (뷰어 또는 편집자)"</strong>로 변경해 줍니다.
-                      <span className="block mt-1 text-slate-500 font-medium leading-normal">※ 참고: 앱의 실시간 저장/삭제 연동은 6번 단계의 웹 앱 실행 권한(나)에 의해 처리되므로, 시트를 <strong>'뷰어'</strong>로만 열어두셔도 동기화는 정상 작동합니다. 단, 로그인이 안 된 폰에서 시트 화면을 직접 확인하려면 최소 '뷰어' 설정이 필요합니다.</span>
-                    </li>
-                    <li>상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
-                    <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
-                    <li>우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 클릭 후, 유형: <strong>"웹 앱"</strong>, 웹 앱 실행 대상: <strong>"나"</strong>, 액세스 권한: <strong className="text-[#EF4444] font-black underline">"모든 사용자" (Anyone)</strong>로 선택한 뒤 배포합니다. <span className="text-[#EF4444] font-black text-[11px]">(※ 주의: '나만' 혹은 '구글계정 사용자만'으로 하면 연동이 실패합니다!)</span></li>
-                    <li>
-                      발급된 **웹 앱 URL (끝부분이 반드시 `/exec`)**을 대시보드 설정창에 등록하면 연동이 완료됩니다!
-                    </li>
-                    <li className="text-emerald-600 font-black">
-                      💡 동기화 팁: 기존 데이터가 들어있는 상태에서 연동하면, 구글 시트 안의 데이터들을 대시보드가 자동으로 읽어와 한 번에 동기화해 줍니다!
-                      <span className="block mt-0.5 text-slate-500 font-medium">(시트 14번째 열인 N열(ID)은 최초 연동 시 고유 식별 번호가 자동으로 기입되니 그대로 두시면 됩니다.)</span>
-                    </li>
-                  </ol>
-                </div>
-              )}
               <div className="bg-slate-900 rounded-2xl p-4 flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                   <span className="font-black text-[11px] text-sky-400">Apps Script 템플릿 코드</span>
