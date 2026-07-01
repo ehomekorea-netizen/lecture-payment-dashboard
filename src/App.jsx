@@ -2039,7 +2039,7 @@ ${aiText}
     // 0부터 9까지의 퀴즈 테마 중 하나를 무작위 선택
     const themeIndex = Math.floor(Math.random() * 10);
     
-    // 선택지가 5개 미만일 때 더미 데이터를 채워 5지선다 규격을 유지하는 헬퍼
+    // 선택지가 4개 미만일 때 더미 데이터를 채워 4지선다 규격을 유지하는 헬퍼
     const padChoices = (realChoices, type) => {
       const mockPool = {
         inst: ['디지털새싹 아카데미', '사회복지협의회 코딩반', '미래스마트 교육재단', '카카오 IT 교실', '인재개발 진흥원', '구글 미래학교', '네이버 스쿨'],
@@ -2050,12 +2050,12 @@ ${aiText}
       const pool = mockPool[type] || mockPool.inst;
       let result = [...realChoices];
       for (const item of pool) {
-        if (result.length >= 5) break;
+        if (result.length >= 4) break;
         if (!result.some(r => r.name === item)) {
           result.push({ name: item, value: 0 });
         }
       }
-      return result.slice(0, 5);
+      return result.slice(0, 4);
     };
 
     let title = '';
@@ -3240,13 +3240,13 @@ function doPost(e) {
                   {/* 질문 섹션 */}
                   <div className="min-h-[40px] flex items-center">
                     <p className="text-[14.5px] font-black text-slate-800 leading-relaxed">
-                      Q. <span className="text-[16px] mr-1.5">{quizQuestion.emoji}</span><TypedTitle text={quizQuestion.title} />
+                      Q. <TypedTitle text={quizQuestion.title} /> <span className="text-[16.5px] ml-1 select-none">{quizQuestion.emoji}</span>
                     </p>
                   </div>
 
-                  {/* 5지선다 선택지 혹은 정답 공개 연출 */}
+                  {/* 4지선다 선택지 혹은 정답 공개 연출 */}
                   {!quizAnswered ? (
-                    // 답변 전: 5지선다 선택지 버튼
+                    // 답변 전: 4지선다 선택지 버튼
                     <div className="flex flex-col gap-2.5 mt-1">
                       {quizQuestion.choices.map((choice, idx) => (
                         <button
@@ -3311,13 +3311,13 @@ function doPost(e) {
                   {quizAnswered && (
                     <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-[11.5px] text-slate-500 leading-relaxed font-semibold mt-2 animate-fade-in">
                       {selectedQuizOption === quizQuestion.correctIndex ? (
-                        <p className="text-emerald-700 font-black flex items-center gap-1">
-                          🎉 대단합니다! 단번에 정답 <strong>[{quizQuestion.correctAnswerName}]</strong>을(를) 맞히셨어요!
-                        </p>
+                        <div className="text-emerald-700 font-black text-[12px] leading-relaxed break-keep">
+                          🎉 대단합니다! 단번에 정답 <strong className="underline underline-offset-2">[{quizQuestion.correctAnswerName}]</strong>을(를) 맞히셨어요!
+                        </div>
                       ) : (
-                        <p className="text-rose-700 font-black flex items-center gap-1">
-                          😢 아쉬워요! 정답은 <strong>[{quizQuestion.correctAnswerName}]</strong>입니다.
-                        </p>
+                        <div className="text-rose-700 font-black text-[12px] leading-relaxed break-keep">
+                          😢 아쉬워요! 정답은 <strong className="underline underline-offset-2">[{quizQuestion.correctAnswerName}]</strong>입니다.
+                        </div>
                       )}
                       <p className="mt-1 text-[10.5px] text-slate-400">
                         ※ 다른 탭에 다녀오거나 연도를 이동하면 새로운 질문이 출제됩니다.
