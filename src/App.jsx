@@ -439,11 +439,6 @@ export default function App() {
   // 완료 처리된 카드 스크롤 참조
   const recentlyPaidCardRef = useRef(null);
 
-  // sheetUrl의 최신값을 비동기 콜백에서 즉시 참조하기 위한 ref
-  // (React 상태 업데이트는 비동기라 stale closure 문제가 생길 수 있음)
-  const sheetUrlRef = useRef(sheetUrl);
-  useEffect(() => { sheetUrlRef.current = sheetUrl; }, [sheetUrl]);
-
   // 기관 선택 필터 및 통계 스크롤 관리
   const [selectedInstitution, setSelectedInstitution] = useState('All');
   const chartScrollRef = useRef(null);
@@ -601,6 +596,13 @@ export default function App() {
   const [isTestingSheetUrl, setIsTestingSheetUrl] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [activeGuideCase, setActiveGuideCase] = useState('new'); // 'new' | 'existing'
+
+  // sheetUrl의 최신값을 비동기 콜백에서 즉시 참조하기 위한 ref
+  // (React 상태 업데이트는 비동기라 stale closure 문제가 생길 수 있음)
+  const sheetUrlRef = useRef(sheetUrl);
+  useEffect(() => {
+    sheetUrlRef.current = sheetUrl;
+  }, [sheetUrl]);
   
   const [aiText, setAiText] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
