@@ -38,16 +38,17 @@ function matchesDate(lectureDate, targetYear, targetMonth, targetDay) {
 }
 
 // 캘린더 선택일 매칭용 (Korean 포맷, ISO 포맷 지원)
-function matchesCalendarDate(lectureDate, selectedCalendarDate) {
-  if (!lectureDate || !selectedCalendarDate) return false;
+function matchesCalendarDateFull(lectureDate, year, month, day) {
+  if (!lectureDate) return false;
   const match = lectureDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (match) {
-    const [_, y, m, d] = match;
-    const cleanCal = selectedCalendarDate.replace(/\s+/g, '');
-    const expectedCal = `${Number(m)}월${Number(d)}일`;
-    return cleanCal.includes(expectedCal);
+    const ly = parseInt(match[1], 10);
+    const lm = parseInt(match[2], 10);
+    const ld = parseInt(match[3], 10);
+    return ly === year && lm === (month + 1) && ld === day;
   }
-  return lectureDate.replace(/\s+/g, '').includes(selectedCalendarDate.replace(/\s+/g, ''));
+  const cleanCal = `${month + 1}월 ${day}일`.replace(/\s+/g, '');
+  return lectureDate.replace(/\s+/g, '').includes(cleanCal);
 }
 
 // 한국 공휴일 및 대체공휴일 체크 함수 (2025~2026년 기준)
@@ -993,36 +994,36 @@ export default function App() {
           const mockParsed = [
             {
               id: `mock-${Date.now()}-1`,
-              institution: '사회복지협의회/광주사회복지회관',
+              institution: '사회복지협의회',
+              venue: '광주사회복지회관',
+              role: 'Main',
               rate: 100000,
               classes: 3,
               transportFee: 20000,
               expectedAmount: 320000,
-              deduction: -10560,
-              netAmount: 309440,
+              deduction: -9900, // 300000 * 3.3% = 9900
+              netAmount: 310100, // 320000 - 9900 = 310100
               month: '11월',
-              date: '11월 19일',
-
+              date: '2026-11-19',
               isPaid: false,
               taxRate: '3.3%',
-              taxBase: 'LectureOnly',
               customTax: 0
             },
             {
               id: `mock-${Date.now()}-2`,
               institution: '해남종합사회복지관',
+              venue: '해남종합사회복지관',
+              role: 'Main',
               rate: 100000,
               classes: 2,
               transportFee: 0,
               expectedAmount: 200000,
-              deduction: -6600,
+              deduction: -6600, // 200000 * 3.3% = 6600
               netAmount: 193400,
               month: '11월',
-              date: '11월 24일',
-
+              date: '2026-11-24',
               isPaid: false,
               taxRate: '3.3%',
-              taxBase: 'LectureOnly',
               customTax: 0
             }
           ];
@@ -2637,7 +2638,7 @@ function doPost(e) {
                     const day = i + 1;
                     const dateStr = `${currentMonth + 1}월 ${day}일`;
                     
-                    const dayLectures = lectures.filter(l => matchesCalendarDate(l.date, dateStr));
+                    const dayLectures = lectures.filter(l => matchesCalendarDateFull(l.date, currentYear, currentMonth, day));
                     const hasPaid = dayLectures.some(l => l.isPaid);
                     const hasUnpaid = dayLectures.some(l => !l.isPaid);
                     
@@ -2658,7 +2659,7 @@ function doPost(e) {
                         key={day} 
                         onClick={() => {
                           if (hasLectures) {
-                            setSelectedCalendarDate(dateStr);
+                            setSelectedCalendarDate({ year: currentYear, month: currentMonth, day });
                           }
                         }}
                         className={`flex flex-col items-center justify-center relative py-2 rounded-xl transition-all ${
@@ -2854,7 +2855,7 @@ function doPost(e) {
                                   fontWeight="900" 
                                   textAnchor="end"
                                 >
-                                  평균: {(statsAverageIncome / 10000).toFixed(1).replace('.0', '')}만
+                                  평균: {Math.round(statsAverageIncome / 10000)}만
                                 </text>
                               </g>
                             )}
@@ -2865,14 +2866,14 @@ function doPost(e) {
                                 d={statsPathD}
                                 fill="none"
                                 stroke="url(#chart-line-grad)"
-                                strokeWidth="3"
+                                strokeWidth="1.8"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
                                 filter="url(#glow-indigo)"
                                 style={{
                                   strokeDasharray: 2000,
                                   strokeDashoffset: 2000,
-                                  animation: 'drawHorizontalLine 2s cubic-bezier(0.4,0,0.2,1) forwards'
+                                  animation: 'drawHorizontalLine 4.5s cubic-bezier(0.25,1,0.5,1) forwards'
                                 }}
                               />
                             )}
@@ -2920,7 +2921,7 @@ function doPost(e) {
                                     <text x={p.x} y={Math.max(p.y - 15, 14)}
                                       fill="#1E3A8A"
                                       fontSize="10.5" fontWeight="900" textAnchor="middle">
-                                      {d.total >= 10000 ? (d.total / 10000).toFixed(1).replace('.0', '') : d.total}
+                                      {Math.round(d.total / 10000)}
                                     </text>
                                   )}
                                 </g>
@@ -3074,7 +3075,7 @@ function doPost(e) {
                             href="https://chatgpt.com/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
+                            className={`py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px] ${isPromptCopied ? 'cta-glow-pulse-active' : ''}`}
                           >
                             <img src="/images/chatgpt.png" alt="ChatGPT" className="h-[35px] max-w-[95%] object-contain" />
                           </a>
@@ -3082,17 +3083,17 @@ function doPost(e) {
                             href="https://claude.ai/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
+                            className={`py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px] ${isPromptCopied ? 'cta-glow-pulse-active' : ''}`}
                           >
-                            <img src="/images/claude.png" alt="Claude" className="h-[42px] max-w-[95%] object-contain" />
+                            <img src="/images/claude.png" alt="Claude" className="h-[45px] max-w-[95%] object-contain" />
                           </a>
                           <a
                             href="https://gemini.google.com/"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px]"
+                            className={`py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px] ${isPromptCopied ? 'cta-glow-pulse-active' : ''}`}
                           >
-                            <img src="/images/gemini.png" alt="Gemini" className="h-[42px] max-w-[95%] object-contain" />
+                            <img src="/images/gemini.png" alt="Gemini" className="h-[44px] max-w-[95%] object-contain" />
                           </a>
                         </div>
                       </div>
@@ -3172,9 +3173,16 @@ function doPost(e) {
                     <span className="text-[22px]">☁️</span>
                     <div className="flex items-center gap-2">
                       <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">실시간 클라우드 동기</h3>
-                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded text-white flex-shrink-0 ${sheetUrl ? 'bg-sky-500' : 'bg-slate-400'}`}>
-                        {sheetUrl ? '연동 완료' : '미연동'}
-                      </span>
+                      {sheetUrl ? (
+                        <span className="glossy-year-badge text-[9.5px] font-black px-2.5 py-0.5 rounded-full text-slate-850 flex items-center gap-1 flex-shrink-0 select-none">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00BCD4] animate-pulse" />
+                          연동 완료
+                        </span>
+                      ) : (
+                        <span className="text-[9.5px] font-black px-2 py-0.5 rounded text-white bg-slate-400 flex-shrink-0">
+                          미연동
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ChevronDown
@@ -3317,9 +3325,16 @@ function doPost(e) {
                     <span className="text-[22px]">🤖</span>
                     <div className="flex items-center gap-2">
                       <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">AI 분석 연동 설정</h3>
-                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded text-white flex-shrink-0 ${apiKey ? 'bg-violet-600' : 'bg-slate-400'}`}>
-                        {apiKey ? '연동 완료' : '미연동'}
-                      </span>
+                      {apiKey ? (
+                        <span className="glossy-year-badge text-[9.5px] font-black px-2.5 py-0.5 rounded-full text-slate-850 flex items-center gap-1 flex-shrink-0 select-none">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00BCD4] animate-pulse" />
+                          연동 완료
+                        </span>
+                      ) : (
+                        <span className="text-[9.5px] font-black px-2 py-0.5 rounded text-white bg-slate-400 flex-shrink-0">
+                          미연동
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ChevronDown
@@ -4059,7 +4074,7 @@ function doPost(e) {
                       setIsAddModalOpen(true);
                     }}
                     disabled={aiLoading}
-                    className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+                    className="w-full py-3 bg-[#EEF2F6] hover:bg-[#E2E8F0] text-[#1E3A8A] border border-[#CBD5E1] font-bold rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
                   >
                     <span>일정 직접 등록 (수동)</span>
                   </button>
@@ -4101,14 +4116,27 @@ function doPost(e) {
                         강의 #{idx + 1}
                       </span>
                       
-                      <div className="flex flex-col gap-1">
-                        <label className="text-[10px] text-toss-textSub">교육장 / 주최기관</label>
-                        <input 
-                          type="text"
-                          value={item.institution}
-                          onChange={(e) => handleParsedFieldChange(idx, 'institution', e.target.value)}
-                          className="px-2.5 py-1.5 border border-toss-border rounded-lg bg-white font-bold focus:outline-none focus:border-toss-blue"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-toss-textSub">주최기관 <span className="text-red-500 font-extrabold">*</span></label>
+                          <input 
+                            type="text"
+                            value={item.institution || ''}
+                            onChange={(e) => handleParsedFieldChange(idx, 'institution', e.target.value)}
+                            required
+                            className="px-2.5 py-1.5 border border-toss-border rounded-lg bg-white font-bold focus:outline-none focus:border-[#1E3A8A]"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <label className="text-[10px] text-toss-textSub">교육장명 <span className="text-red-500 font-extrabold">*</span></label>
+                          <input 
+                            type="text"
+                            value={item.venue || ''}
+                            onChange={(e) => handleParsedFieldChange(idx, 'venue', e.target.value)}
+                            required
+                            className="px-2.5 py-1.5 border border-toss-border rounded-lg bg-white font-bold focus:outline-none focus:border-[#1E3A8A]"
+                          />
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2">
@@ -4449,7 +4477,8 @@ function doPost(e) {
           [MODAL 7]: Calendar Date Details Bottom Sheet
          ======================================================== */}
       {selectedCalendarDate && (() => {
-        const dailyLectures = lectures.filter(l => matchesCalendarDate(l.date, selectedCalendarDate));
+        const { year, month, day } = selectedCalendarDate;
+        const dailyLectures = lectures.filter(l => matchesCalendarDateFull(l.date, year, month, day));
         if (dailyLectures.length === 0) return null;
 
         const totalExpected = dailyLectures.reduce((sum, l) => sum + (l.expectedAmount || 0), 0);
@@ -4469,7 +4498,7 @@ function doPost(e) {
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] font-black text-[#2563EB] uppercase tracking-wider">달력 출강 명세</span>
                   <h3 className="text-base font-black text-slate-800 flex items-center gap-1.5">
-                    <span>📅 {selectedCalendarDate}</span>
+                    <span>📅 {year}년 {month + 1}월 {day}일</span>
                   </h3>
                 </div>
                 <button 

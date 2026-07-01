@@ -534,6 +534,22 @@
   animation: emeraldGlow 1.5s infinite ease-in-out;
 }
 
+/* AI 서비스 링크 유도용 ctaGlowPulse 애니메이션 */
+@keyframes ctaGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0px rgba(99, 102, 241, 0.4);
+    border-color: rgba(99, 102, 241, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+    border-color: rgba(99, 102, 241, 0.8);
+    background-color: rgba(99, 102, 241, 0.04);
+  }
+}
+.cta-glow-pulse-active {
+  animation: ctaGlowPulse 1.8s infinite ease-in-out !important;
+}
+
 
 
 
