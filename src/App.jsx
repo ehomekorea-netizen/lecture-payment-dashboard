@@ -4395,71 +4395,182 @@ function doPost(e) {
       {/* ========================================================
           [MODAL 7]: Calendar Date Details Bottom Sheet
          ======================================================== */}
-      {selectedCalendarDate && (
-        <div className="fixed inset-0 flex items-end justify-center p-0 z-50 backdrop-blur-fade md:hidden">
-          {/* Bottom Sheet wrapper */}
-          <div className="bg-[#F8FAFC] w-full rounded-t-[32px] max-h-[75vh] flex flex-col pb-8 shadow-2xl bottom-sheet-enter overflow-hidden">
-            {/* Drag Handle */}
-            <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 flex-shrink-0" />
-            
-            {/* Header */}
-            <div className="px-5 pb-3.5 border-b border-slate-100 flex items-center justify-between bg-white">
-              <div className="flex flex-col">
-                <span className="text-[9px] font-black text-[#2563EB] uppercase tracking-wider">출강 현황 조회</span>
-                <h3 className="text-sm font-black text-slate-800">{selectedCalendarDate} 강의 명세</h3>
-              </div>
-              <button 
-                onClick={() => setSelectedCalendarDate(null)} 
-                className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            {/* Body - Lecture items list */}
-            <div className="p-4 flex-1 flex flex-col gap-3 overflow-y-auto">
-              {lectures.filter(l => matchesCalendarDate(l.date, selectedCalendarDate)).map((l) => (
-                <div 
-                  key={l.id} 
-                  className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col gap-2 relative"
+      {selectedCalendarDate && (() => {
+        const dailyLectures = lectures.filter(l => matchesCalendarDate(l.date, selectedCalendarDate));
+        if (dailyLectures.length === 0) return null;
+
+        const totalExpected = dailyLectures.reduce((sum, l) => sum + (l.expectedAmount || 0), 0);
+        const totalNet = dailyLectures.reduce((sum, l) => sum + (l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0)), 0);
+        const totalDeduction = dailyLectures.reduce((sum, l) => sum + (l.deduction || 0), 0);
+        const totalTransport = dailyLectures.reduce((sum, l) => sum + (l.transportFee || 0), 0);
+        const totalCount = dailyLectures.length;
+        const totalClasses = dailyLectures.reduce((sum, l) => sum + (l.classes || 0), 0);
+
+        return (
+          <div className="fixed inset-0 flex items-end md:items-center justify-center p-0 md:p-4 z-50 backdrop-blur-fade">
+            {/* Bottom Sheet wrapper */}
+            <div className="bg-[#F8FAFC] w-full md:max-w-md rounded-t-[32px] md:rounded-[28px] max-h-[80vh] md:max-h-[85vh] flex flex-col pb-8 md:pb-6 shadow-2xl bottom-sheet-enter md:modal-zoom-in overflow-hidden border md:border-slate-200">
+              {/* Drag Handle (Mobile only) */}
+              <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto my-3 flex-shrink-0 md:hidden" />
+              
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-white">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-[#2563EB] uppercase tracking-wider">출강 현황 및 정산 명세</span>
+                  <h3 className="text-sm font-black text-slate-800">{selectedCalendarDate} 출강 내역</h3>
+                </div>
+                <button 
+                  onClick={() => setSelectedCalendarDate(null)} 
+                  className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition cursor-pointer"
                 >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <h4 className="font-extrabold text-slate-800 text-xs">{l.institution}</h4>
-                        <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded border ${
-                          l.role === 'Assistant' 
-                            ? 'text-slate-500 bg-slate-50 border-slate-200' 
-                            : 'text-blue-600 bg-blue-50/50 border-blue-200'
-                        }`}>
-                          {l.role === 'Assistant' ? '보조강사' : '주강사'}
-                        </span>
-                      </div>
-                      <p className="text-[9.5px] text-slate-400 mt-1">단가 {formatWon(l.rate)}원 × {l.classes}차시</p>
-                    </div>
-                    <div
-                      className="text-[9.5px] font-black px-2.5 py-1 rounded-xl"
-                      style={l.isPaid
-                        ? {background: 'rgba(16,185,129,0.06)', border: '1px solid rgba(16,185,129,0.25)', color: '#10B981'}
-                        : {background: 'rgba(100,116,139,0.06)', border: '1px solid rgba(100,116,139,0.20)', color: '#64748B'}
-                      }
-                    >
-                      {l.isPaid ? '✓ 완료' : '⏳ 대기'}
-                    </div>
+                  <X size={18} />
+                </button>
+              </div>
+              
+              {/* Body */}
+              <div className="p-4 flex-1 flex flex-col gap-3.5 overflow-y-auto">
+                {/* 1. 재정 및 성과 요약 카드 (구글시트 데이터 집계) */}
+                <div className="grid grid-cols-3 gap-2 bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm flex-shrink-0">
+                  <div className="flex flex-col gap-0.5 text-center">
+                    <span className="text-[9.5px] font-bold text-slate-400">총 일정 / 차시</span>
+                    <span className="text-[13px] font-black text-slate-800">{totalCount}건 ({totalClasses}차시)</span>
                   </div>
-                  
-                  <div className="flex items-center gap-1.5 mt-1 pt-2 border-t border-dashed border-slate-100">
-                    <span className="text-[9.5px] text-slate-400">실수령액:</span>
-                    <strong className="text-xs font-black text-slate-800">
-                      {l.isPaid ? formatWon(l.netAmount) : formatWon(l.expectedAmount)}원
-                    </strong>
+                  <div className="flex flex-col gap-0.5 text-center border-x border-slate-200">
+                    <span className="text-[9.5px] font-bold text-slate-400">총 공제 / 교통비</span>
+                    <span className="text-[10px] font-black text-slate-600">
+                      -{formatWon(totalDeduction)} / +{formatWon(totalTransport)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5 text-center">
+                    <span className="text-[9.5px] font-bold text-[#2563EB]">총 실수령(예정)</span>
+                    <span className="text-[13px] font-black text-[#2563EB]">{formatWon(totalNet)}원</span>
                   </div>
                 </div>
-              ))}
+
+                {/* 2. 강의 상세 명세 카드 리스트 */}
+                <div className="flex flex-col gap-3">
+                  {dailyLectures.map((l) => (
+                    <div 
+                      key={l.id} 
+                      className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col gap-3 relative"
+                    >
+                      {/* 카드 헤더: 기관명, 역할, 정산여부 토글 버튼 */}
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="font-extrabold text-slate-800 text-[13px] truncate">{l.institution}</h4>
+                            <span className={`text-[8.5px] font-black px-1.5 py-0.5 rounded border flex-shrink-0 ${
+                              l.role === 'Assistant' 
+                                ? 'text-slate-500 bg-slate-50 border-slate-200' 
+                                : 'text-blue-600 bg-blue-50/50 border-blue-200'
+                            }`}>
+                              {l.role === 'Assistant' ? '보조강사' : '주강사'}
+                            </span>
+                          </div>
+                          <span className="text-[9px] text-slate-400 font-semibold">등록일: {l.registrationDate || '-'}</span>
+                        </div>
+                        
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!l.isPaid) {
+                              handleTogglePaid(l);
+                            } else {
+                              if (window.confirm("이미 완료된 항목을 대기 상태로 변경하시겠습니까?\n\n연동된 구글 시트의 정보도 함께 변경됩니다.")) {
+                                handleTogglePaid(l);
+                              }
+                            }
+                          }}
+                          className={`text-[9.5px] font-black px-2.5 py-1 rounded-xl transition active:scale-95 border cursor-pointer flex-shrink-0 ${
+                            l.isPaid
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-600 hover:bg-emerald-100'
+                              : 'bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100'
+                          }`}
+                        >
+                          {l.isPaid ? '✓ 정산완료' : '⏳ 정산대기'}
+                        </button>
+                      </div>
+
+                      {/* 카드 본문: 구글 시트 컬럼에 정확히 부합하는 정산 수학 명세식 */}
+                      <div className="bg-[#F8FAFC] rounded-xl p-3 text-[10.5px] text-slate-600 flex flex-col gap-1.5 font-medium">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">강의료 계산</span>
+                          <span className="font-bold text-slate-800">
+                            {formatWon(l.rate)}원 × {l.classes}차시 = {formatWon(l.rate * l.classes)}원
+                          </span>
+                        </div>
+                        {l.transportFee > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-slate-400">교통비 추가</span>
+                            <span className="font-bold text-emerald-600">+{formatWon(l.transportFee)}원</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">공제금액 ({l.taxRate || '3.3%'})</span>
+                          <span className="font-bold text-red-500">-{formatWon(l.deduction || 0)}원</span>
+                        </div>
+                        <div className="h-px bg-slate-200/60 my-0.5" />
+                        <div className="flex justify-between text-xs font-black">
+                          <span className="text-slate-800">최종 실수령액</span>
+                          <span className="text-[#1E3A8A] text-[12.5px]">
+                            {formatWon(l.isPaid ? l.netAmount : l.expectedAmount)}원
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 카드 하단: 빠른 편집/일정복사/삭제 액션 버튼들 */}
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingLecture(l);
+                            setIsAddModalOpen(true);
+                          }}
+                          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200/70 text-slate-600 font-bold rounded-lg text-[10.5px] transition active:scale-95 cursor-pointer"
+                        >
+                          수정
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({
+                              institution: l.institution,
+                              role: l.role,
+                              rate: l.rate,
+                              classes: l.classes,
+                              transportFee: l.transportFee,
+                              taxRate: l.taxRate || '3.3%',
+                              date: getKstToday()
+                            });
+                            setIsAddModalOpen(true);
+                            setSelectedCalendarDate(null);
+                            alert("강의 상세 정보가 복사되었습니다. 날짜를 지정하여 새 강의로 등록해 주세요.");
+                          }}
+                          className="px-3 py-1.5 bg-[#EFF6FF] hover:bg-blue-100 text-blue-600 font-bold rounded-lg text-[10.5px] transition active:scale-95 cursor-pointer"
+                        >
+                          복사
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm("이 강의 정보를 삭제하시겠습니까?")) {
+                              handleDelete(l.id);
+                              setSelectedCalendarDate(null);
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-500 font-bold rounded-lg text-[10.5px] transition active:scale-95 cursor-pointer"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================
           [MODAL 6]: Tax Receipt Modal (Premium torn paper look)
