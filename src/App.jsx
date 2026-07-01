@@ -1614,7 +1614,7 @@ ${aiText}
 
   // CSV 내보내기
   const handleExportCSV = () => {
-    const headers = ['주갅기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
+    const headers = ['주최기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
     const rows = lectures.map(l => [
       l.institution,
       l.venue || '',
@@ -1643,7 +1643,7 @@ ${aiText}
   };
 
   const handleDownloadSampleCSV = () => {
-    const headers = ['주갅기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
+    const headers = ['주최기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부'];
     const rows = [
       ['창의융합', '광주전남중', '주강사', '25000', '12', '300000', '0', '3.3', '-10660', '10월', '193400', '2025-10-15', '정산완료'],
       ['TMD교육', '고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '3.3', '-6335', '12월', '185665', '2025-12-10', '정산완료'],
@@ -1728,7 +1728,7 @@ ${aiText}
         const dateStr = cleanFields[dateIdx];
 
         if (!inst) {
-          invalidRows.push({ lineNum: i + 1, reason: "주걭기관이 비어 있습니다." });
+          invalidRows.push({ lineNum: i + 1, reason: "주최기관이 비어 있습니다." });
           continue;
         }
 
@@ -2068,7 +2068,7 @@ ${aiText}
   
   // 만약 빈 시트이거나 행이 전혀 없는 경우 초기화
   if (data.length <= 1 || (data.length === 2 && !data[1][0])) {
-    var headers = ['주갅기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
+    var headers = ['주최기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
     sheet.clearContents();
     sheet.appendRow(headers);
     data = [headers];
@@ -2091,7 +2091,7 @@ ${aiText}
     var rowData = data[i];
     if (rowData.length === 0 || (!rowData[0] && rowData.length <= 1)) continue;
     
-    var inst = getVal(rowData, '주갅기관', "") || "";
+    var inst = getVal(rowData, '주최기관', "") || "";
     // 기관명이 비어있는 행은 패스 (빈 행 패싱)
     if (!inst.trim()) continue;
 
@@ -2145,7 +2145,7 @@ function doPost(e) {
   
   if (action === "sync_all") {
     sheet.clearContents();
-    var headers = ['주갅기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
+    var headers = ['주최기관', '교육장명', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '정산여부', 'ID'];
     var outputData = [headers];
     
     if (payload.lectures && payload.lectures.length > 0) {
