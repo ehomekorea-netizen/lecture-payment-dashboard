@@ -1375,7 +1375,7 @@ ${aiText}
 
   // CSV 내보내기
   const handleExportCSV = () => {
-    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부'];
+    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부'];
     const rows = lectures.map(l => [
       l.institution,
       l.role === 'Assistant' ? '보조강사' : '주강사',
@@ -1383,6 +1383,7 @@ ${aiText}
       l.classes,
       l.expectedAmount,
       l.transportFee || '',
+      l.taxRate === 'None' ? '0' : (l.taxRate || '3.3').replace('%', '').trim(),
       l.deduction,
       l.month,
       l.isPaid ? l.netAmount : '',
@@ -1403,12 +1404,12 @@ ${aiText}
   };
 
   const handleDownloadSampleCSV = () => {
-    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부'];
+    const headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부'];
     const rows = [
-      ['창의융합/광주전남중', '주강사', '25000', '12', '300000', '0', '-10660', '10월', '193400', '2025-10-15', '2025-10-15', '정산완료'],
-      ['TMD교육/고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '-6335', '12월', '185665', '2025-12-10', '2025-12-10', '정산완료'],
-      ['TMD교육/고흥동초A (1)', '보조강사', '50000', '3', '192000', '42000', '-6335', '12월', '185665', '2025-12-11', '2025-12-11', '정산완료'],
-      ['코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)', '보조강사', '50000', '3', '175787', '25787', '-4950', '1월', '170837', '2026-01-12', '2026-01-12', '정산완료']
+      ['창의융합/광주전남중', '주강사', '25000', '12', '300000', '0', '3.3', '-10660', '10월', '193400', '2025-10-15', '2025-10-15', '정산완료'],
+      ['TMD교육/고흥동초B (1)', '보조강사', '50000', '3', '192000', '42000', '3.3', '-6335', '12월', '185665', '2025-12-10', '2025-12-10', '정산완료'],
+      ['TMD교육/고흥동초A (1)', '보조강사', '50000', '3', '192000', '42000', '8.8', '-16896', '12월', '217104', '2025-12-11', '2025-12-11', '정산완료'],
+      ['코딩 스피드 레이스!(3기 A반) - 청풍초등학교(3차시)', '보조강사', '50000', '3', '175787', '25787', '3.3', '-4950', '1월', '170837', '2026-01-12', '2026-01-12', '정산완료']
     ];
 
     const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))].join('\n');
@@ -1463,8 +1464,8 @@ ${aiText}
 
         const cleanFields = parseCSVLine(line).map(f => f.replace(/^"|"$/g, '').trim());
 
-        if (cleanFields.length < 12) {
-          invalidRows.push({ lineNum: i + 1, reason: `열 개수가 부족합니다. (필요: 12개, 현재: ${cleanFields.length}개)` });
+        if (cleanFields.length < 13) {
+          invalidRows.push({ lineNum: i + 1, reason: `열 개수가 부족합니다. (필요: 13개, 현재: ${cleanFields.length}개)` });
           continue;
         }
 
@@ -1472,7 +1473,7 @@ ${aiText}
         const roleStr = cleanFields[1];
         const rateStr = cleanFields[2];
         const classesStr = cleanFields[3];
-        const dateStr = cleanFields[9];
+        const dateStr = cleanFields[10];
 
         if (!inst) {
           invalidRows.push({ lineNum: i + 1, reason: "기관명/학교가 비어 있습니다." });
@@ -1496,12 +1497,38 @@ ${aiText}
         const role = roleStr === '보조강사' ? 'Assistant' : 'Main';
         const expected = Number(cleanFields[4]) || 0;
         const transport = Number(cleanFields[5]) || 0;
-        const deduction = Number(cleanFields[6]) || 0;
+        const taxRateVal = cleanFields[6]; // 공제율
+        const deduction = Number(cleanFields[7]) || 0;
+        const month = cleanFields[8] && cleanFields[8] !== 'undefined' ? cleanFields[8] : extractMonth(dateStr);
+        const net = cleanFields[9] ? Number(cleanFields[9]) : 0;
         const date = dateStr;
-        const month = cleanFields[7] && cleanFields[7] !== 'undefined' ? cleanFields[7] : extractMonth(date);
-        const net = cleanFields[8] ? Number(cleanFields[8]) : 0;
-        const regDate = cleanFields[10] && dateRegex.test(cleanFields[10]) ? cleanFields[10] : '';
-        const isPaid = cleanFields[11] === '정산완료' || net > 0;
+        const regDate = cleanFields[11] && dateRegex.test(cleanFields[11]) ? cleanFields[11] : '';
+        const isPaid = cleanFields[12] === '정산완료' || net > 0;
+
+        let parsedTaxRate = '3.3%';
+        if (taxRateVal) {
+          const rawTaxVal = taxRateVal.replace('%', '').trim();
+          if (rawTaxVal === '0' || rawTaxVal.toLowerCase() === 'none') {
+            parsedTaxRate = 'None';
+          } else {
+            parsedTaxRate = rawTaxVal + '%';
+          }
+        } else {
+          if (deduction !== 0 && expected > 0) {
+            const ratio = Math.abs(deduction) / expected;
+            if (Math.abs(ratio - 0.033) < 0.01) {
+              parsedTaxRate = '3.3%';
+            } else if (Math.abs(ratio - 0.088) < 0.015) {
+              parsedTaxRate = '8.8%';
+            } else {
+              parsedTaxRate = (ratio * 100).toFixed(1) + '%';
+            }
+          } else if (deduction !== 0) {
+            parsedTaxRate = '3.3%';
+          } else {
+            parsedTaxRate = 'None';
+          }
+        }
 
         newLectures.push({
           id: `csv-${Date.now()}-${i}-${Math.random().toString(36).substr(2, 5)}`,
@@ -1517,7 +1544,7 @@ ${aiText}
           date,
           registrationDate: regDate,
           isPaid,
-          taxRate: deduction !== 0 ? 'Custom' : 'None',
+          taxRate: parsedTaxRate,
           taxBase: 'LectureOnly',
           customTax: Math.abs(deduction)
         });
@@ -1786,27 +1813,26 @@ ${aiText}
   
   // 만약 빈 시트이거나 행이 전혀 없는 경우 초기화 및 예시 데이터 생성
   if (data.length <= 1 || (data.length === 2 && !data[1][0])) {
-    var headers = ["id", "institution", "rate", "classes", "expectedAmount", "transportFee", "deduction", "netAmount", "month", "date", "registrationDate", "isPaid", "taxRate", "taxBase", "customTax"];
+    var headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부', 'ID'];
     sheet.clearContents();
     sheet.appendRow(headers);
     
     // 예시 데이터 추가 (로컬데이터관리 출강기록 양식)
     var sampleRow = [
-      "1782793714523",
       "🌱 디지털새싹-대시보드개발",
+      "주강사",
       100000,
       4,
       400000,
       0,
-      0,
-      0,
+      "3.3",
+      -13200,
       "6월",
+      386800,
       "2026-06-30",
       "2026-06-30",
-      false,
-      "3.3%",
-      "LectureOnly",
-      0
+      "정산대기",
+      "init-1782793714523"
     ];
     sheet.appendRow(sampleRow);
     data = [headers, sampleRow];
@@ -1815,15 +1841,47 @@ ${aiText}
   var headers = data[0];
   var rows = [];
   for (var i = 1; i < data.length; i++) {
-    var row = {};
-    for (var j = 0; j < headers.length; j++) {
-      var val = data[i][j];
-      if (val instanceof Date) {
-        val = Utilities.formatDate(val, Session.getScriptTimeZone(), "yyyy-MM-dd");
-      }
-      row[headers[j]] = val;
+    var rowData = data[i];
+    var item = {};
+    
+    // Header-based mapping
+    item.institution = rowData[0] || "";
+    var roleStr = rowData[1] || "주강사";
+    item.role = roleStr === "보조강사" ? "Assistant" : "Main";
+    item.rate = Number(rowData[2]) || 0;
+    item.classes = Number(rowData[3]) || 0;
+    item.expectedAmount = Number(rowData[4]) || 0;
+    item.transportFee = Number(rowData[5]) || 0;
+    
+    var taxRateVal = String(rowData[6] || "3.3").trim();
+    item.taxRate = (taxRateVal === "0" || taxRateVal.toLowerCase() === "none") ? "None" : (taxRateVal.indexOf("%") !== -1 ? taxRateVal : taxRateVal + "%");
+    
+    item.deduction = Number(rowData[7]) || 0;
+    item.month = rowData[8] ? String(rowData[8]) : "";
+    item.netAmount = Number(rowData[9]) || 0;
+    
+    var dateVal = rowData[10];
+    if (dateVal instanceof Date) {
+      dateVal = Utilities.formatDate(dateVal, Session.getScriptTimeZone(), "yyyy-MM-dd");
     }
-    rows.push(row);
+    item.date = String(dateVal || "");
+    
+    var regDateVal = rowData[11];
+    if (regDateVal instanceof Date) {
+      regDateVal = Utilities.formatDate(regDateVal, Session.getScriptTimeZone(), "yyyy-MM-dd");
+    }
+    item.registrationDate = String(regDateVal || "");
+    
+    var isPaidStr = rowData[12] || "정산대기";
+    item.isPaid = (isPaidStr === "정산완료" || item.netAmount > 0);
+    
+    item.id = String(rowData[13] || "gs-" + Date.now() + "-" + i);
+    
+    // Additional internal fields
+    item.taxBase = "LectureOnly";
+    item.customTax = Math.abs(item.deduction);
+    
+    rows.push(item);
   }
   return ContentService.createTextOutput(JSON.stringify(rows))
     .setMimeType(ContentService.MimeType.JSON);
@@ -1836,15 +1894,30 @@ function doPost(e) {
   
   if (action === "sync_all") {
     sheet.clearContents();
-    var headers = ["id", "institution", "rate", "classes", "expectedAmount", "transportFee", "deduction", "netAmount", "month", "date", "registrationDate", "isPaid", "taxRate", "taxBase", "customTax"];
+    var headers = ['기관명/학교', '출강역할', '강의단가', '총 차시', '예상수령액', '교통비(+)', '공제율(%)', '공제금액(-)', '월', '실수령액', '날짜', '등록일', '정산여부', 'ID'];
     sheet.appendRow(headers);
     
     if (payload.lectures && payload.lectures.length > 0) {
       payload.lectures.forEach(function(l) {
+        var roleKorean = l.role === 'Assistant' ? '보조강사' : '주강사';
+        var taxRateNum = l.taxRate === 'None' ? '0' : (l.taxRate || '3.3').replace('%', '');
+        var isPaidKorean = l.isPaid ? '정산완료' : '정산대기';
+        
         sheet.appendRow([
-          l.id, l.institution, Number(l.rate) || 0, Number(l.classes) || 0, Number(l.expectedAmount) || 0,
-          Number(l.transportFee) || 0, Number(l.deduction) || 0, Number(l.netAmount) || 0, l.month, l.date,
-          l.registrationDate, l.isPaid, l.taxRate, l.taxBase, Number(l.customTax) || 0
+          l.institution,
+          roleKorean,
+          Number(l.rate) || 0,
+          Number(l.classes) || 0,
+          Number(l.expectedAmount) || 0,
+          Number(l.transportFee) || 0,
+          taxRateNum,
+          Number(l.deduction) || 0,
+          l.month,
+          l.isPaid ? Number(l.netAmount) : "",
+          l.date,
+          l.registrationDate || "",
+          isPaidKorean,
+          l.id
         ]);
       });
     }
@@ -2158,7 +2231,7 @@ function doPost(e) {
                           </div>
                           
                           {l.isPaid && (
-                            <div className="grid grid-cols-[60%_40%] gap-y-1.5 text-[14px] text-slate-500 py-3 border-t border-dashed border-slate-200 relative z-10 animate-fade-in">
+                            <div className="grid grid-cols-[53%_47%] gap-y-1.5 text-[14px] text-slate-500 py-3 border-t border-dashed border-slate-200 relative z-10 animate-fade-in">
                               <div className="flex flex-col justify-center gap-1.5 text-[12.5px]">
                                 <div className="flex items-center">
                                   <span className="font-bold w-12 text-slate-400">단가</span>
@@ -2173,14 +2246,18 @@ function doPost(e) {
                                   <span className="font-extrabold text-slate-800">{formatWon(l.transportFee)}원</span>
                                 </div>
                               </div>
-                              <div className="flex flex-col items-end justify-center pl-2 border-l border-slate-200">
-                                <span className="text-[12px] font-bold text-slate-400 line-through">
-                                  {formatWon(l.expectedAmount)}원
-                                </span>
-                                <AnimatedNumber 
-                                  value={l.netAmount} 
-                                  className="font-black text-[#10B981] text-[16.5px] mt-0.5" 
-                                />
+                              <div className="flex flex-col items-end justify-center pl-4 border-l border-slate-200">
+                                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+                                  <span className="bg-slate-100 text-slate-500 text-[9px] px-1.5 py-0.5 rounded font-extrabold">{l.taxRate || '3.3%'} 공제</span>
+                                  <span className="line-through">{formatWon(l.expectedAmount)}원</span>
+                                </div>
+                                <div className="flex items-center gap-1 mt-1">
+                                  <span className="text-[9.5px] font-black px-1.5 py-0.5 rounded-md" style={{background:'rgba(16,185,129,0.1)',color:'#10B981'}}>입금완료</span>
+                                  <AnimatedNumber 
+                                    value={l.netAmount} 
+                                    className="font-black text-[#10B981] text-[17px]" 
+                                  />
+                                </div>
                               </div>
                             </div>
                           )}
@@ -2515,13 +2592,13 @@ function doPost(e) {
                                   </text>
                                   {/* 최고 실적 월 왕관 이모지 */}
                                   {hasValue && i === peakMonthIndex && (
-                                    <text x={p.x} y={Math.max(p.y - 23, 12)} fontSize="11" textAnchor="middle">👑</text>
+                                    <text x={p.x} y={Math.max(p.y - 30, 14)} fontSize="12" textAnchor="middle">👑</text>
                                   )}
                                   {/* 금액 라벨 (노드 위) */}
                                   {hasValue && (
-                                    <text x={p.x} y={Math.max(p.y - 10, 12)}
-                                      fill="#4F46E5"
-                                      fontSize="9" fontWeight="900" textAnchor="middle">
+                                    <text x={p.x} y={Math.max(p.y - 15, 14)}
+                                      fill="#1E3A8A"
+                                      fontSize="10.5" fontWeight="900" textAnchor="middle">
                                       {d.total >= 10000 ? (d.total / 10000).toFixed(1).replace('.0', '') : d.total}
                                     </text>
                                   )}
@@ -2544,8 +2621,8 @@ function doPost(e) {
               {/* 주관사(기관)별 출강 비중 */}
               <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3">
                 <div>
-                  <h4 className="text-[15px] font-black text-slate-800">주요 주관사별 비중</h4>
-                  <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">기여도 기준 정렬</p>
+                  <h4 className="text-[15px] font-black text-slate-800">어느 기관에서 가장 수입이 많았을까요?</h4>
+                  <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">기관별 수입 기여도 순위</p>
                 </div>
                 {statsYearLectures.length === 0 ? (
                   <div className="text-[12px] text-slate-400 text-center py-10 font-bold">데이터가 없습니다.</div>
@@ -2779,13 +2856,16 @@ function doPost(e) {
                             const promptText = `첨부한 두 개의 파일(나의 기존 데이터 파일 & 양식 예시 CSV 파일)을 참고하여, 나의 데이터를 양식 예시 CSV 파일의 헤더 규격 및 서식 규칙에 맞춰 완벽하게 변환해줘.
 
 [CSV 헤더 규격]
-기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제금액(-),월,실수령액,날짜,등록일,정산여부
+기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제율(%),공제금액(-),월,실수령액,날짜,등록일,정산여부
 
 [출력 데이터 규격 및 형식 규칙]
-- 헤더 규격: '기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제금액(-),월,실수령액,날짜,등록일,정산여부' 순서의 열로 만들어줘.
+- 헤더 규격: '기관명/학교,출강역할,강의단가,총 차시,예상수령액,교통비(+),공제율(%),공제금액(-),월,실수령액,날짜,등록일,정산여부' 순서의 열로 만들어줘.
 - '날짜'와 '등록일' 서식: 반드시 'YYYY-MM-DD' 형식 (예: 2026-06-30)이어야 합니다. 날짜와 등록일의 연도는 일치해야 합니다. (등록일이 누락된 항목은 날짜의 연도를 복사해줘.)
 - '출강역할' 서식: '주강사' 또는 '보조강사' 중 하나로 표준화해줘.
 - '정산여부' 서식: 이미 돈을 지급받은 강의는 '정산완료', 아직 지급 대기 중인 강의는 '정산대기'로 변환해줘.
+- '공제율(%)' 서식: '3.3' 또는 '8.8' 형태의 숫자만 입력해줘 (퍼센트 기호 '%'는 생략). 만약 기존 데이터에 공제율 정보가 없거나 비어있는 경우:
+  1) 기존 데이터의 강의단가(또는 예상수령액)와 공제금액 간의 비율을 계산하여 알맞은 세율(3.3 또는 8.8)을 적어줘.
+  2) 강의단가만 존재하고 공제금액 정보 자체가 비어있거나 생략된 경우, 기본값인 '8.8'을 적고 이에 맞추어 공제금액(예상수령액의 8.8%) 및 실수령액을 자동으로 계산해서 적어줘.
 
 [주의 사항]
 - 실수령액(예상수령액 + 교통비 - 공제금액)과 공제금액 계산이 양식 예시 규격과 맞는지 수학적으로 다시 한 번 정밀 검증해서 채워줘.
@@ -3262,8 +3342,8 @@ function doPost(e) {
                         className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-[11px] font-bold"
                         style={{opacity: formData._presetLocked ? 0.6 : 1}}
                       >
-                        <option value="8.8%">8.8% (기타소득)</option>
                         <option value="3.3%">3.3% (사업소득)</option>
+                        <option value="8.8%">8.8% (기타소득)</option>
                         <option value="None">세금 없음 (0%)</option>
                         <option value="Custom">직접 입력</option>
                       </select>
