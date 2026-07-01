@@ -763,6 +763,19 @@ export default function App() {
     }
   }, [sheetUrl]);
 
+  // 30초마다 백그라운드에서 구글 시트로부터 최신 데이터를 자동으로 가져옴 (visibilityState가 visible인 경우만 작동)
+  useEffect(() => {
+    if (!sheetUrl || !isInitialPullCompleted) return;
+
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchFromGoogleSheetSilent();
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [sheetUrl, isInitialPullCompleted]);
+
   // 자동 완성 추천 목록
   const uniqueInstitutions = Array.from(new Set(lectures.map(l => l?.institution).filter(Boolean))).sort((a, b) => a.localeCompare(b));
 
@@ -2044,17 +2057,22 @@ function doPost(e) {
                   출강바이브
                 </h1>
                 {sheetUrl && (
-                  <span className="text-[9px] font-extrabold text-slate-400 block -mt-0.5">
-                    {isSyncing ? (
+                  <button
+                    onClick={fetchFromGoogleSheet}
+                    type="button"
+                    className="text-[9.5px] font-extrabold text-slate-400 block -mt-0.5 border-none bg-transparent p-0 cursor-pointer hover:opacity-85 active:scale-95 transition"
+                    title="클릭하여 구글 시트에서 최신 데이터 가져오기"
+                  >
+                    {isSyncing || syncLoading ? (
                       <span className="text-[#2563EB] animate-pulse flex items-center gap-0.5">
                         <RefreshCw size={8} className="animate-spin" /> 동기화 중...
                       </span>
                     ) : (
-                      <span className="text-emerald-500">
-                        ☁️ 실시간 동기 완료
+                      <span className="text-emerald-500 flex items-center gap-0.5 bg-emerald-50 border border-emerald-100/60 px-1 py-0.5 rounded-md hover:bg-emerald-100/70 transition-colors">
+                        ☁️ 실시간 동기 완료 <RefreshCw size={6.5} className="text-emerald-400 ml-0.5" />
                       </span>
                     )}
-                  </span>
+                  </button>
                 )}
               </div>
             </div>
