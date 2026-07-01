@@ -2728,8 +2728,17 @@ function doPost(e) {
                         <AnimatedNumber value={statsYearLectures.reduce((sum, l) => sum + (l.classes || 0), 0)} suffix="시간" className="text-[18px] font-black text-indigo-600" />
                       </div>
                       <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5">
-                        <span className="text-[11px] font-bold text-slate-400">월별 출강 평균 횟수</span>
-                        <AnimatedNumber value={Math.round(statsYearLectures.length / (statsYearUniqueMonths.length || 1))} suffix="건" className="text-[18px] font-black text-slate-800" />
+                        <span className="text-[11px] font-bold text-slate-400">평균 시급</span>
+                        <AnimatedNumber 
+                          value={
+                            statsYearLectures.reduce((sum, l) => sum + (l.classes || 0), 0) > 0
+                              ? Math.round(statsYearLectures.reduce((sum, l) => sum + (l.expectedAmount || 0), 0) / statsYearLectures.reduce((sum, l) => sum + (l.classes || 0), 0))
+                              : 0
+                          } 
+                          prefix="₩" 
+                          suffix="" 
+                          className="text-[18px] font-black text-slate-800" 
+                        />
                       </div>
                       <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex flex-col gap-0.5 min-w-0">
                         <span className="text-[11px] font-bold text-slate-400">최다 출강 교육기관</span>
@@ -3157,9 +3166,9 @@ function doPost(e) {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
-                          <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com)에서 무료 발급\n\n1. aistudio.google.com 접속\n2. Get API Key 클릭\n3. Create API Key 클릭\n4. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
+                          <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com/api-keys)에서 무료 발급\n\n1. https://aistudio.google.com/api-keys 접속\n2. Create API Key 클릭\n3. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
                         </div>
-                        <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2563EB] hover:text-blue-800 underline font-extrabold">👉 API Key 무료 발급 바로가기</a>
+                        <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2563EB] hover:text-blue-800 underline font-extrabold">👉 API Key 무료 발급 바로가기</a>
                       </div>
                       {!isEditingApiKey && apiKey ? (
                         <div className="flex flex-col gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm w-full">
@@ -3911,7 +3920,7 @@ function doPost(e) {
                     <div className="flex flex-col gap-1">
                       <span className="text-[13.5px] font-black text-amber-900 flex items-center gap-1">⚠️ Gemini API Key 등록 필요</span>
                       <p className="text-[11.5px] text-amber-700 font-bold leading-normal">
-                        이 기능을 사용하려면 [설정] 탭에서 <strong>Gemini API Key</strong>를 등록하셔야 합니다. API 키는 <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-amber-600 underline font-black hover:text-amber-800">Google AI Studio</a>에서 무료로 쉽게 발급받을 수 있습니다.
+                        이 기능을 사용하려면 [설정] 탭에서 <strong>Gemini API Key</strong>를 등록하셔야 합니다. API 키는 <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-amber-600 underline font-black hover:text-amber-800">Google AI Studio</a>에서 무료로 쉽게 발급받을 수 있습니다.
                       </p>
                     </div>
                   </div>
