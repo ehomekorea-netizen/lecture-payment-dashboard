@@ -550,30 +550,8 @@ export default function App() {
 
 
 
-  // 데이터 불러올 시 달력 자동 동기화 (최근 출강 날짜의 년/월로 달력 이동)
-  useEffect(() => {
-    if (lectures.length > 0) {
-      const sorted = [...lectures].sort((a, b) => {
-        const da = a.date && a.date.includes('-') ? new Date(a.date).getTime() : 0;
-        const db = b.date && b.date.includes('-') ? new Date(b.date).getTime() : 0;
-        return db - da;
-      });
-      const latest = sorted[0];
-      const targetDateStr = latest.date || '';
-      if (targetDateStr) {
-        let yr = new Date().getFullYear();
-        let mo = new Date().getMonth();
-        if (targetDateStr.includes('-')) {
-          const d = new Date(targetDateStr);
-          if (!isNaN(d.getTime())) { yr = d.getFullYear(); mo = d.getMonth(); }
-        } else {
-          const match = targetDateStr.match(/(\d+)월/);
-          if (match) mo = parseInt(match[1], 10) - 1;
-        }
-        setCalDate(new Date(yr, mo, 1));
-      }
-    }
-  }, [lectures]);
+  // 달력 탭 진입 시 항상 오늘 날짜 기준 월로 초기화
+  // (최근 강의가 아닌, 현재 날짜 기준이 올바른 UX)
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('All');
@@ -967,13 +945,20 @@ export default function App() {
 
   // 목업 분석 실행
   const handleMockParse = () => {
-    const fullText = `[출강 공지]
-디지털새싹 정보화교육 안내
-1. 11/19(화) 09:00~12:00 (3차시) - 광주사회복지회관 (DX 교육)
-- 단가: 100,000원, 교통비: 20,000원
+    const fullText = `안녕하세요 선생님,
+11월 출강 일정 안내드립니다.
 
-2. 11/24(일) 14:00~16:00 (2차시) - 해남종합사회복지관
-- 단가: 100,000원 (교통비 없음)`;
+1) 디지털새싹 - 목포청호중학교
+   11/19(화) 09:00~12:00 (3차시)
+   강사료 시간당 100,000원
+   교통비 20,000원 별도 지급
+
+2) 사회복지협의회 - 해남종합사회복지관
+   11/24(일) 14:00~16:00 (2차시)
+   강사료 시간당 100,000원
+   교통비 없음
+
+감사합니다.`;
 
     setAiText('');
     setAiLoading(true);
@@ -995,15 +980,15 @@ export default function App() {
           const mockParsed = [
             {
               id: `mock-${Date.now()}-1`,
-              institution: '사회복지협의회',
-              venue: '광주사회복지회관',
+              institution: '디지털새싹',
+              venue: '목포청호중학교',
               role: 'Main',
               rate: 100000,
               classes: 3,
               transportFee: 20000,
               expectedAmount: 320000,
-              deduction: -9900, // 300000 * 3.3% = 9900
-              netAmount: 310100, // 320000 - 9900 = 310100
+              deduction: -9900,
+              netAmount: 310100,
               month: '11월',
               date: '2026-11-19',
               isPaid: false,
@@ -1012,14 +997,14 @@ export default function App() {
             },
             {
               id: `mock-${Date.now()}-2`,
-              institution: '해남종합사회복지관',
+              institution: '사회복지협의회',
               venue: '해남종합사회복지관',
               role: 'Main',
               rate: 100000,
               classes: 2,
               transportFee: 0,
               expectedAmount: 200000,
-              deduction: -6600, // 200000 * 3.3% = 6600
+              deduction: -6600,
               netAmount: 193400,
               month: '11월',
               date: '2026-11-24',
@@ -2626,11 +2611,11 @@ function doPost(e) {
                   ))}
                 </div>
                 
-                {/* 날짜 그리드 - 슬라이드 효과 적용 */}
-                <div className={`grid grid-cols-7 gap-y-4 gap-x-2 text-center text-xs transition-all duration-300 ${
+                {/* 날짜 그리드 - 슬라이드 효과 적용 (min-h 고정으로 좌우 이동 시 상하 흔들림 방지) */}
+                <div className={`grid grid-cols-7 gap-y-3 gap-x-2 text-center text-xs transition-all duration-300 ${
                   calTransition === 'slide-left' ? 'translate-x-[-12px] opacity-0' :
                   calTransition === 'slide-right' ? 'translate-x-[12px] opacity-0' : 'translate-x-0 opacity-100'
-                }`}>
+                }`} style={{ minHeight: '270px' }}>
                   {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
                     <span key={`empty-${idx}`} />
                   ))}
@@ -2696,8 +2681,8 @@ function doPost(e) {
               </div>
 
               {/* 달력 안내 안내카드 */}
-              <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-[16px] text-[13.5px] text-slate-700 leading-normal flex flex-col gap-1.5 mt-0 shadow-sm">
-                <span className="font-extrabold text-[14.5px] text-slate-800 flex items-center gap-1">💡 캘린더 안내</span>
+              <div className="bg-slate-50 border border-slate-200/50 p-3 rounded-[16px] text-[13.5px] text-slate-700 leading-normal flex flex-col gap-1 -mt-1 shadow-sm">
+                <span className="font-extrabold text-[14.5px] text-slate-800 flex items-center gap-1">캘린더 안내</span>
                 <p className="font-semibold text-slate-600">기록일은 연하게 칠해지며, 해당 날짜 터치 시 하단에 상세 명세서가 바로 노출됩니다.</p>
                 <div className="flex items-center gap-3 mt-1 font-bold text-[12px]">
                   <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 완료</div>
@@ -2995,12 +2980,19 @@ function doPost(e) {
                   className="w-full px-6 py-6 flex items-center justify-between bg-emerald-100 hover:bg-emerald-200/70 transition-colors border-none text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-[22px]">📂</span>
+                    <span className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center text-[13px]">📁</span>
                     <div className="flex items-center gap-2">
                       <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">데이터 백업 및 가져오기</h3>
-                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded text-white flex-shrink-0 ${(isCsvImported || sheetUrl) ? 'bg-emerald-500' : 'bg-slate-400'}`}>
-                        {(isCsvImported || sheetUrl) ? '설정 완료' : '미설정'}
-                      </span>
+                      {(isCsvImported || sheetUrl) ? (
+                        <span className="glossy-year-badge text-[9.5px] font-black px-2.5 py-0.5 rounded-full text-slate-850 flex items-center gap-1 flex-shrink-0 select-none">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#00BCD4] animate-pulse" />
+                          설정 완료
+                        </span>
+                      ) : (
+                        <span className="text-[9.5px] font-black px-2 py-0.5 rounded text-white bg-slate-400 flex-shrink-0">
+                          미설정
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ChevronDown
@@ -3060,6 +3052,7 @@ function doPost(e) {
 - '정산완료' 항목에 한해서만 실수령액과 공제금액을 계산해서 채워줘. '정산대기' 항목의 실수령액과 공제금액은 반드시 0이어야 해.
 - 변환된 데이터는 바로 다운로드할 수 있는 .csv 파일(UTF-8 인코딩) 형태로 제공해줘.`;
                              navigator.clipboard.writeText(promptText).then(() => {
+                               setIsPromptCopied(true);
                                alert('AI 변환 프롬프트가 클립보드에 복사되었습니다!\n\nChatGPT 또는 Claude 창을 열고, [내 데이터 파일]과 [다운로드한 양식 예시 CSV] 두 개를 첨부한 뒤 복사한 메시지를 전송하세요.');
                              }).catch(() => {
                                alert('복사에 실패했습니다. 브라우저 주소창이 https:// 인지 확인해 주세요.');
@@ -3078,7 +3071,7 @@ function doPost(e) {
                             rel="noopener noreferrer"
                             className={`py-2.5 px-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center transition active:scale-95 no-underline cursor-pointer min-h-[52px] ${isPromptCopied ? 'cta-glow-pulse-active' : ''}`}
                           >
-                            <img src="/images/chatgpt.png" alt="ChatGPT" className="h-[35px] max-w-[95%] object-contain" />
+                            <img src="/images/chatgpt.png" alt="ChatGPT" className="h-[35px] max-w-[95%] object-contain bg-white rounded-lg" />
                           </a>
                           <a
                             href="https://claude.ai/"
@@ -3101,7 +3094,7 @@ function doPost(e) {
 
                       {/* 예제 파일 다운로드 */}
                       <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex flex-col gap-2 shadow-sm">
-                        <span className="text-[14px] font-extrabold text-emerald-800">📄 작성 표준 양식 CSV 다운로드</span>
+                        <span className="text-[14px] font-extrabold text-emerald-800">작성 표준 양식 CSV 다운로드</span>
                         <p className="text-[13px] text-emerald-700 font-semibold leading-relaxed">
                           표준 날짜 서식이 올바르게 적용된 예제 양식 파일을 내 컴퓨터로 다운로드합니다.
                         </p>
@@ -3171,7 +3164,7 @@ function doPost(e) {
                   className="w-full px-6 py-6 flex items-center justify-between bg-sky-100 hover:bg-sky-200/70 transition-colors border-none text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-[22px]">☁️</span>
+                    <span className="w-6 h-6 rounded-lg bg-sky-100 flex items-center justify-center text-[13px]">☁</span>
                     <div className="flex items-center gap-2">
                       <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">실시간 클라우드 동기</h3>
                       {sheetUrl ? (
@@ -3194,10 +3187,10 @@ function doPost(e) {
                 {isCloudBackupOpen && (
                   <div className="p-5 flex flex-col gap-4 border-t border-slate-200/60 bg-white">
                     <div className="p-4 bg-blue-50/70 border border-blue-100 text-[#1E3A8A] rounded-xl font-semibold leading-relaxed flex flex-col gap-1.5 text-[13px]">
-                      <p className="font-black text-[14px] flex items-center gap-1">☁️ 클라우드 동기화 안내</p>
+                      <p className="font-black text-[14px] flex items-center gap-1">클라우드 동기화 안내</p>
                       <p className="text-slate-500">구글 스프레드시트 배포 URL을 연동하면 기기 간 데이터가 백업 버튼 조작 없이 저장 시 실시간으로 자동 동기화됩니다. 인터넷 연결 시 자동으로 최신 데이터가 반영됩니다.</p>
                       <p className="text-[11.5px] text-[#2563EB] font-black mt-1 leading-normal">
-                        💡 안내: 구글 시트 연동이 복잡하다면 생략하셔도 좋습니다. 대시보드는 로컬 데이터로도 한계 없이 안전하게 동작하며, 주기적으로 위의 [데이터 백업 및 가져오기]에서 백업 파일을 받아 보관하시는 방법이 가장 쉽고 편리합니다.
+                        구글 시트 연동이 복잡하다면 생략하셔도 좋습니다. 대시보드는 로컬 데이터로도 한계 없이 안전하게 동작하며, 주기적으로 위의 [데이터 백업 및 가져오기]에서 백업 파일을 받아 보관하시는 방법이 가장 쉽고 편리합니다.
                       </p>
                       <div className="mt-1.5">
                         <button type="button" onClick={() => setIsScriptModalOpen(true)} className="text-[12px] font-black text-white bg-[#1E3A8A] px-3.5 py-2 rounded-lg hover:bg-[#0F172A] transition border-none cursor-pointer">구글 시트 연동 방법 보기</button>
@@ -3323,7 +3316,7 @@ function doPost(e) {
                   className="w-full px-6 py-6 flex items-center justify-between bg-violet-100 hover:bg-violet-200/70 transition-colors border-none text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-[22px]">🤖</span>
+                    <span className="w-6 h-6 rounded-lg bg-violet-100 flex items-center justify-center text-[13px]">AI</span>
                     <div className="flex items-center gap-2">
                       <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">AI 분석 연동 설정</h3>
                       {apiKey ? (
