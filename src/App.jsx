@@ -3860,7 +3860,7 @@ function doPost(e) {
               </div>
 
               <div className="flex flex-col gap-3">
-                <h4 className="font-black text-sm text-[#0F172A] flex items-center gap-1">🛠️ 구글 시트 연동 순서 (딱 5단계)</h4>
+                <h4 className="font-black text-sm text-[#0F172A] flex items-center gap-1">🛠️ 구글 시트 연동 순서 (7단계)</h4>
                 <ol className="list-decimal pl-5 flex flex-col gap-3.5 text-slate-600 font-bold leading-relaxed text-[12px]">
                   <li>
                     <strong className="text-slate-800">구글 시트 개설</strong>: 
@@ -3877,14 +3877,28 @@ function doPost(e) {
                     <span className="block mt-1 text-slate-500 font-medium leading-normal">※ 참고: 대시보드의 실시간 연동은 4번 단계의 웹 앱 실행 권한(나)에 의해 처리되므로, 시트를 <strong>'뷰어'</strong>로만 열어두셔도 동기화는 정상 작동합니다.</span>
                   </li>
                   <li>스프레드시트 상단 메뉴의 <strong>[확장 프로그램] ➡️ [Apps Script]</strong>를 클릭합니다.</li>
-                  <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣습니다.</li>
+                  <li>편집기에 있는 기존 예제 코드를 모두 지운 뒤, 아래의 템플릿 코드를 복사하여 붙여넣고 상단의 <strong>[저장] (또는 Ctrl+S)</strong>을 클릭합니다.</li>
                   <li>
                     우측 상단 <strong>[배포] ➡️ [새 배포]</strong> 버튼을 클릭합니다.
                     <ul className="list-disc pl-4 mt-1.5 text-slate-500 flex flex-col gap-1 font-medium">
                       <li>유형: <strong>"웹 앱"</strong> 선택</li>
                       <li>웹 앱 실행 대상: <strong>"나"</strong> 선택</li>
-                      <li>액세스 권한: <strong className="text-[#EF4444] font-black underline">"모든 사용자" (Anyone)</strong> 선택 후 배포합니다.</li>
+                      <li>액세스 권한: <strong className="text-[#EF4444] font-black underline">"모든 사용자" (Anyone)</strong> 선택 후 배포를 클릭합니다.</li>
                     </ul>
+                  </li>
+                  <li>
+                    <strong className="text-slate-800 text-blue-600 flex items-center gap-1">🔑 액세스 승인 및 보안 경고 우회</strong>:
+                    <span className="block mt-1 text-slate-600">
+                      배포를 클릭하면 권한 부여를 위한 <strong>[액세스 승인] (Authorize Access)</strong> 팝업이 뜹니다. 본인의 구글 계정을 선택해 줍니다.
+                    </span>
+                    <span className="block mt-1.5 text-amber-600 font-black bg-amber-50 border border-amber-100 rounded-lg p-2.5">
+                      ⚠️ 구글 보안 경고("Google hasn't verified this app" 또는 "Google에서 이 앱을 검증하지 않았습니다") 화면이 나오는 경우:<br/>
+                      <span className="text-slate-500 font-medium leading-normal">
+                        1. 화면 좌측 하단의 <strong>[고급] (Advanced)</strong> 글자를 클릭합니다.<br/>
+                        2. 펼쳐진 설명 최하단의 <strong className="underline text-red-600">"[제목 없는 프로젝트(으)로 이동 (unsafe)]" (Go to Untitled project (unsafe))</strong> 링크를 클릭합니다.<br/>
+                        3. 마지막 화면에서 <strong>[허용] (Allow)</strong> 버튼을 클릭합니다.
+                      </span>
+                    </span>
                   </li>
                   <li>
                     배포 완료 후 화면에 표시되는 **웹 앱 URL**을 복사해 설정창에 저장합니다.
