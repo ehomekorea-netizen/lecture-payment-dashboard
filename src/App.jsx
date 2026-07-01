@@ -2564,12 +2564,12 @@ function doPost(e) {
           {activeTab === 'calendar' && (
             <div 
               key="tab-calendar" 
-              className={`${getSlideClass()} flex flex-col gap-3 select-none pt-2`}
+              className={`${getSlideClass()} flex flex-col gap-2 select-none pt-1`}
               onTouchStart={handleCalTouchStart}
               onTouchEnd={handleCalTouchEnd}
             >
-              <div className="bg-white p-4 pb-5 rounded-[24px] border border-slate-200/60 shadow-sm">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-white p-3.5 pb-3 rounded-[24px] border border-slate-200/60 shadow-sm">
+                <div className="flex items-center justify-between mb-2.5">
                   <div className="flex items-center gap-2">
                     <button 
                       type="button"
@@ -2606,17 +2606,17 @@ function doPost(e) {
                 </div>
                 
                 {/* 요일 헤더 */}
-                <div className="grid grid-cols-7 gap-x-1 text-center border-b border-slate-100 pb-2.5 mb-3 text-[12px] font-black text-[#94A3B8]">
+                <div className="grid grid-cols-7 gap-x-1 text-center border-b border-slate-100 pb-2 mb-2 text-[12px] font-black text-[#94A3B8]">
                   {['일','월','화','수','목','금','토'].map((d, idx) => (
                     <span key={d} className={idx === 0 ? 'text-red-500' : idx === 6 ? 'text-blue-500' : ''}>{d}</span>
                   ))}
                 </div>
                 
                 {/* 날짜 그리드 - 슬라이드 효과 적용 (min-h 고정으로 좌우 이동 시 상하 흔들림 방지) */}
-                <div className={`grid grid-cols-7 gap-y-3 gap-x-2 text-center text-xs transition-all duration-300 ${
+                <div className={`grid grid-cols-7 gap-y-1.5 gap-x-1.5 text-center text-xs transition-all duration-300 ${
                   calTransition === 'slide-left' ? 'translate-x-[-12px] opacity-0' :
                   calTransition === 'slide-right' ? 'translate-x-[12px] opacity-0' : 'translate-x-0 opacity-100'
-                }`} style={{ minHeight: '270px' }}>
+                }`} style={{ minHeight: '220px' }}>
                   {Array.from({ length: firstDayOfWeek }).map((_, idx) => (
                     <span key={`empty-${idx}`} />
                   ))}
@@ -2649,7 +2649,7 @@ function doPost(e) {
                             setSelectedCalendarDate({ year: currentYear, month: currentMonth, day });
                           }
                         }}
-                        className={`flex flex-col items-center justify-center relative py-2 rounded-xl transition-all ${
+                        className={`flex flex-col items-center justify-center relative py-1 rounded-lg transition-all ${
                           hasLectures 
                             ? 'cursor-pointer bg-slate-50 hover:bg-blue-50/60 border border-slate-200/60' 
                             : 'text-slate-400'
@@ -2682,12 +2682,12 @@ function doPost(e) {
               </div>
 
               {/* 달력 안내 안내카드 */}
-              <div className="bg-slate-50 border border-slate-200/50 p-3 rounded-[16px] text-[13.5px] text-slate-700 leading-normal flex flex-col gap-1 -mt-1 shadow-sm">
-                <span className="font-extrabold text-[14.5px] text-slate-800 flex items-center gap-1">캘린더 안내</span>
-                <p className="font-semibold text-slate-600">기록일은 연하게 칠해지며, 해당 날짜 터치 시 하단에 상세 명세서가 바로 노출됩니다.</p>
-                <div className="flex items-center gap-3 mt-1 font-bold text-[12px]">
-                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 완료</div>
-                  <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 대기</div>
+              <div className="bg-slate-50 border border-slate-200/50 p-2.5 rounded-[12px] text-[12px] text-slate-600 leading-normal flex flex-col gap-0.5 -mt-2 shadow-sm">
+                <span className="font-extrabold text-[13px] text-slate-700 flex items-center gap-1">캘린더 안내</span>
+                <p className="font-semibold text-[11.5px] text-slate-500">기록일은 연하게 칠해지며, 해당 날짜 터치 시 하단에 상세 명세서가 노출됩니다.</p>
+                <div className="flex items-center gap-3 mt-0.5 font-bold text-[11px]">
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 완료</div>
+                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 대기</div>
                 </div>
               </div>
             </div>
@@ -2906,7 +2906,7 @@ function doPost(e) {
                                   {/* 금액 라벨 (노드 위) */}
                                   {hasValue && (
                                     <text x={p.x} y={Math.max(p.y - 15, 14)}
-                                      fill="#1E3A8A"
+                                      fill={d.total >= 2000000 ? "#EF4444" : "#1E3A8A"}
                                       fontSize="10.5" fontWeight="900" textAnchor="middle">
                                       {Math.round(d.total / 10000)}
                                     </text>
@@ -2930,7 +2930,7 @@ function doPost(e) {
               {/* 주관사(기관)별 출강 비중 */}
               <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3">
                 <div>
-                  <h4 className="text-[15px] font-black text-slate-800">어느 기관에서 가장 수입이 많았을까요?</h4>
+                  <h4 className="text-[15px] font-black text-slate-800">올 한해 어느 기관에서 가장 수입이 많았을까요?</h4>
                   <p className="text-[11.5px] text-slate-400 mt-0.5 font-semibold">기관별 수입 기여도 순위</p>
                 </div>
                 {statsYearLectures.length === 0 ? (
@@ -3319,7 +3319,7 @@ function doPost(e) {
                   <div className="flex items-center gap-3">
                     <span className="w-6 h-6 rounded-lg bg-violet-100 flex items-center justify-center text-[13px]">AI</span>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">AI 분석 연동 설정</h3>
+                      <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">AI 일정 등록 설정</h3>
                       {apiKey ? (
                         <span className="glossy-year-badge text-[9.5px] font-black px-2.5 py-0.5 rounded-full text-slate-850 flex items-center gap-1 flex-shrink-0 select-none">
                           <span className="w-1.5 h-1.5 rounded-full bg-[#00BCD4] animate-pulse" />
@@ -3404,7 +3404,7 @@ function doPost(e) {
                 >
                   <div className="flex items-center gap-3">
                     <span className="text-[22px] select-none">⚙️</span>
-                    <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">고객지원 및 앱 관리</h3>
+                    <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">문의 및 관리</h3>
                   </div>
                   <ChevronDown
                     size={20}
