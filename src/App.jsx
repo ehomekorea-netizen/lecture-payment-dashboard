@@ -851,9 +851,23 @@ export default function App() {
 
   const handleTestAndSaveSheetUrl = async (url, isDesktop = false) => {
     if (!url) {
-      handleSaveSettings(apiKey, '', '');
+      const confirmed = window.confirm(
+        '구글 시트 연동을 해제하면 현재 대시보드의 모든 데이터가 즉시 초기화됩니다.\n\n계속하시겠습니까?'
+      );
+      if (!confirmed) return;
+
+      // URL 제거 + 데이터 초기화
+      safeLocalStorage.setItem('google_sheet_url', '');
+      safeLocalStorage.setItem('google_spreadsheet_url', '');
+      safeLocalStorage.removeItem('lectures');
+      setSheetUrl('');
+      setSpreadsheetUrl('');
+      setLectures([]);
+      setIsEditingSheetUrl(true);
       setSheetUrlError(null);
+      setIsInitialPullCompleted(false);
       if (isDesktop) setIsSettingsOpen(false);
+      alert('구글 시트 연동이 해제되고 데이터가 초기화되었습니다.');
       return;
     }
 
