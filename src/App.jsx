@@ -88,21 +88,24 @@ function isKoreanHoliday(year, month, day) {
 
 // 타이핑 효과를 구현하는 React 컴포넌트
 const TypedTitle = ({ text }) => {
-  const [displayedText, setDisplayedText] = useState('');
+  const [charCount, setCharCount] = useState(0);
+  
   useEffect(() => {
-    let index = 0;
-    setDisplayedText('');
+    setCharCount(0);
+    let count = 0;
     const interval = setInterval(() => {
-      if (index < text.length) {
-        setDisplayedText((prev) => prev + text.charAt(index));
-        index++;
+      count++;
+      if (count <= text.length) {
+        setCharCount(count);
       } else {
         clearInterval(interval);
       }
     }, 45); // 45ms per character for natural look
+    
     return () => clearInterval(interval);
   }, [text]);
-  return <span className="text-[#1E3A8A] font-black">{displayedText}</span>;
+  
+  return <span className="text-[#1E3A8A] font-black">{text.slice(0, charCount)}</span>;
 };
 
 // 다음 달 계산 유틸리티 (12월 다음은 1월)
@@ -2036,247 +2039,244 @@ ${aiText}
   const generateQuiz = (lecturesForYear, targetYear) => {
     if (!lecturesForYear || lecturesForYear.length === 0) return null;
     
-    // 0부터 9까지의 퀴즈 테마 중 하나를 무작위 선택
-    const themeIndex = Math.floor(Math.random() * 10);
+    // 0부터 9까지의 모든 테마를 무작위로 섞어 순차적으로 검증
+    const themes = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].sort(() => Math.random() - 0.5);
     
-    // 선택지가 4개 미만일 때 더미 데이터를 채워 4지선다 규격을 유지하는 헬퍼
-    const padChoices = (realChoices, type) => {
-      const mockPool = {
-        inst: ['디지털새싹 아카데미', '사회복지협의회 코딩반', '미래스마트 교육재단', '카카오 IT 교실', '인재개발 진흥원', '구글 미래학교', '네이버 스쿨'],
-        venue: ['목포청호중학교 미래교실', '해남종합사회복지관 2층', '본관 대강당', '컴퓨터 실습실', '창의공학관관', '꿈나무 세미나실'],
-        day: ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
-      };
-      
-      const pool = mockPool[type] || mockPool.inst;
-      let result = [...realChoices];
-      for (const item of pool) {
-        if (result.length >= 4) break;
-        if (!result.some(r => r.name === item)) {
-          result.push({ name: item, value: 0 });
-        }
-      }
-      return result.slice(0, 4);
-    };
+    for (const themeIndex of themes) {
+      let title = '';
+      let emoji = '🎯';
+      let rawChoices = [];
 
-    let title = '';
-    let emoji = '🎯';
-    let rawChoices = [];
-
-    switch (themeIndex) {
-      case 0:
-        title = '올 한해 정산액(예상+실수령)이 가장 많았던 주최기관은 어디일까요?';
-        emoji = '🏆';
-        const instIncome = {};
-        lecturesForYear.forEach(l => {
-          const name = l.institution;
-          if (!name) return;
-          const amt = l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0);
-          instIncome[name] = (instIncome[name] || 0) + amt;
-        });
-        rawChoices = Object.entries(instIncome).map(([name, val]) => ({
-          name,
-          value: val,
-          display: `${Math.round(val / 10000)}만원`
-        })).sort((a, b) => b.value - a.value);
-        rawChoices = padChoices(rawChoices, 'inst');
-        break;
-
-      case 1:
-        title = '올 한해 가장 많은 횟수(출강 건수)로 방문한 교육장은 어디일까요?';
-        emoji = '🏃‍♂️';
-        const venueCount = {};
-        lecturesForYear.forEach(l => {
-          const name = l.venue || l.institution;
-          if (!name) return;
-          venueCount[name] = (venueCount[name] || 0) + 1;
-        });
-        rawChoices = Object.entries(venueCount).map(([name, val]) => ({
-          name,
-          value: val,
-          display: `${val}회`
-        })).sort((a, b) => b.value - a.value);
-        rawChoices = padChoices(rawChoices, 'venue');
-        break;
-
-      case 2:
-        title = '올 한해 평균 강의 단가(시간당 시급)가 가장 높았던 주최기관은 어디일까요?';
-        emoji = '⏱️';
-        const instRate = {};
-        lecturesForYear.forEach(l => {
-          const name = l.institution;
-          if (!name) return;
-          if (!instRate[name]) instRate[name] = { fee: 0, classes: 0 };
-          instRate[name].fee += (l.rate * l.classes);
-          instRate[name].classes += l.classes;
-        });
-        rawChoices = Object.entries(instRate).map(([name, item]) => {
-          const avg = item.classes > 0 ? Math.round(item.fee / item.classes) : 0;
-          return {
+      switch (themeIndex) {
+        case 0:
+          title = '올 한해 정산액(예상+실수령)이 가장 많았던 주최기관은 어디일까요?';
+          emoji = '🏆';
+          const instIncome = {};
+          lecturesForYear.forEach(l => {
+            const name = l.institution;
+            if (!name) return;
+            const amt = l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0);
+            instIncome[name] = (instIncome[name] || 0) + amt;
+          });
+          rawChoices = Object.entries(instIncome).map(([name, val]) => ({
             name,
-            value: avg,
-            display: `${Math.round(avg / 1000)}천원/시간`
-          };
-        }).sort((a, b) => b.value - a.value);
-        rawChoices = padChoices(rawChoices, 'inst');
-        break;
+            value: val,
+            display: `${Math.round(val / 10000)}만원`
+          })).sort((a, b) => b.value - a.value);
+          break;
 
-      case 3:
-        title = '올 한해 가장 많은 세금(공제금액)을 차감한 주최기관은 어디일까요?';
-        emoji = '💸';
-        const instDeduct = {};
-        lecturesForYear.forEach(l => {
-          const name = l.institution;
-          if (!name) return;
-          instDeduct[name] = (instDeduct[name] || 0) + Math.abs(l.deduction || 0);
-        });
-        rawChoices = Object.entries(instDeduct).map(([name, val]) => ({
-          name,
-          value: val,
-          display: `${Math.round(val / 10000)}만원`
-        })).sort((a, b) => b.value - a.value);
-        rawChoices = padChoices(rawChoices, 'inst');
-        break;
+        case 1:
+          title = '올 한해 가장 많은 횟수(출강 건수)로 방문한 교육장은 어디일까요?';
+          emoji = '🏃‍♂️';
+          const venueCount = {};
+          lecturesForYear.forEach(l => {
+            const name = l.venue || l.institution;
+            if (!name) return;
+            venueCount[name] = (venueCount[name] || 0) + 1;
+          });
+          rawChoices = Object.entries(venueCount).map(([name, val]) => ({
+            name,
+            value: val,
+            display: `${val}회`
+          })).sort((a, b) => b.value - a.value);
+          break;
 
-      case 4:
-        title = '올 한해 교통비를 가장 많이 지원해준 주최기관은 어디일까요?';
-        emoji = '🚗';
-        const instTransport = {};
-        lecturesForYear.forEach(l => {
-          const name = l.institution;
-          if (!name) return;
-          instTransport[name] = (instTransport[name] || 0) + (l.transportFee || 0);
-        });
-        rawChoices = Object.entries(instTransport).map(([name, val]) => ({
-          name,
-          value: val,
-          display: `${Math.round(val / 10000)}만원`
-        })).sort((a, b) => b.value - a.value);
-        rawChoices = padChoices(rawChoices, 'inst');
-        break;
+        case 2:
+          title = '올 한해 평균 강의 단가(시간당 시급)가 가장 높았던 주최기관은 어디일까요?';
+          emoji = '⏱️';
+          const instRate = {};
+          lecturesForYear.forEach(l => {
+            const name = l.institution;
+            if (!name) return;
+            if (!instRate[name]) instRate[name] = { fee: 0, classes: 0 };
+            instRate[name].fee += (l.rate * l.classes);
+            instRate[name].classes += l.classes;
+          });
+          rawChoices = Object.entries(instRate).map(([name, item]) => {
+            const avg = item.classes > 0 ? Math.round(item.fee / item.classes) : 0;
+            return {
+              name,
+              value: avg,
+              display: `${Math.round(avg / 1000)}천원/시간`
+            };
+          }).sort((a, b) => b.value - a.value);
+          break;
 
-      case 5:
-        title = '올 한해 누적 강의 시수(총 차시)가 가장 많았던 주최기관은 어디일까요?';
-        emoji = '📚';
-        const instClasses = {};
-        lecturesForYear.forEach(l => {
-          const name = l.institution;
-          if (!name) return;
-          instClasses[name] = (instClasses[name] || 0) + (l.classes || 0);
-        });
-        rawChoices = Object.entries(instClasses).map(([name, val]) => ({
-          name,
-          value: val,
-          display: `${val}차시`
-        })).sort((a, b) => b.value - a.value);
-        rawChoices = padChoices(rawChoices, 'inst');
-        break;
+        case 3:
+          title = '올 한해 가장 많은 세금(공제금액)을 차감한 주최기관은 어디일까요?';
+          emoji = '💸';
+          const instDeduct = {};
+          lecturesForYear.forEach(l => {
+            const name = l.institution;
+            if (!name) return;
+            instDeduct[name] = (instDeduct[name] || 0) + Math.abs(l.deduction || 0);
+          });
+          rawChoices = Object.entries(instDeduct).map(([name, val]) => ({
+            name,
+            value: val,
+            display: `${Math.round(val / 10000)}만원`
+          })).sort((a, b) => b.value - a.value);
+          break;
 
-      case 6:
-        title = '올 한해 수입이 가장 많았던 출강 요일은 언제일까요?';
-        emoji = '📅';
-        const dayMap = { 0: '일요일', 1: '월요일', 2: '화요일', 3: '수요일', 4: '목요일', 5: '금요일', 6: '토요일' };
-        const dayIncome = {};
-        lecturesForYear.forEach(l => {
-          if (!l.date) return;
-          const dayNum = new Date(l.date).getDay();
-          const dayName = dayMap[dayNum] || '월요일';
-          const amt = l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0);
-          dayIncome[dayName] = (dayIncome[dayName] || 0) + amt;
-        });
-        rawChoices = Object.entries(dayIncome).map(([name, val]) => ({
-          name,
-          value: val,
-          display: `${Math.round(val / 10000)}만원`
-        })).sort((a, b) => b.value - a.value);
-        rawChoices = padChoices(rawChoices, 'day');
-        break;
+        case 4:
+          title = '올 한해 교통비를 가장 많이 지원해준 주최기관은 어디일까요?';
+          emoji = '🚗';
+          const instTransport = {};
+          lecturesForYear.forEach(l => {
+            const name = l.institution;
+            if (!name) return;
+            instTransport[name] = (instTransport[name] || 0) + (l.transportFee || 0);
+          });
+          rawChoices = Object.entries(instTransport).map(([name, val]) => ({
+            name,
+            value: val,
+            display: `${Math.round(val / 10000)}만원`
+          })).sort((a, b) => b.value - a.value);
+          break;
 
-      case 7:
-        title = '올 한해 교육장명 중 정산액이 가장 컸던 곳은 어디일까요?';
-        emoji = '🏫';
-        const venueIncome = {};
-        lecturesForYear.forEach(l => {
-          const name = l.venue || l.institution;
-          if (!name) return;
-          const amt = l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0);
-          venueIncome[name] = (venueIncome[name] || 0) + amt;
-        });
-        rawChoices = Object.entries(venueIncome).map(([name, val]) => ({
-          name,
-          value: val,
-          display: `${Math.round(val / 10000)}만원`
-        })).sort((a, b) => b.value - a.value);
-        rawChoices = padChoices(rawChoices, 'venue');
-        break;
+        case 5:
+          title = '올 한해 누적 강의 시수(총 차시)가 가장 많았던 주최기관은 어디일까요?';
+          emoji = '📚';
+          const instClasses = {};
+          lecturesForYear.forEach(l => {
+            const name = l.institution;
+            if (!name) return;
+            instClasses[name] = (instClasses[name] || 0) + (l.classes || 0);
+          });
+          rawChoices = Object.entries(instClasses).map(([name, val]) => ({
+            name,
+            value: val,
+            display: `${val}차시`
+          })).sort((a, b) => b.value - a.value);
+          break;
 
-      case 8:
-        title = '올 한해 단일 강의 기준으로 수업 차시가 가장 길었던 주최기관은 어디일까요?';
-        emoji = '💪';
-        const singleMaxClass = {};
-        lecturesForYear.forEach(l => {
-          const name = l.institution;
-          if (!name) return;
-          if (l.classes > (singleMaxClass[name] || 0)) {
-            singleMaxClass[name] = l.classes;
-          }
-        });
-        rawChoices = Object.entries(singleMaxClass).map(([name, val]) => ({
-          name,
-          value: val,
-          display: `${val}차시`
-        })).sort((a, b) => b.value - a.value);
-        rawChoices = padChoices(rawChoices, 'inst');
-        break;
+        case 6:
+          title = '올 한해 수입이 가장 많았던 출강 요일은 언제일까요?';
+          emoji = '📅';
+          const dayMap = { 0: '일요일', 1: '월요일', 2: '화요일', 3: '수요일', 4: '목요일', 5: '금요일', 6: '토요일' };
+          const dayIncome = {};
+          lecturesForYear.forEach(l => {
+            if (!l.date) return;
+            const dayNum = new Date(l.date).getDay();
+            const dayName = dayMap[dayNum] || '월요일';
+            const amt = l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0);
+            dayIncome[dayName] = (dayIncome[dayName] || 0) + amt;
+          });
+          rawChoices = Object.entries(dayIncome).map(([name, val]) => ({
+            name,
+            value: val,
+            display: `${Math.round(val / 10000)}만원`
+          })).sort((a, b) => b.value - a.value);
+          break;
 
-      case 9:
-        title = '올 한해 아직 입금 대기 중인 금액(미정산)이 가장 많이 쌓인 주최기관은 어디일까요?';
-        emoji = '⏳';
-        const unpaidAmount = {};
-        lecturesForYear.forEach(l => {
-          if (l.isPaid) return;
-          const name = l.institution;
-          if (!name) return;
-          unpaidAmount[name] = (unpaidAmount[name] || 0) + (l.expectedAmount || 0);
-        });
-        rawChoices = Object.entries(unpaidAmount).map(([name, val]) => ({
-          name,
-          value: val,
-          display: `${Math.round(val / 10000)}만원`
-        })).sort((a, b) => b.value - a.value);
-        rawChoices = padChoices(rawChoices, 'inst');
-        break;
+        case 7:
+          title = '올 한해 교육장명 중 정산액이 가장 컸던 곳은 어디일까요?';
+          emoji = '🏫';
+          const venueIncome = {};
+          lecturesForYear.forEach(l => {
+            const name = l.venue || l.institution;
+            if (!name) return;
+            const amt = l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0);
+            venueIncome[name] = (venueIncome[name] || 0) + amt;
+          });
+          rawChoices = Object.entries(venueIncome).map(([name, val]) => ({
+            name,
+            value: val,
+            display: `${Math.round(val / 10000)}만원`
+          })).sort((a, b) => b.value - a.value);
+          break;
 
-      default:
-        return null;
+        case 8:
+          title = '올 한해 단일 강의 기준으로 수업 차시가 가장 길었던 주최기관은 어디일까요?';
+          emoji = '💪';
+          const singleMaxClass = {};
+          lecturesForYear.forEach(l => {
+            const name = l.institution;
+            if (!name) return;
+            if (l.classes > (singleMaxClass[name] || 0)) {
+              singleMaxClass[name] = l.classes;
+            }
+          });
+          rawChoices = Object.entries(singleMaxClass).map(([name, val]) => ({
+            name,
+            value: val,
+            display: `${val}차시`
+          })).sort((a, b) => b.value - a.value);
+          break;
+
+        case 9:
+          title = '올 한해 아직 입금 대기 중인 금액(미정산)이 가장 많이 쌓인 주최기관은 어디일까요?';
+          emoji = '⏳';
+          const unpaidAmount = {};
+          lecturesForYear.forEach(l => {
+            if (l.isPaid) return;
+            const name = l.institution;
+            if (!name) return;
+            unpaidAmount[name] = (unpaidAmount[name] || 0) + (l.expectedAmount || 0);
+          });
+          rawChoices = Object.entries(unpaidAmount).map(([name, val]) => ({
+            name,
+            value: val,
+            display: `${Math.round(val / 10000)}만원`
+          })).sort((a, b) => b.value - a.value);
+          break;
+
+        default:
+          break;
+      }
+
+      // [유효성 검증 로직]
+      // 1. 선택지가 최소 4개 이상이어야 함 (순수하게 사용자의 실제 데이터 기준, 목업데이터 패딩 원천 배제)
+      if (rawChoices.length < 4) {
+        continue;
+      }
+
+      // 상위 4개 선택지 추출
+      const slicedChoices = rawChoices.slice(0, 4);
+
+      // 2. 수치가 모두 같은 경우엔 퀴즈로 채택하지 않음 (정답이 모두 똑같아지는 현상 방지)
+      const values = slicedChoices.map(c => c.value);
+      const allIdentical = values.every(v => v === values[0]);
+      if (allIdentical) {
+        continue;
+      }
+
+      // 3. 최댓값이 0인 경우 등 유효하지 않은 퀴즈 제외
+      const maxVal = Math.max(...values);
+      if (maxVal <= 0) {
+        continue;
+      }
+
+      // 합격! 이 테마로 퀴즈를 생성합니다.
+      const correctAnswerName = slicedChoices[0].name;
+
+      // 4지선다 옵션을 무작위 셔플
+      const shuffledChoices = [...slicedChoices].sort(() => Math.random() - 0.5);
+      const correctIndex = shuffledChoices.findIndex(c => c.name === correctAnswerName);
+
+      const choicesWithPct = shuffledChoices.map(c => ({
+        ...c,
+        pct: Math.round((c.value / maxVal) * 100)
+      }));
+
+      return {
+        title,
+        emoji,
+        choices: choicesWithPct,
+        correctIndex,
+        correctAnswerName
+      };
     }
 
-    const correctAnswerName = rawChoices[0]?.name;
-    if (!correctAnswerName) return null;
-
-    // 5지선다 옵션을 섞어 정답의 위치가 항상 1번째가 아니도록 보장
-    const shuffledChoices = [...rawChoices].sort(() => Math.random() - 0.5);
-    const correctIndex = shuffledChoices.findIndex(c => c.name === correctAnswerName);
-
-    const maxVal = Math.max(...shuffledChoices.map(c => c.value), 1);
-    const choicesWithPct = shuffledChoices.map(c => ({
-      ...c,
-      pct: Math.round((c.value / maxVal) * 100)
-    }));
-
-    return {
-      title,
-      emoji,
-      choices: choicesWithPct,
-      correctIndex,
-      correctAnswerName
-    };
+    return null; // 모든 테마가 유효하지 않아 퀴즈를 생성할 수 없음
   };
 
   // 탭 전환 및 연도 변경 시 작동하는 퀴즈 라이프사이클 이펙트
   useEffect(() => {
     if (activeTab === 'stats') {
       const lecturesForYear = lectures.filter(l => getLectureYear(l) === statsYear);
-      if (lecturesForYear && lecturesForYear.length > 0) {
+      // 최소 5개 이상의 데이터가(수업일정) 있기 전까지는 퀴즈를 로드하지 않음
+      if (lecturesForYear && lecturesForYear.length >= 5) {
         const q = generateQuiz(lecturesForYear, statsYear);
         setQuizQuestion(q);
         setQuizAnswered(false);
@@ -2285,7 +2285,6 @@ ${aiText}
         setQuizQuestion(null);
       }
     } else {
-      // 탭을 이탈하면 데이터를 초기화하여 다음 진입 시 새로운 퀴즈로 갱신
       setQuizQuestion(null);
       setQuizAnswered(false);
       setSelectedQuizOption(null);
@@ -3234,7 +3233,7 @@ function doPost(e) {
 
 
               {/* 🎯 데이터 분석기반 미니 퀴즈 카드 (주관사 비중 영역 대체) */}
-              {quizQuestion && (
+              {quizQuestion ? (
                 <div className="bg-white p-5 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3.5 animate-fade-in relative overflow-hidden">
                   
                   {/* 질문 섹션 */}
@@ -3324,6 +3323,16 @@ function doPost(e) {
                       </p>
                     </div>
                   )}
+                </div>
+              ) : (
+                <div className="bg-white p-6 rounded-[24px] border border-slate-200/60 shadow-sm flex flex-col gap-3 text-center py-8 animate-fade-in relative overflow-hidden">
+                  <div className="absolute top-[-50px] right-[-50px] w-[100px] h-[100px] rounded-full bg-indigo-50/30 blur-2xl pointer-events-none" />
+                  <span className="text-[22px] select-none">🎯</span>
+                  <h5 className="text-[13.5px] font-extrabold text-slate-700">나의 출강 분석 퀴즈</h5>
+                  <p className="text-[11.5px] text-slate-400 font-semibold leading-relaxed max-w-[280px] mx-auto break-keep">
+                    출강 일정이 최소 5개 이상 등록되고 4개 이상의 서로 다른 교육 정보가 쌓이면, 실시간 데이터를 자동 분석한 맞춤형 퀴즈가 여기에 노출됩니다.<br/>
+                    <span className="text-[10px] text-slate-350 block mt-1.5">(현재 등록된 연간 일정: {statsYearLectures.length}개)</span>
+                  </p>
                 </div>
               )}
             </div>
