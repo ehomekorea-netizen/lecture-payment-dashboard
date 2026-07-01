@@ -2916,9 +2916,9 @@ function doPost(e) {
                                 <span className="text-[13px] font-black px-3 py-1 rounded-lg inline-block flex-shrink-0" style={{background:'rgba(30,58,138,0.07)',color:'#1E3A8A'}}>{l.date || '날짜 미지정'}</span>
                                 {l.role === 'Assistant' && <span className="text-[11px] font-black text-slate-400 border border-slate-200 px-1.5 rounded flex-shrink-0">보조</span>}
                               </div>
-                              <h3 className="text-[17.5px] font-black text-[#0F172A] leading-tight tracking-tight relative z-10 break-all">
-                                {l.institution}
-                                {l.venue && <span className="text-slate-500 font-bold ml-1.5 text-[14px]">({l.venue})</span>}
+                              <h3 className="text-[17.5px] font-black text-[#0F172A] leading-tight tracking-tight relative z-10 break-keep">
+                                <span className="inline-block">{l.institution}</span>
+                                {l.venue && <span className="text-slate-500 font-bold ml-1.5 text-[14px] inline-block">({l.venue})</span>}
                               </h3>
                             </div>
                             <div className="flex items-center gap-2 relative z-10 flex-shrink-0">
