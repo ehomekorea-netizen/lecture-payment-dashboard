@@ -2966,7 +2966,9 @@ function doPost(e) {
                     <span className="text-[22px]">📂</span>
                     <div className="flex items-center gap-2">
                       <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">데이터 백업 및 가져오기</h3>
-                      <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-emerald-500 text-white flex-shrink-0">추천 / 무설정</span>
+                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded text-white flex-shrink-0 ${lectures.length === 0 ? 'bg-slate-400' : 'bg-emerald-500'}`}>
+                        {lectures.length === 0 ? '미설정' : '설정 완료'}
+                      </span>
                     </div>
                   </div>
                   <ChevronDown
@@ -3139,7 +3141,9 @@ function doPost(e) {
                     <span className="text-[22px]">🤖</span>
                     <div className="flex items-center gap-2">
                       <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">AI 분석 연동 설정</h3>
-                      <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-violet-500 text-white flex-shrink-0" style={{backgroundColor: '#8B5CF6'}}>선택 사항</span>
+                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded text-white flex-shrink-0 ${apiKey ? 'bg-violet-600' : 'bg-slate-400'}`}>
+                        {apiKey ? '연동 완료' : '미연동'}
+                      </span>
                     </div>
                   </div>
                   <ChevronDown
@@ -3158,17 +3162,33 @@ function doPost(e) {
                         <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2563EB] hover:text-blue-800 underline font-extrabold">👉 API Key 무료 발급 바로가기</a>
                       </div>
                       {!isEditingApiKey && apiKey ? (
-                        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 shadow-sm">
+                        <div className="flex flex-col gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl p-4 shadow-sm w-full">
                           <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
                             🔒 API 키가 등록되었습니다.
                           </span>
-                          <button 
-                            type="button" 
-                            onClick={() => setIsEditingApiKey(true)} 
-                            className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-xs hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
-                          >
-                            변경
-                          </button>
+                          <div className="flex flex-col gap-2 mt-1">
+                            <button
+                              type="button"
+                              onClick={() => setIsEditingApiKey(true)}
+                              className="w-full py-2 bg-white border border-slate-250 text-slate-600 font-black rounded-xl text-[11.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                            >
+                              API 키 변경
+                            </button>
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                if (window.confirm("Gemini API 키를 해제하고 완전히 삭제하시겠습니까?")) {
+                                  safeLocalStorage.removeItem('gemini_api_key');
+                                  setApiKey('');
+                                  setIsEditingApiKey(true);
+                                  alert('API 키가 완전히 해제 및 삭제되었습니다.');
+                                }
+                              }} 
+                              className="w-full py-2 bg-red-50 border border-red-200 text-[#E11D48] font-black rounded-xl text-[11.5px] hover:bg-red-100 transition active:scale-95 cursor-pointer flex items-center justify-center gap-1"
+                            >
+                              <span>⚠️ API 키 해제 및 삭제</span>
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <div className="flex gap-2">
@@ -3200,7 +3220,9 @@ function doPost(e) {
                     <span className="text-[22px]">☁️</span>
                     <div className="flex items-center gap-2">
                       <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">실시간 클라우드 동기</h3>
-                      <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-sky-500 text-white flex-shrink-0">고급 기능</span>
+                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded text-white flex-shrink-0 ${sheetUrl ? 'bg-sky-500' : 'bg-slate-400'}`}>
+                        {sheetUrl ? '연동 완료' : '미연동'}
+                      </span>
                     </div>
                   </div>
                   <ChevronDown
@@ -4129,17 +4151,33 @@ function doPost(e) {
                 <div className="flex flex-col gap-1.5">
                   <label className="font-bold text-slate-600">Gemini AI API Key</label>
                   {!isEditingApiKey && apiKey ? (
-                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                    <div className="flex flex-col gap-2 bg-emerald-50 border border-emerald-200 rounded-xl p-3 w-full">
                       <span className="text-[11.5px] font-extrabold text-emerald-800">
                         🔒 API 키가 등록되었습니다.
                       </span>
-                      <button 
-                        type="button" 
-                        onClick={() => setIsEditingApiKey(true)} 
-                        className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-[10.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
-                      >
-                        변경
-                      </button>
+                      <div className="flex flex-col gap-2 mt-1">
+                        <button 
+                          type="button" 
+                          onClick={() => setIsEditingApiKey(true)} 
+                          className="w-full py-1.5 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-[10.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                        >
+                          API 키 변경
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            if (window.confirm("Gemini API 키를 해제하고 완전히 삭제하시겠습니까?")) {
+                              safeLocalStorage.removeItem('gemini_api_key');
+                              setApiKey('');
+                              setIsEditingApiKey(true);
+                              alert('API 키가 완전히 해제 및 삭제되었습니다.');
+                            }
+                          }} 
+                          className="w-full py-1.5 bg-red-50 border border-red-200 text-[#E11D48] font-black rounded-lg text-[10.5px] hover:bg-red-100 transition active:scale-95 cursor-pointer flex items-center justify-center gap-1"
+                        >
+                          <span>⚠️ API 키 해제 및 삭제</span>
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <input type="password" id="settings-api-key-desktop" defaultValue={apiKey} placeholder="AIzaSy..." className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-slate-50 font-bold focus:outline-none focus:border-[#2563EB] placeholder-slate-400" />
