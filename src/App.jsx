@@ -3229,21 +3229,40 @@ function doPost(e) {
                           <span className="text-[12.5px] font-extrabold text-emerald-800 flex items-center gap-1.5">
                             ☁️ 구글 시트 연동 주소(exec)가 등록되었습니다.
                           </span>
-                          <div className="flex gap-2 mt-1">
-                            <a
-                              href={spreadsheetUrl || `${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-[11.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
-                            >
-                              <span>📊 연동된 시트 확인하기</span>
-                            </a>
+                          <div className="flex flex-col gap-2 mt-1">
+                            <div className="flex gap-2">
+                              <a
+                                href={spreadsheetUrl || `${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-[11.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
+                              >
+                                <span>📊 연동된 시트 확인하기</span>
+                              </a>
+                              <button 
+                                type="button" 
+                                onClick={() => setIsEditingSheetUrl(true)} 
+                                className="px-4 py-2 bg-white border border-slate-250 text-slate-600 font-black rounded-xl text-[11.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                              >
+                                변경
+                              </button>
+                            </div>
                             <button 
                               type="button" 
-                              onClick={() => setIsEditingSheetUrl(true)} 
-                              className="px-4 py-2 bg-white border border-slate-250 text-slate-600 font-black rounded-xl text-[11.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                              onClick={() => {
+                                if (window.confirm("구글 시트 연동을 해제하고 모든 데이터를 완전히 초기화하시겠습니까?\n\n로컬 저장소 및 캐시 데이터가 즉시 비워지며 첫 화면으로 돌아갑니다.")) {
+                                  safeLocalStorage.clear();
+                                  setLectures([]);
+                                  setApiKey('');
+                                  setSheetUrl('');
+                                  setSpreadsheetUrl('');
+                                  alert('초기화가 완료되었습니다. 앱을 재시작합니다.');
+                                  window.location.reload();
+                                }
+                              }} 
+                              className="w-full py-2 bg-red-50 border border-red-200 text-[#E11D48] font-black rounded-xl text-[11.5px] hover:bg-red-100 transition active:scale-95 cursor-pointer flex items-center justify-center gap-1"
                             >
-                              변경
+                              <span>⚠️ 연동 해제 및 전체 데이터 초기화</span>
                             </button>
                           </div>
                         </div>
@@ -4137,21 +4156,40 @@ function doPost(e) {
                       <span className="text-[11.5px] font-extrabold text-emerald-800">
                         ☁️ 구글 시트 연동 주소(exec)가 등록되었습니다.
                       </span>
-                      <div className="flex gap-2">
-                        <a
-                          href={`${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg text-[10.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
-                        >
-                          <span>📊 연동된 시트 확인하기</span>
-                        </a>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex gap-2">
+                          <a
+                            href={`${sheetUrl}${sheetUrl.includes('?') ? '&' : '?'}open=true`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-lg text-[10.5px] shadow-sm transition active:scale-95 text-center no-underline cursor-pointer flex items-center justify-center gap-1"
+                          >
+                            <span>📊 연동된 시트 확인하기</span>
+                          </a>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsEditingSheetUrl(true)} 
+                            className="px-2.5 py-1.5 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-[10.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                          >
+                            변경
+                          </button>
+                        </div>
                         <button 
                           type="button" 
-                          onClick={() => setIsEditingSheetUrl(true)} 
-                          className="px-2.5 py-1.5 bg-white border border-slate-200 text-slate-600 font-black rounded-lg text-[10.5px] hover:bg-slate-50 transition active:scale-95 cursor-pointer shadow-sm"
+                          onClick={() => {
+                            if (window.confirm("구글 시트 연동을 해제하고 모든 데이터를 완전히 초기화하시겠습니까?\n\n로컬 저장소 및 캐시 데이터가 즉시 비워지며 첫 화면으로 돌아갑니다.")) {
+                              safeLocalStorage.clear();
+                              setLectures([]);
+                              setApiKey('');
+                              setSheetUrl('');
+                              setSpreadsheetUrl('');
+                              alert('초기화가 완료되었습니다. 앱을 재시작합니다.');
+                              window.location.reload();
+                            }
+                          }} 
+                          className="w-full py-1.5 bg-red-50 border border-red-200 text-[#E11D48] font-black rounded-lg text-[10.5px] hover:bg-red-100 transition active:scale-95 cursor-pointer flex items-center justify-center gap-1"
                         >
-                          변경
+                          <span>⚠️ 연동 해제 및 전체 데이터 초기화</span>
                         </button>
                       </div>
                     </div>
