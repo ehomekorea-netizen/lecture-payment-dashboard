@@ -1390,19 +1390,32 @@ ${aiText}
   // 정산 여부 토글
   const handleTogglePaid = (lecture) => {
     const nextPaid = !lecture.isPaid;
-    const { expectedAmount, deduction, netAmount } = calculateFees(
-      lecture.rate,
-      lecture.classes,
-      lecture.transportFee,
-      lecture.taxRate || '3.3%',
-      lecture.taxBase || 'LectureOnly',
-      lecture.customTax || 0,
-      nextPaid
-    );
+
+    let updatedFields = { isPaid: nextPaid };
+
+    if (nextPaid) {
+      // 대기 → 완료: 실수령액 및 공제금액 새로 계산
+      const { expectedAmount, deduction, netAmount } = calculateFees(
+        lecture.rate,
+        lecture.classes,
+        lecture.transportFee,
+        lecture.taxRate || '3.3%',
+        lecture.taxBase || 'LectureOnly',
+        lecture.customTax || 0,
+        true
+      );
+      updatedFields.deduction = deduction;
+      updatedFields.netAmount = netAmount;
+      updatedFields.expectedAmount = expectedAmount;
+    } else {
+      // 완료 → 대기: 실수령액 / 공제금액 0으로 초기화 (정산대기 = 아직 미지급)
+      updatedFields.netAmount = 0;
+      updatedFields.deduction = 0;
+    }
 
     const updatedList = lectures.map(l => {
       if (l.id === lecture.id) {
-        return { ...l, isPaid: nextPaid, deduction, netAmount };
+        return { ...l, ...updatedFields };
       }
       return l;
     });
@@ -1984,7 +1997,7 @@ ${aiText}
     item.registrationDate = String(regDateVal || "");
     
     var isPaidStr = getVal(rowData, '정산여부', "정산대기") || "정산대기";
-    item.isPaid = (isPaidStr === "정산완료" || item.netAmount > 0);
+    item.isPaid = (isPaidStr === "정산완료");
     
     item.id = String(getVal(rowData, 'ID', "") || "gs-" + Date.now() + "-" + i);
     
