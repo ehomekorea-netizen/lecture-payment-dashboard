@@ -439,6 +439,11 @@ export default function App() {
   // 완료 처리된 카드 스크롤 참조
   const recentlyPaidCardRef = useRef(null);
 
+  // sheetUrl의 최신값을 비동기 콜백에서 즉시 참조하기 위한 ref
+  // (React 상태 업데이트는 비동기라 stale closure 문제가 생길 수 있음)
+  const sheetUrlRef = useRef(sheetUrl);
+  useEffect(() => { sheetUrlRef.current = sheetUrl; }, [sheetUrl]);
+
   // 기관 선택 필터 및 통계 스크롤 관리
   const [selectedInstitution, setSelectedInstitution] = useState('All');
   const chartScrollRef = useRef(null);
@@ -856,16 +861,21 @@ export default function App() {
       );
       if (!confirmed) return;
 
-      // URL 제거 + 데이터 초기화
+      // ① ref를 먼저 초기화 → 진행 중인 비동기 fetch가 완료되어도 상태 덮어쓰기 차단
+      sheetUrlRef.current = '';
+
+      // ② localStorage 즉시 초기화
       safeLocalStorage.setItem('google_sheet_url', '');
       safeLocalStorage.setItem('google_spreadsheet_url', '');
       safeLocalStorage.removeItem('lectures');
+
+      // ③ React 상태 초기화
       setSheetUrl('');
       setSpreadsheetUrl('');
       setLectures([]);
       setIsEditingSheetUrl(true);
       setSheetUrlError(null);
-      setIsInitialPullCompleted(false);
+      setIsInitialPullCompleted(true);
       if (isDesktop) setIsSettingsOpen(false);
       alert('구글 시트 연동이 해제되고 데이터가 초기화되었습니다.');
       return;
@@ -1206,6 +1216,10 @@ ${aiText}
         }
 
         if (lecturesList) {
+          // 연동 해제된 경우(sheetUrlRef가 비어있으면) 상태 업데이트 차단
+          // → fetch가 완료되는 순간 이미 연동이 끊겼을 수 있으므로 stale closure 방지
+          if (!sheetUrlRef.current) return;
+
           if (lecturesList.length === 0 && lectures.length > 0) {
             // 구글 시트는 비어있고 로컬에 데이터가 있는 경우 -> 로컬 데이터를 구글 시트에 백업(Push)
             syncToGoogleSheetSilent(lectures);
