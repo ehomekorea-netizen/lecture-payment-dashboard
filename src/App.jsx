@@ -436,6 +436,9 @@ export default function App() {
   const moneyLottieTimeoutRef = useRef(null);
   const moneyLottieFadeTimeoutRef = useRef(null);
 
+  // 완료 처리된 카드 스크롤 참조
+  const recentlyPaidCardRef = useRef(null);
+
   // 기관 선택 필터 및 통계 스크롤 관리
   const [selectedInstitution, setSelectedInstitution] = useState('All');
   const chartScrollRef = useRef(null);
@@ -1406,6 +1409,15 @@ ${aiText}
 
     if (nextPaid) {
       setRecentlyPaidCardId(lecture.id);
+      // 재정렬 후 DOM이 업데이트되면 해당 카드로 부드럽게 스크롤
+      setTimeout(() => {
+        if (recentlyPaidCardRef.current) {
+          recentlyPaidCardRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        }
+      }, 120);
       setTimeout(() => {
         setRecentlyPaidCardId(null);
       }, 4000);
@@ -2287,6 +2299,7 @@ function doPost(e) {
                     return (
                       <div
                         key={l.id}
+                        ref={isRecentlyPaid ? recentlyPaidCardRef : null}
                         className={`card-hover relative bg-white rounded-[22px] flex flex-col ${isRecentlyPaid ? 'animate-emerald-glow' : ''}`}
                         style={{
                           border: l.isPaid ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid rgba(245,158,11,0.35)',
