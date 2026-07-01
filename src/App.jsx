@@ -112,6 +112,13 @@ const safeLocalStorage = {
       console.warn("localStorage.setItem error:", e);
     }
   },
+  removeItem: (key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.warn("localStorage.removeItem error:", e);
+    }
+  },
   clear: () => {
     try {
       localStorage.clear();
@@ -589,6 +596,7 @@ export default function App() {
   const [apiKey, setApiKey] = useState(() => safeLocalStorage.getItem('gemini_api_key') || '');
   const [sheetUrl, setSheetUrl] = useState(() => safeLocalStorage.getItem('google_sheet_url') || '');
   const [spreadsheetUrl, setSpreadsheetUrl] = useState(() => safeLocalStorage.getItem('google_spreadsheet_url') || '');
+  const [isCsvImported, setIsCsvImported] = useState(() => safeLocalStorage.getItem('is_csv_imported') === 'true');
   const [isInitialPullCompleted, setIsInitialPullCompleted] = useState(false);
   const [isEditingApiKey, setIsEditingApiKey] = useState(!apiKey);
   const [isEditingSheetUrl, setIsEditingSheetUrl] = useState(!sheetUrl);
@@ -1799,6 +1807,8 @@ ${aiText}
       if (newLectures.length > 0) {
         if (window.confirm(`CSV 파일에서 ${newLectures.length}개의 출강 이력을 가져옵니다. 병합하시겠습니까?`)) {
           setLectures(prev => [...newLectures, ...prev]);
+          safeLocalStorage.setItem('is_csv_imported', 'true');
+          setIsCsvImported(true);
         }
       }
     };
@@ -2975,8 +2985,8 @@ function doPost(e) {
                     <span className="text-[22px]">📂</span>
                     <div className="flex items-center gap-2">
                       <h3 className="text-[17.5px] font-black text-slate-800 tracking-tight">데이터 백업 및 가져오기</h3>
-                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded text-white flex-shrink-0 ${lectures.length === 0 ? 'bg-slate-400' : 'bg-emerald-500'}`}>
-                        {lectures.length === 0 ? '미설정' : '설정 완료'}
+                      <span className={`text-[9.5px] font-black px-2 py-0.5 rounded text-white flex-shrink-0 ${(isCsvImported || sheetUrl) ? 'bg-emerald-500' : 'bg-slate-400'}`}>
+                        {(isCsvImported || sheetUrl) ? '설정 완료' : '미설정'}
                       </span>
                     </div>
                   </div>
