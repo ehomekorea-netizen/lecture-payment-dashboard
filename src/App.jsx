@@ -2988,6 +2988,19 @@ function doPost(e) {
                       }
                       return false;
                     })();
+                    const dateInfo = (() => {
+                      if (!l.date) return { text: '', isWeekend: false };
+                      const match = l.date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                      if (match) {
+                        const [_, y, m, d] = match;
+                        const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
+                        const days = ['일', '월', '화', '수', '목', '금', '토'];
+                        const dayName = days[dateObj.getDay()];
+                        const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+                        return { text: ` (${dayName})`, isWeekend };
+                      }
+                      return { text: '', isWeekend: false };
+                    })();
                     return (
                       <div
                         key={l.id}
@@ -3004,7 +3017,12 @@ function doPost(e) {
                           <div className="flex items-start justify-between mb-2 gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 mb-1.5">
-                                <span className="text-[13px] font-black px-3 py-1 rounded-lg inline-block flex-shrink-0" style={{background:'rgba(30,58,138,0.07)',color:'#1E3A8A'}}>{l.date || '날짜 미지정'}</span>
+                                <span className="text-[13px] font-black px-3 py-1 rounded-lg inline-block flex-shrink-0" style={{
+                                  background: dateInfo.isWeekend ? 'rgba(239, 68, 68, 0.08)' : 'rgba(30,58,138,0.07)',
+                                  color: dateInfo.isWeekend ? '#EF4444' : '#1E3A8A'
+                                }}>
+                                  {l.date || '날짜 미지정'}{dateInfo.text}
+                                </span>
                                 {l.role === 'Assistant' && <span className="text-[11px] font-black text-slate-400 border border-slate-200 px-1.5 rounded flex-shrink-0">보조</span>}
                               </div>
                               <h3 className="text-[17.5px] font-black text-[#0F172A] leading-tight tracking-tight relative z-10 break-keep">
@@ -5098,7 +5116,7 @@ function doPost(e) {
         if (dailyLectures.length === 0) return null;
 
         const totalExpected = dailyLectures.reduce((sum, l) => sum + (l.expectedAmount || 0), 0);
-        const totalNet = dailyLectures.reduce((sum, l) => sum + (l.isPaid ? (l.netAmount || 0) : (l.expectedAmount || 0)), 0);
+        const totalNet = dailyLectures.reduce((sum, l) => sum + (l.netAmount || 0), 0);
         const totalDeduction = dailyLectures.reduce((sum, l) => sum + (l.deduction || 0), 0);
         const totalTransport = dailyLectures.reduce((sum, l) => sum + (l.transportFee || 0), 0);
         const totalCount = dailyLectures.length;
@@ -5137,7 +5155,7 @@ function doPost(e) {
                   <div className="flex flex-col gap-0.5 text-center border-x border-slate-200">
                     <span className="text-[9.5px] font-bold text-slate-400">총 공제 / 교통비</span>
                     <span className="text-[11px] font-extrabold text-slate-600">
-                      -{formatWon(totalDeduction)} / +{formatWon(totalTransport)}
+                      -{formatWon(Math.abs(totalDeduction))} / +{formatWon(totalTransport)}
                     </span>
                   </div>
                   <div className="flex flex-col gap-0.5 text-center">
@@ -5196,13 +5214,13 @@ function doPost(e) {
                         )}
                         <div className="flex justify-between">
                           <span className="text-slate-400 font-bold">공제금액 ({l.taxRate || '3.3%'})</span>
-                          <span className="font-extrabold text-red-500">-{formatWon(l.deduction || 0)}원</span>
+                          <span className="font-extrabold text-red-500">-{formatWon(Math.abs(l.deduction || 0))}원</span>
                         </div>
                         <div className="h-px bg-slate-200/60 my-1" />
                         <div className="flex justify-between text-xs font-black">
-                          <span className="text-slate-800 text-[11.5px]">최종 실수령액</span>
+                          <span className="text-slate-800 text-[11.5px]">{l.isPaid ? '최종 실수령액' : '최종 실수령액(예정)'}</span>
                           <span className="text-[#1E3A8A] text-[13.5px]">
-                            {formatWon(l.isPaid ? l.netAmount : l.expectedAmount)}원
+                            {formatWon(l.netAmount)}원
                           </span>
                         </div>
                       </div>
