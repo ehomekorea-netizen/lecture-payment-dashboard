@@ -409,10 +409,8 @@ export default function App() {
   const [editingNetValue, setEditingNetValue] = useState('');
   const [isNetEditModalOpen, setIsNetEditModalOpen] = useState(false);
 
-  // 삭제 취소(Undo) 기능용 상태
-  const [deletedLecture, setDeletedLecture] = useState(null);
-  const [deletedLectureIndex, setDeletedLectureIndex] = useState(-1);
-  const [undoProgress, setUndoProgress] = useState(0); // 0 to 100
+  // 삭제 취소(Undo) 기능용 병렬 상태
+  const [deletedLectures, setDeletedLectures] = useState([]); // Array of { id, data, originalIndex, progress }
 
   // 신규 추가 상태
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
@@ -429,36 +427,35 @@ export default function App() {
     }
   }, [toastMessage]);
 
-  // 100ms 정밀 해상도 Undo 7초 타이머
+  // 100ms 정밀 해상도 병렬 Undo 7초 타이머
   useEffect(() => {
-    if (undoProgress <= 0) {
-      if (undoProgress === 0) {
-        setDeletedLecture(null);
-        setDeletedLectureIndex(-1);
-      }
-      return;
-    }
+    if (deletedLectures.length === 0) return;
+
     const interval = setInterval(() => {
-      setUndoProgress(prev => {
-        const next = prev - (100 / 70); // 70 steps of 100ms = 7 seconds
-        return next < 0 ? 0 : next;
+      setDeletedLectures(prev => {
+        const next = prev.map(item => ({
+          ...item,
+          progress: item.progress - (100 / 70) // 70 steps of 100ms = 7 seconds
+        })).filter(item => item.progress > 0);
+
+        if (next.length === 0 && prev.length === 0) return prev;
+        return next;
       });
     }, 100);
     return () => clearInterval(interval);
-  }, [undoProgress]);
+  }, [deletedLectures.length]);
 
-  const handleUndoDelete = () => {
-    if (deletedLecture) {
+  const handleUndoDelete = (id) => {
+    const targetDel = deletedLectures.find(del => del.id === id);
+    if (targetDel) {
       setLectures(prev => {
-        if (prev.some(l => l.id === deletedLecture.id)) return prev;
-        return [deletedLecture, ...prev].sort((a, b) => {
+        if (prev.some(l => l.id === targetDel.data.id)) return prev;
+        return [targetDel.data, ...prev].sort((a, b) => {
           if (a.isPaid !== b.isPaid) return a.isPaid ? 1 : -1;
           return b.id.localeCompare(a.id);
         });
       });
-      setDeletedLecture(null);
-      setUndoProgress(0);
-      setDeletedLectureIndex(-1);
+      setDeletedLectures(prev => prev.filter(del => del.id !== id));
     }
   };
 
@@ -1659,10 +1656,16 @@ ${aiText}
     const idxInFiltered = filteredLectures.findIndex(l => l.id === id);
     const target = lectures.find(l => l.id === id);
     if (target) {
-      setDeletedLecture(target);
-      setDeletedLectureIndex(idxInFiltered !== -1 ? idxInFiltered : 0);
+      setDeletedLectures(prev => [
+        ...prev,
+        {
+          id: target.id,
+          data: target,
+          originalIndex: idxInFiltered !== -1 ? idxInFiltered : 0,
+          progress: 100
+        }
+      ]);
       setLectures(prev => prev.filter(l => l.id !== id));
-      setUndoProgress(100);
     }
   };
 
@@ -2456,12 +2459,19 @@ ${aiText}
   }, [lectures, statsYear, selectedMonth, selectedInstitution, selectedStatus]);
 
   const listItems = useMemo(() => {
-    const items = [...filteredLectures];
-    if (deletedLecture && deletedLectureIndex >= 0 && deletedLectureIndex <= items.length) {
-      items.splice(deletedLectureIndex, 0, { isUndoPlaceholder: true, data: deletedLecture });
-    }
+    let items = [...filteredLectures];
+    const sortedDeleted = [...deletedLectures].sort((a, b) => a.originalIndex - b.originalIndex);
+    sortedDeleted.forEach(del => {
+      const insertIdx = Math.min(del.originalIndex, items.length);
+      items.splice(insertIdx, 0, {
+        isUndoPlaceholder: true,
+        id: del.id,
+        data: del.data,
+        progress: del.progress
+      });
+    });
     return items;
-  }, [filteredLectures, deletedLecture, deletedLectureIndex]);
+  }, [filteredLectures, deletedLectures]);
 
   const rateOptions = useMemo(() => {
     const base = Array.from({length: 15}, (_, i) => (i + 1) * 10000);
@@ -2998,12 +3008,12 @@ function doPost(e) {
                               </span>
                             </div>
                             <button 
-                              onClick={handleUndoDelete}
+                              onClick={() => handleUndoDelete(l.data.id)}
                               className="px-3.5 py-2 bg-[#2563EB] hover:bg-blue-700 text-white font-black text-[11px] rounded-xl transition shadow-sm active:scale-95 flex items-center gap-1.5 flex-shrink-0 border-none cursor-pointer"
                             >
                               <span>되돌리기</span>
                               <span className="inline-block bg-white/20 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold min-w-[18px] text-center">
-                                {Math.max(1, Math.ceil(undoProgress / 14.3))}초
+                                {Math.max(1, Math.ceil(l.progress / 14.3))}초
                               </span>
                             </button>
                           </div>
@@ -3011,7 +3021,7 @@ function doPost(e) {
                           <div className="w-full h-1 bg-red-100 rounded-full overflow-hidden">
                             <div 
                               className="h-full bg-red-500 transition-all ease-linear duration-100"
-                              style={{ width: `${undoProgress}%` }}
+                              style={{ width: `${l.progress}%` }}
                             />
                           </div>
                         </div>
