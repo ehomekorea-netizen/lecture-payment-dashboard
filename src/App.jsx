@@ -5,6 +5,12 @@ import StableLottie from './components/StableLottie';
 import ConstellationView from './components/ConstellationView';
 import AnimatedNumber from './components/AnimatedNumber';
 
+// Upstash Redis 설정 (방문자 수 집계용 - 2안 방식)
+// 필요에 따라 아래에 본인의 Upstash URL과 Token을 기입하시면 됩니다.
+// 만약 공란일 경우 방문자 통계 기능은 실행되지 않고 안전하게 우회됩니다.
+const UPSTASH_URL = import.meta.env.VITE_UPSTASH_REST_URL || "";
+const UPSTASH_TOKEN = import.meta.env.VITE_UPSTASH_REST_TOKEN || "";
+
 
 
 // 통화(원화) 안전 포맷터
@@ -417,6 +423,31 @@ export default function App() {
   const [recentlyPaidCardId, setRecentlyPaidCardId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
+  // 방문자 집계용 상태
+  const [visitCount, setVisitCount] = useState(0);
+  const [visitHistory, setVisitHistory] = useState([]);
+  const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
+
+  // 동전 4연타 이스터에그 상태
+  const [coinClickCount, setCoinClickCount] = useState(0);
+  const [lastCoinClickTime, setLastCoinClickTime] = useState(0);
+
+  const handleCoinClick = () => {
+    const now = Date.now();
+    if (now - lastCoinClickTime < 600) {
+      const nextCount = coinClickCount + 1;
+      if (nextCount >= 4) {
+        setIsVisitModalOpen(true);
+        setCoinClickCount(0);
+      } else {
+        setCoinClickCount(nextCount);
+      }
+    } else {
+      setCoinClickCount(1);
+    }
+    setLastCoinClickTime(now);
+  };
+
   // 토스트 타이머
   useEffect(() => {
     if (toastMessage) {
@@ -458,6 +489,84 @@ export default function App() {
       setDeletedLectures(prev => prev.filter(del => del.id !== id));
     }
   };
+
+  // Upstash Redis 방문자 카운터 및 추이 조회 (2안 클라이언트 다이렉트 방식)
+  useEffect(() => {
+    if (!UPSTASH_URL || !UPSTASH_TOKEN) return;
+
+    const trackVisit = async () => {
+      try {
+        const todayStr = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const storageKey = `vibepay_visited_${todayStr}`;
+        const hasVisitedToday = safeLocalStorage.getItem(storageKey);
+
+        const dates = [];
+        const nowMs = Date.now();
+        for (let i = 6; i >= 0; i--) {
+          const dStr = new Date(nowMs + 9 * 60 * 60 * 1000 - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          dates.push(dStr);
+        }
+
+        let total = 0;
+        let dailyValues = {};
+
+        if (!hasVisitedToday) {
+          const res = await fetch(UPSTASH_URL + "/pipeline", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${UPSTASH_TOKEN}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify([
+              ["INCR", "vibepay:visits:total"],
+              ["HINCRBY", "vibepay:visits:daily", todayStr, 1],
+              ["HMGET", "vibepay:visits:daily", ...dates]
+            ])
+          });
+          const resData = await res.json();
+          if (Array.isArray(resData)) {
+            total = resData[0]?.result ?? 0;
+            const hmgetResult = resData[2]?.result ?? [];
+            dates.forEach((d, idx) => {
+              dailyValues[d] = Number(hmgetResult[idx] ?? 0);
+            });
+          }
+          safeLocalStorage.setItem(storageKey, "true");
+        } else {
+          const res = await fetch(UPSTASH_URL + "/pipeline", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${UPSTASH_TOKEN}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify([
+              ["GET", "vibepay:visits:total"],
+              ["HMGET", "vibepay:visits:daily", ...dates]
+            ])
+          });
+          const resData = await res.json();
+          if (Array.isArray(resData)) {
+            total = Number(resData[0]?.result ?? 0);
+            const hmgetResult = resData[1]?.result ?? [];
+            dates.forEach((d, idx) => {
+              dailyValues[d] = Number(hmgetResult[idx] ?? 0);
+            });
+          }
+        }
+
+        setVisitCount(total);
+        const historyData = dates.map(d => ({
+          date: d.substring(5), // "MM-DD"
+          count: dailyValues[d] || 0
+        }));
+        setVisitHistory(historyData);
+      } catch (err) {
+        console.warn("[Upstash Redis Visit Tracker] Failed to connect:", err);
+      }
+    };
+
+    trackVisit();
+  }, []);
 
   // Lottie 애니메이션 타임아웃 참조
   const moneyLottieTimeoutRef = useRef(null);
@@ -2483,6 +2592,29 @@ ${aiText}
     return base;
   }, [formData.rate]);
 
+  const svgChart = useMemo(() => {
+    if (!visitHistory || visitHistory.length === 0) return null;
+    const maxVal = Math.max(...visitHistory.map(h => h.count), 1);
+    const width = 270;
+    const height = 45;
+    const paddingLeft = 20;
+    const paddingRight = 20;
+    const chartWidth = width - paddingLeft - paddingRight;
+    const spacing = chartWidth / (visitHistory.length - 1 || 1);
+
+    const points = visitHistory.map((item, idx) => {
+      const pct = item.count / maxVal;
+      const cy = 60 - (pct * height); 
+      const cx = paddingLeft + idx * spacing;
+      return { ...item, cx, cy };
+    });
+
+    const pathD = points.map((p, idx) => `${idx === 0 ? "M" : "L"} ${p.cx} ${p.cy}`).join(" ");
+    const areaD = `${pathD} L ${points[points.length - 1].cx} 65 L ${points[0].cx} 65 Z`;
+
+    return { points, pathD, areaD };
+  }, [visitHistory]);
+
   const gasTemplateCode = `function doGet(e) {
   if (e && e.parameter && e.parameter.open === "true") {
     var url = SpreadsheetApp.getActiveSpreadsheet().getUrl();
@@ -2795,8 +2927,14 @@ function doPost(e) {
         <div className="sticky top-0 z-40 bg-white border-b border-slate-100 shadow-sm">
           <div className="flex items-center justify-between px-4 py-2.5">
             <div className="flex items-center gap-2">
-              {/* 3D Coin Lottie Logo */}
-              <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[34px] h-[34px] drop-shadow-sm flex-shrink-0" />
+              {/* 3D Coin Lottie Logo with Easter Egg click handler */}
+              <div 
+                onClick={handleCoinClick} 
+                className="cursor-pointer active:scale-90 transition-transform duration-150 flex-shrink-0"
+                title="출강바이브 방문 통계"
+              >
+                <StableLottie path="/lottie/Fake 3D vector coin.json" className="w-[34px] h-[34px] drop-shadow-sm" />
+              </div>
               <div>
                 <h1 className="text-[#0F172A] text-[18px] font-black tracking-tight" style={{lineHeight: 1.15}}>
                   출강바이브
@@ -5595,6 +5733,101 @@ function doPost(e) {
             <span className="text-[13px] font-black tracking-wider mt-1 select-none">
               {quizToast.type === 'O' ? '정답입니다!' : '틀렸습니다!'}
             </span>
+          </div>
+        </div>
+      )}
+
+      {/* ── 방문 통계 이스터에그 모달 (출강바이브 톤앤매너 적용) ── */}
+      {isVisitModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-fade">
+          <div className="bg-white w-full max-w-xs rounded-[28px] shadow-2xl p-6 flex flex-col gap-4 border border-slate-100 modal-zoom-in">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-[14.5px] font-black text-slate-800 flex items-center gap-1.5">
+                👁️ 출강바이브 방문 통계
+              </h3>
+              <button 
+                onClick={() => setIsVisitModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-650 hover:bg-slate-50 rounded-lg transition border-none bg-transparent cursor-pointer flex items-center justify-center"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Total Visits Card */}
+            <div className="bg-[#F8FAFC] rounded-2xl p-4 text-center border border-slate-100/60 shadow-inner">
+              <span className="text-[11px] font-extrabold text-slate-400 block mb-0.5">총 방문 횟수</span>
+              <span className="text-2xl font-black text-[#1E3A8A] tracking-tight">{visitCount.toLocaleString()}회</span>
+            </div>
+
+            {/* Daily Chart (7 Days) */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-bold text-slate-400 block px-1">일별 방문 현황 (최근 7일)</span>
+              <div className="bg-white border border-slate-100 rounded-2xl p-2.5 flex items-center justify-center min-h-[95px] relative">
+                {!visitHistory || visitHistory.length === 0 ? (
+                  <span className="text-[11px] text-slate-400 font-medium">연동 정보 또는 데이터가 없습니다.</span>
+                ) : svgChart ? (
+                  <svg className="w-full" height="85" viewBox="0 0 270 85">
+                    <defs>
+                      <linearGradient id="visitGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#2563EB" stopOpacity="0.2" />
+                        <stop offset="100%" stopColor="#2563EB" stopOpacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    
+                    {/* Baseline */}
+                    <line x1="20" y1="65" x2="250" y2="65" stroke="#E2E8F0" strokeWidth="1.5" />
+                    
+                    {/* Area under the curve */}
+                    <path d={svgChart.areaD} fill="url(#visitGrad)" />
+                    
+                    {/* Line curve */}
+                    <path d={svgChart.pathD} fill="none" stroke="#2563EB" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                    
+                    {/* Points & Labels */}
+                    {svgChart.points.map((p, idx) => (
+                      <g key={idx}>
+                        {/* Count Label above point */}
+                        <text 
+                          x={p.cx} 
+                          y={p.cy - 6} 
+                          textAnchor="middle" 
+                          className="text-[9.5px] font-black fill-[#1E3A8A] tabular-nums"
+                        >
+                          {p.count}
+                        </text>
+                        {/* Node Circle */}
+                        <circle 
+                          cx={p.cx} 
+                          cy={p.cy} 
+                          r="3" 
+                          fill="#FFFFFF" 
+                          stroke="#2563EB" 
+                          strokeWidth="2" 
+                        />
+                        {/* Date Label on X-axis */}
+                        <text 
+                          x={p.cx} 
+                          y="80" 
+                          textAnchor="middle" 
+                          className="text-[8.5px] font-bold fill-slate-400"
+                        >
+                          {p.date}
+                        </text>
+                      </g>
+                    ))}
+                  </svg>
+                ) : null}
+              </div>
+            </div>
+
+            {/* Bottom Button */}
+            <button
+              onClick={() => setIsVisitModalOpen(false)}
+              className="w-full py-3 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl text-[12.5px] shadow-sm transition border-none cursor-pointer active:scale-95 text-center"
+            >
+              닫기
+            </button>
           </div>
         </div>
       )}
