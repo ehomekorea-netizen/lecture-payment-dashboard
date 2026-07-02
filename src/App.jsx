@@ -644,7 +644,7 @@ export default function App() {
     transportFee: 0,
     date: getKstToday(),
     isPaid: false,
-    taxRate: '3.3%',
+    taxRate: '8.8%',
     customTax: 0
   });
 
@@ -3989,7 +3989,7 @@ function doPost(e) {
                         transportFee: 0,
                         date: new Date().toISOString().slice(0, 10),
                         isPaid: false,
-                        taxRate: '3.3%',
+                        taxRate: '8.8%',
                         customTax: 0,
                         _newPresetName: '',
                         _newPresetRate: '',
@@ -4184,7 +4184,7 @@ function doPost(e) {
                       onChange={handleInputChange}
                       placeholder="예: 사회복지협의회"
                       list="presets-modal"
-                      className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-semibold transition-all"
+                      className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-semibold transition-all required-pulse"
                       style={{
                         borderColor: 'rgba(30,58,138,0.15)',
                         color: '#0F172A'
@@ -4208,7 +4208,7 @@ function doPost(e) {
                     value={formData.venue || ''}
                     onChange={handleInputChange}
                     placeholder="예: 목포경애원, 남중"
-                    className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-semibold transition-all"
+                    className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-semibold transition-all required-pulse"
                     style={{
                       borderColor: 'rgba(30,58,138,0.15)',
                       color: '#0F172A'
@@ -4258,7 +4258,7 @@ function doPost(e) {
                       value={formData.rate}
                       onChange={handleInputChange}
                       readOnly={!!formData._presetLocked}
-                      className="px-4 py-2.5 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-bold transition-all"
+                      className={`px-4 py-2.5 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-bold transition-all ${formData._presetLocked ? '' : 'required-pulse'}`}
                       style={{
                         background: formData._presetLocked ? '#F1F5F9' : 'white',
                         borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(30,58,138,0.15)',
@@ -4349,7 +4349,7 @@ function doPost(e) {
                 </div>
 
                 {/* 정산 완료 체크 */}
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mb-[5px]">
                   <input
                     type="checkbox"
                     id="modal-isPaid"
@@ -4358,23 +4358,23 @@ function doPost(e) {
                     onChange={handleInputChange}
                     className="w-5 h-5 text-[#1E3A8A] border-slate-300 rounded cursor-pointer accent-[#1E3A8A]"
                   />
-                  <label htmlFor="modal-isPaid" className="font-bold text-slate-600 cursor-pointer select-none text-[11px]">
+                  <label htmlFor="modal-isPaid" className="font-bold text-slate-600 cursor-pointer select-none text-[11.5px]">
                     이미 강의료 입금이 완료되었습니다
                   </label>
                 </div>
 
                 {/* 하단 액션 버튼 */}
-                <div className="flex gap-3 mt-2 sticky bottom-0 bg-white pt-3 pb-1">
+                <div className="flex gap-3 mt-3 sticky bottom-0 bg-white pt-4 pb-3 border-t border-slate-200/40">
                   <button
                     type="button"
                     onClick={() => setIsAddModalOpen(false)}
-                    className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl text-[11px]"
+                    className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold rounded-xl text-[13px]"
                   >
                     취소
                   </button>
                   <button
                     type="submit"
-                    className="flex-[2] py-3 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl shadow-md text-[12px] transition-all"
+                    className="flex-[2] py-3.5 bg-[#1E3A8A] hover:bg-[#0F172A] text-white font-black rounded-xl shadow-md text-[13.5px] transition-all"
                   >
                     {editingLecture ? '수정 완료' : '기록 저장'}
                   </button>
@@ -4565,7 +4565,7 @@ function doPost(e) {
                         transportFee: 0,
                         date: new Date().toISOString().slice(0, 10),
                         isPaid: false,
-                        taxRate: '3.3%',
+                        taxRate: '8.8%',
                         customTax: 0,
                         _newPresetName: '',
                         _newPresetRate: '',

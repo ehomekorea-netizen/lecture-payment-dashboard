@@ -559,6 +559,21 @@
   animation: ctaGlowPulse 1.8s infinite ease-in-out !important;
 }
 
+/* 필수 입력 필드 은은한 CTA 펄스 애니메이션 */
+@keyframes requiredInputPulse {
+  0%, 100% {
+    border-color: rgba(30, 58, 138, 0.15);
+    box-shadow: 0 0 0 0px rgba(30, 58, 138, 0);
+  }
+  50% {
+    border-color: rgba(30, 58, 138, 0.35);
+    box-shadow: 0 0 0 3px rgba(30, 58, 138, 0.05);
+  }
+}
+.required-pulse {
+  animation: requiredInputPulse 2s infinite ease-in-out;
+}
+
 
 
 
