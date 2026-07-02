@@ -534,6 +534,15 @@
   animation: emeraldGlow 1.5s infinite ease-in-out;
 }
 
+/* 정산 대기 중 날짜 초과 카드 은은한 경고 펄스 */
+@keyframes overdue-pulse {
+  0%, 100% { box-shadow: 0 4px 18px rgba(239,68,68,0.08), inset 0 0 0 1px rgba(239,68,68,0.04); }
+  50% { box-shadow: 0 4px 22px rgba(239,68,68,0.16), inset 0 0 0 1px rgba(239,68,68,0.10); }
+}
+.overdue-pending-glow {
+  animation: overdue-pulse 2.5s ease-in-out infinite;
+}
+
 /* AI 서비스 링크 유도용 ctaGlowPulse 애니메이션 */
 @keyframes ctaGlowPulse {
   0%, 100% {

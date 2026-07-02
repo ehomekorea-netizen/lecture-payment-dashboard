@@ -2257,9 +2257,10 @@ ${aiText}
       const shuffledChoices = [...slicedChoices].sort(() => Math.random() - 0.5);
       const correctIndex = shuffledChoices.findIndex(c => c.name === correctAnswerName);
 
+      const totalChoicesValue = shuffledChoices.reduce((sum, c) => sum + c.value, 0);
       const choicesWithPct = shuffledChoices.map(c => ({
         ...c,
-        pct: Math.round((c.value / maxVal) * 100)
+        pct: totalChoicesValue > 0 ? Math.round((c.value / totalChoicesValue) * 100) : 0
       }));
 
       return {
@@ -2898,14 +2899,25 @@ function doPost(e) {
                     }
 
                     const isRecentlyPaid = recentlyPaidCardId === l.id;
+                    const isOverduePending = (() => {
+                      if (l.isPaid || !l.date) return false;
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const m = l.date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                      if (m) {
+                        const lectureDate = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+                        return lectureDate < today;
+                      }
+                      return false;
+                    })();
                     return (
                       <div
                         key={l.id}
                         ref={isRecentlyPaid ? recentlyPaidCardRef : null}
-                        className={`card-hover relative bg-white rounded-[22px] flex flex-col ${isRecentlyPaid ? 'animate-emerald-glow' : ''}`}
+                        className={`card-hover relative bg-white rounded-[22px] flex flex-col ${isRecentlyPaid ? 'animate-emerald-glow' : ''} ${isOverduePending ? 'overdue-pending-glow' : ''}`}
                         style={{
-                          border: l.isPaid ? '1.5px solid rgba(16,185,129,0.35)' : '1.5px solid rgba(245,158,11,0.35)',
-                          boxShadow: l.isPaid ? '0 4px 14px rgba(16,185,129,0.06)' : '0 4px 14px rgba(245,158,11,0.06)',
+                          border: l.isPaid ? '1.5px solid rgba(16,185,129,0.35)' : isOverduePending ? '1.5px solid rgba(239,68,68,0.40)' : '1.5px solid rgba(245,158,11,0.35)',
+                          boxShadow: l.isPaid ? '0 4px 14px rgba(16,185,129,0.06)' : isOverduePending ? '0 4px 18px rgba(239,68,68,0.10), inset 0 0 0 1px rgba(239,68,68,0.05)' : '0 4px 14px rgba(245,158,11,0.06)',
                           zIndex: activeMenuCardId === l.id ? 30 : 1,
                           animationDelay: (idx * 55) + 'ms',
                           padding: '18px'
@@ -3113,12 +3125,12 @@ function doPost(e) {
               </div>
 
               {/* 달력 안내 안내카드 */}
-              <div className="bg-slate-50 border border-slate-200/50 p-2.5 rounded-[12px] text-[12px] text-slate-600 leading-normal flex flex-col gap-0.5 -mt-2 shadow-sm">
-                <span className="font-extrabold text-[13px] text-slate-700 flex items-center gap-1">캘린더 안내</span>
-                <p className="font-semibold text-[11.5px] text-slate-500">기록일은 연하게 칠해지며, 해당 날짜 터치 시 하단에 상세 명세서가 노출됩니다.</p>
-                <div className="flex items-center gap-3 mt-0.5 font-bold text-[11px]">
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 완료</div>
-                  <div className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 대기</div>
+              <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-[14px] text-[13px] text-slate-600 leading-relaxed flex flex-col gap-1.5 -mt-2 shadow-sm">
+                <span className="font-extrabold text-[14.5px] text-slate-700 flex items-center gap-1.5">캘린더 안내</span>
+                <p className="font-semibold text-[12.5px] text-slate-500 leading-relaxed">기록일은 연하게 칠해지며, 해당 날짜 터치 시 하단에 상세 명세서가 노출됩니다.</p>
+                <div className="flex items-center gap-3 mt-1 font-bold text-[12px]">
+                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 완료</div>
+                  <div className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" style={{ animationDuration: '1.5s' }}/> 대기</div>
                 </div>
               </div>
             </div>
@@ -3154,7 +3166,7 @@ function doPost(e) {
 
                 {/* 출강 성과 요약 */}
                 <div className="bg-white p-5 rounded-[24px] shadow-sm animate-fade-in" style={{border: '1px solid rgba(31,46,91,0.10)', marginTop: '-2px'}}>
-                  <span className="text-[15px] font-black block mb-4 text-slate-800">출강 성과 및 요약</span>
+                  <div className="flex items-center gap-2 mb-4"><span className="text-[15px] font-black text-slate-800">출강 성과 및 요약</span><span className="text-[11px] font-bold text-slate-400">미정산 포함</span></div>
                   {statsYearLectures.length === 0 ? (
                     <div className="text-[12px] text-slate-400 text-center py-8 font-bold">집계할 출강 데이터가 없습니다.</div>
                   ) : (
@@ -3840,7 +3852,7 @@ function doPost(e) {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <label className="text-[13px] font-black text-slate-600">Gemini AI API Key</label>
-                          <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com/api-keys)에서 무료 발급\n\n1. https://aistudio.google.com/api-keys 접속\n2. Create API Key 클릭\n3. 발급된 키 복사 후 입력')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
+                          <button type="button" onClick={() => alert('Google AI Studio (aistudio.google.com/api-keys)에서 무료 발급\n\n1. https://aistudio.google.com/api-keys 접속\n2. Create API Key 클릭\n3. 발급된 키 복사 후 입력\n\n💡 사용 모델: gemini-2.5-flash-lite\n   (간단한 텍스트 파싱 전용 경량 모델)\n\n💰 회당 비용: 약 0.32원 (1,500토큰 기준)\n   비용 절감을 위해 가장 합리적인\n   경량 모델을 사용합니다.')} className="w-5 h-5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center"><span className="text-[11px] font-black">?</span></button>
                         </div>
                         <a href="https://aistudio.google.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-[11px] text-[#2563EB] hover:text-blue-800 underline font-extrabold">👉 API Key 무료 발급 바로가기</a>
                       </div>
