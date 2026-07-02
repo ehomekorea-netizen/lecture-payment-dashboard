@@ -709,36 +709,38 @@ export default function App() {
     return statsYear;
   };
 
-  const uniqueMonths = Array.from(new Set(lectures.map(l => extractMonth(l?.date)).filter(Boolean))).sort((a, b) => {
-    const isPrevYearA = a.includes('-');
-    const isPrevYearB = b.includes('-');
+  const uniqueMonths = useMemo(() => {
+    return Array.from(new Set(lectures.map(l => extractMonth(l?.date)).filter(Boolean))).sort((a, b) => {
+      const isPrevYearA = a.includes('-');
+      const isPrevYearB = b.includes('-');
 
-    if (isPrevYearA && !isPrevYearB) return 1;
-    if (!isPrevYearA && isPrevYearB) return -1;
+      if (isPrevYearA && !isPrevYearB) return 1;
+      if (!isPrevYearA && isPrevYearB) return -1;
 
-    if (!isPrevYearA && !isPrevYearB) {
-      const numA = parseInt(a, 10);
-      const numB = parseInt(b, 10);
-      return numB - numA;
-    }
-
-    const matchA = a.match(/^(\d+)-(\d+)월$/);
-    const matchB = b.match(/^(\d+)-(\d+)월$/);
-    
-    if (matchA && matchB) {
-      const yearA = parseInt(matchA[1], 10);
-      const yearB = parseInt(matchB[1], 10);
-      const monthA = parseInt(matchA[2], 10);
-      const monthB = parseInt(matchB[2], 10);
-      
-      if (yearA !== yearB) {
-        return yearB - yearA;
+      if (!isPrevYearA && !isPrevYearB) {
+        const numA = parseInt(a, 10);
+        const numB = parseInt(b, 10);
+        return numB - numA;
       }
-      return monthB - monthA;
-    }
-    
-    return a.localeCompare(b);
-  });
+
+      const matchA = a.match(/^(\d+)-(\d+)월$/);
+      const matchB = b.match(/^(\d+)-(\d+)월$/);
+      
+      if (matchA && matchB) {
+        const yearA = parseInt(matchA[1], 10);
+        const yearB = parseInt(matchB[1], 10);
+        const monthA = parseInt(matchA[2], 10);
+        const monthB = parseInt(matchB[2], 10);
+        
+        if (yearA !== yearB) {
+          return yearB - yearA;
+        }
+        return monthB - monthA;
+      }
+      
+      return a.localeCompare(b);
+    });
+  }, [lectures]);
 
   // 로컬 스토리지 데이터 동기화 및 구글 시트 백그라운드 자동 동기화(Push)
   const prevSheetUrlRef = useRef(sheetUrl);
@@ -1902,27 +1904,42 @@ ${aiText}
   }, [lectures, statsYear, selectedMonth, selectedInstitution]);
 
   // 통계 계산
-  const totalExpected = homeSummaryLectures.reduce((acc, curr) => acc + curr.expectedAmount, 0);
-  const totalNet = homeSummaryLectures.reduce((acc, curr) => acc + (curr.isPaid ? curr.netAmount : 0), 0);
-  const totalUnpaid = homeSummaryLectures.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
-  const unpaidCount = homeSummaryLectures.filter(l => !l.isPaid).length;
+  const totalExpected = useMemo(() => {
+    return homeSummaryLectures.reduce((acc, curr) => acc + curr.expectedAmount, 0);
+  }, [homeSummaryLectures]);
+
+  const totalNet = useMemo(() => {
+    return homeSummaryLectures.reduce((acc, curr) => acc + (curr.isPaid ? curr.netAmount : 0), 0);
+  }, [homeSummaryLectures]);
+
+  const totalUnpaid = useMemo(() => {
+    return homeSummaryLectures.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
+  }, [homeSummaryLectures]);
+
+  const unpaidCount = useMemo(() => {
+    return homeSummaryLectures.filter(l => !l.isPaid).length;
+  }, [homeSummaryLectures]);
 
   // 차트 집계
-  const chartData = uniqueMonths.map(m => {
-    const monthItems = homeYearLectures.filter(l => extractMonth(l.date) === m);
-    const paidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? curr.netAmount : 0), 0);
-    const unpaidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
-    const hoursTotal = monthItems.reduce((acc, curr) => acc + (Number(curr.classes) || 0), 0);
-    return {
-      month: m,
-      paid: paidTotal,
-      unpaid: unpaidTotal,
-      total: paidTotal + unpaidTotal,
-      hours: hoursTotal
-    };
-  });
+  const chartData = useMemo(() => {
+    return uniqueMonths.map(m => {
+      const monthItems = homeYearLectures.filter(l => extractMonth(l.date) === m);
+      const paidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? curr.netAmount : 0), 0);
+      const unpaidTotal = monthItems.reduce((acc, curr) => acc + (curr.isPaid ? 0 : curr.expectedAmount), 0);
+      const hoursTotal = monthItems.reduce((acc, curr) => acc + (Number(curr.classes) || 0), 0);
+      return {
+        month: m,
+        paid: paidTotal,
+        unpaid: unpaidTotal,
+        total: paidTotal + unpaidTotal,
+        hours: hoursTotal
+      };
+    });
+  }, [uniqueMonths, homeYearLectures]);
 
-  const maxChartValue = Math.max(...chartData.map(d => d.total), 100000);
+  const maxChartValue = useMemo(() => {
+    return Math.max(...chartData.map(d => d.total), 100000);
+  }, [chartData]);
 
   // 연도 네비게이션 공통 계산 (TDZ 방지용 호이스팅)
   const _thisYearNow = new Date().getFullYear();
@@ -1933,43 +1950,68 @@ ${aiText}
   const _sNow = new Date().getFullYear();
   const statsCanGoPrev = statsYear > (_sNow - 3);
   const statsCanGoNext = statsYear < _sNow;
-  const statsYearLectures = lectures.filter(l => getLectureYear(l) === statsYear);
-  const statsYearUniqueMonths = Array.from(new Set(statsYearLectures.map(l => l.month))).sort((a, b) => {
-    const matchA = a.match(/(\d+)월$/);
-    const matchB = b.match(/(\d+)월$/);
-    const numA = matchA ? parseInt(matchA[1], 10) : 0;
-    const numB = matchB ? parseInt(matchB[1], 10) : 0;
-    return numA - numB;
-  });
-  const statsMostFreqInst = (() => {
+
+  const statsYearLectures = useMemo(() => {
+    return lectures.filter(l => getLectureYear(l) === statsYear);
+  }, [lectures, statsYear]);
+
+  const statsYearUniqueMonths = useMemo(() => {
+    return Array.from(new Set(statsYearLectures.map(l => l.month))).sort((a, b) => {
+      const matchA = a.match(/(\d+)월$/);
+      const matchB = b.match(/(\d+)월$/);
+      const numA = matchA ? parseInt(matchA[1], 10) : 0;
+      const numB = matchB ? parseInt(matchB[1], 10) : 0;
+      return numA - numB;
+    });
+  }, [statsYearLectures]);
+
+  const statsMostFreqInst = useMemo(() => {
     if (statsYearLectures.length === 0) return '없음';
     const _c = {};
     statsYearLectures.forEach(l => { if (l.institution) _c[l.institution] = (_c[l.institution] || 0) + 1; });
     return Object.entries(_c).reduce((b, [k, v]) => v > b[1] ? [k, v] : b, ['없음', 0])[0];
-  })();
-  const _sFYM = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-  const statsFullYearData = _sFYM.map(m => {
-    const monthNum = parseInt(m, 10);
-    const _it = statsYearLectures.filter(l => {
-      const monthStr = extractMonth(l.date);
-      const match = monthStr.match(/(\d+)월$/);
-      return match && parseInt(match[1], 10) === monthNum;
+  }, [statsYearLectures]);
+
+  const _sFYM = useMemo(() => ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'], []);
+
+  const statsFullYearData = useMemo(() => {
+    return _sFYM.map(m => {
+      const monthNum = parseInt(m, 10);
+      const _it = statsYearLectures.filter(l => {
+        const monthStr = extractMonth(l.date);
+        const match = monthStr.match(/(\d+)월$/);
+        return match && parseInt(match[1], 10) === monthNum;
+      });
+      const _p = _it.reduce((s, l) => s + (l.isPaid ? l.netAmount : 0), 0);
+      const _u = _it.reduce((s, l) => s + (l.isPaid ? 0 : l.expectedAmount), 0);
+      return { month: m, total: _p + _u };
     });
-    const _p = _it.reduce((s, l) => s + (l.isPaid ? l.netAmount : 0), 0);
-    const _u = _it.reduce((s, l) => s + (l.isPaid ? 0 : l.expectedAmount), 0);
-    return { month: m, total: _p + _u };
-  });
-  const _sMax = Math.max(...statsFullYearData.map(d => d.total), 1);
+  }, [_sFYM, statsYearLectures]);
+
+  const _sMax = useMemo(() => {
+    return Math.max(...statsFullYearData.map(d => d.total), 1);
+  }, [statsFullYearData]);
+
   const _sSW = 560; const _sSLP = 28; const _sSCW = _sSW - _sSLP - 28;
-  const statsChartPoints = statsFullYearData.map((d, i) => ({
-    x: _sSLP + i * (_sSCW / 11),
-    y: 148 - (_sMax > 0 ? (d.total / _sMax) * 108 : 0)
-  }));
-  const statsPathD = statsChartPoints.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(' ');
-  const statsAreaD = statsPathD + ` L ${statsChartPoints[11].x} 148 L ${statsChartPoints[0].x} 148 Z`;
+
+  const statsChartPoints = useMemo(() => {
+    return statsFullYearData.map((d, i) => ({
+      x: _sSLP + i * (_sSCW / 11),
+      y: 148 - (_sMax > 0 ? (d.total / _sMax) * 108 : 0)
+    }));
+  }, [statsFullYearData, _sMax]);
+
+  const statsPathD = useMemo(() => {
+    return statsChartPoints.map((p, i) => i === 0 ? `M ${p.x} ${p.y}` : `L ${p.x} ${p.y}`).join(' ');
+  }, [statsChartPoints]);
+
+  const statsAreaD = useMemo(() => {
+    if (statsChartPoints.length === 0) return '';
+    return statsPathD + ` L ${statsChartPoints[11].x} 148 L ${statsChartPoints[0].x} 148 Z`;
+  }, [statsPathD, statsChartPoints]);
 
   // activeYearMonths 계산
-  const activeYearMonths = (() => {
+  const activeYearMonths = useMemo(() => {
     const monthsWithData = new Set(
       lectures
         .filter(l => getLectureYear(l) === statsYear)
@@ -1978,19 +2020,22 @@ ${aiText}
     const order = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
     const filtered = order.filter(m => monthsWithData.has(m));
     return filtered.length > 0 ? filtered : order;
-  })();
+  }, [lectures, statsYear]);
 
   // 평균 소득 계산 및 Y 좌표 매핑
-  const statsAverageIncome = (() => {
+  const statsAverageIncome = useMemo(() => {
     const activeMonths = statsFullYearData.filter(d => d.total > 0);
     if (activeMonths.length === 0) return 0;
     const sum = activeMonths.reduce((acc, d) => acc + d.total, 0);
     return Math.round(sum / activeMonths.length);
-  })();
-  const averageY = 148 - (_sMax > 0 ? (statsAverageIncome / _sMax) * 108 : 0);
+  }, [statsFullYearData]);
+
+  const averageY = useMemo(() => {
+    return 148 - (_sMax > 0 ? (statsAverageIncome / _sMax) * 108 : 0);
+  }, [statsAverageIncome, _sMax]);
 
   // 최고 실적 월 지표 계산 (0-indexed)
-  const peakMonthIndex = (() => {
+  const peakMonthIndex = useMemo(() => {
     let maxVal = -1;
     let maxIdx = -1;
     statsFullYearData.forEach((d, idx) => {
@@ -2000,10 +2045,10 @@ ${aiText}
       }
     });
     return maxVal > 0 ? maxIdx : -1;
-  })();
+  }, [statsFullYearData]);
 
   // YoY / MoM 증감율 계산
-  const momBadges = (() => {
+  const momBadges = useMemo(() => {
     if (selectedMonth === 'All') {
       const curYearTotal = lectures
         .filter(l => getLectureYear(l) === statsYear)
@@ -2032,11 +2077,13 @@ ${aiText}
       const pct = ((curMonthTotal - prevMonthTotal) / prevMonthTotal) * 100;
       return { type: 'MoM', pct: Math.round(pct) };
     }
-  })();
+  }, [lectures, statsYear, selectedMonth]);
 
-  const _sIM = {}; let _sOT = 0;
-  statsYearLectures.forEach(l => { const a = l.expectedAmount || 0; _sIM[l.institution] = (_sIM[l.institution] || 0) + a; _sOT += a; });
-  const statsSortedInsts = Object.entries(_sIM).map(([n, v]) => ({ name: n, val: v, pct: _sOT > 0 ? (v / _sOT) * 100 : 0 })).sort((a, b) => b.val - a.val).slice(0, 5);
+  const statsSortedInsts = useMemo(() => {
+    const _sIM = {}; let _sOT = 0;
+    statsYearLectures.forEach(l => { const a = l.expectedAmount || 0; _sIM[l.institution] = (_sIM[l.institution] || 0) + a; _sOT += a; });
+    return Object.entries(_sIM).map(([n, v]) => ({ name: n, val: v, pct: _sOT > 0 ? (v / _sOT) * 100 : 0 })).sort((a, b) => b.val - a.val).slice(0, 5);
+  }, [statsYearLectures]);
 
   // 10가지 데이터 기반 퀴즈 생성 로직 (AI 없이도 정밀 계산하는 JS 랭킹 엔진)
   const generateQuiz = (lecturesForYear, targetYear) => {
@@ -2313,45 +2360,47 @@ ${aiText}
       setQuizToast(prev => prev ? { ...prev, visible: false } : null);
     }, 1200);
   };
-  const filteredLectures = lectures.filter(l => {
-    if (!l) return false;
-    
-    // Always filter by year first
-    if (getLectureYear(l) !== statsYear) return false;
-    
-    if (selectedMonth !== 'All' && extractMonth(l.date) !== selectedMonth) return false;
+  const filteredLectures = useMemo(() => {
+    return lectures.filter(l => {
+      if (!l) return false;
+      
+      // Always filter by year first
+      if (getLectureYear(l) !== statsYear) return false;
+      
+      if (selectedMonth !== 'All' && extractMonth(l.date) !== selectedMonth) return false;
 
-    const matchesInst = selectedInstitution === 'All' || cleanEmojiAndSpace(l.institution) === cleanEmojiAndSpace(selectedInstitution);
-    const matchesStatus = 
-      selectedStatus === 'All' || 
-      (selectedStatus === 'Paid' && l.isPaid) || 
-      (selectedStatus === 'Pending' && !l.isPaid);
-    
-    return matchesInst && matchesStatus;
-  }).sort((a, b) => {
-    // 1. 대기(Pending)가 완료(Paid)보다 상단에 위치하도록 정렬
-    if (a.isPaid !== b.isPaid) {
-      return a.isPaid ? 1 : -1;
-    }
-    // 2. 날짜 내림차순 정렬 (미래/최근 날짜가 위로 오도록)
-    const dateA = a.date || '';
-    const dateB = b.date || '';
-    if (!dateA && !dateB) return b.id.localeCompare(a.id);
-    if (!dateA) return 1;  // 날짜 없는 카드는 아래로 배치
-    if (!dateB) return -1;
-    
-    const cmp = dateB.localeCompare(dateA);
-    if (cmp !== 0) return cmp;
-    return b.id.localeCompare(a.id);
-  });
+      const matchesInst = selectedInstitution === 'All' || cleanEmojiAndSpace(l.institution) === cleanEmojiAndSpace(selectedInstitution);
+      const matchesStatus = 
+        selectedStatus === 'All' || 
+        (selectedStatus === 'Paid' && l.isPaid) || 
+        (selectedStatus === 'Pending' && !l.isPaid);
+      
+      return matchesInst && matchesStatus;
+    }).sort((a, b) => {
+      // 1. 대기(Pending)가 완료(Paid)보다 상단에 위치하도록 정렬
+      if (a.isPaid !== b.isPaid) {
+        return a.isPaid ? 1 : -1;
+      }
+      // 2. 날짜 내림차순 정렬 (미래/최근 날짜가 위로 오도록)
+      const dateA = a.date || '';
+      const dateB = b.date || '';
+      if (!dateA && !dateB) return b.id.localeCompare(a.id);
+      if (!dateA) return 1;  // 날짜 없는 카드는 아래로 배치
+      if (!dateB) return -1;
+      
+      const cmp = dateB.localeCompare(dateA);
+      if (cmp !== 0) return cmp;
+      return b.id.localeCompare(a.id);
+    });
+  }, [lectures, statsYear, selectedMonth, selectedInstitution, selectedStatus]);
 
-  const listItems = (() => {
+  const listItems = useMemo(() => {
     const items = [...filteredLectures];
     if (deletedLecture && deletedLectureIndex >= 0 && deletedLectureIndex <= items.length) {
       items.splice(deletedLectureIndex, 0, { isUndoPlaceholder: true, data: deletedLecture });
     }
     return items;
-  })();
+  }, [filteredLectures, deletedLecture, deletedLectureIndex]);
 
   const gasTemplateCode = `function doGet(e) {
   if (e && e.parameter && e.parameter.open === "true") {
@@ -3125,7 +3174,7 @@ function doPost(e) {
               </div>
 
               {/* 달력 안내 안내카드 */}
-              <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-[14px] text-[13px] text-slate-600 leading-relaxed flex flex-col gap-1.5 -mt-2 shadow-sm">
+              <div className="bg-white border border-slate-200/50 p-4 rounded-[14px] text-[13px] text-slate-600 leading-relaxed flex flex-col gap-1.5 mt-[2px] shadow-sm">
                 <span className="font-extrabold text-[14.5px] text-slate-700 flex items-center gap-1.5">캘린더 안내</span>
                 <p className="font-semibold text-[12.5px] text-slate-500 leading-relaxed">기록일은 연하게 칠해지며, 해당 날짜 터치 시 하단에 상세 명세서가 노출됩니다.</p>
                 <div className="flex items-center gap-3 mt-1 font-bold text-[12px]">
@@ -4349,16 +4398,16 @@ function doPost(e) {
                 </div>
 
                 {/* 정산 완료 체크 */}
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100 mb-[5px]">
+                <div className="flex items-center gap-2.5 px-1 mb-[7px]">
                   <input
                     type="checkbox"
                     id="modal-isPaid"
                     name="isPaid"
                     checked={formData.isPaid}
                     onChange={handleInputChange}
-                    className="w-5 h-5 text-[#1E3A8A] border-slate-300 rounded cursor-pointer accent-[#1E3A8A]"
+                    className="w-4.5 h-4.5 text-[#1E3A8A] border-slate-300 rounded cursor-pointer accent-[#1E3A8A]"
                   />
-                  <label htmlFor="modal-isPaid" className="font-bold text-slate-600 cursor-pointer select-none text-[11.5px]">
+                  <label htmlFor="modal-isPaid" className="font-bold text-slate-600 cursor-pointer select-none text-[12px]">
                     이미 강의료 입금이 완료되었습니다
                   </label>
                 </div>
