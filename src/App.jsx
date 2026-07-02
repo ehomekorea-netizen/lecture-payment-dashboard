@@ -1066,7 +1066,7 @@ export default function App() {
     setAiError(null);
 
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1076,15 +1076,14 @@ export default function App() {
 아래의 텍스트에서 강의 일정을 추출해서 JSON 배열로 반환해줘.
 
 각 강의 일정 객체는 다음 필드를 가져야 해:
-1. institution: 주최기관 (예: "사회복지협의회", "해남종합사회복지관" 등)
-2. venue: 굕육장명 (예: "목포경애원", "남중" 등)
-2. rate: 강의 시간당 단가 (숫자만, 예: 100000)
-3. classes: 총 차시 또는 강의 시간 (숫자만, 예: 3)
-4. transportFee: 교통비 (숫자만, 없으면 0)
-5. date: 강의 날짜 (문자열, 예: "6월 19일")
-6. month: 정산 기준 월 (문자열, 예: "6월" 또는 "25/11월")
-
-8. taxRate: 세율 (일반적인 복지관/사회복지협의회는 8.8% 기본 설정, 사기업은 3.3% 설정)
+1. institution: 주최기관 (예: "디지털새싹 아카데미", "강진군청", "TMD교육" 등. 출강 사업을 주최하거나 주관하는 상위 기관명)
+2. venue: 교육장명 (예: "목포중앙고등학교 (컴퓨터 2실)", "강진군청 3층 대회의실", "벌교 보성중" 등. 실제 강의가 진행되는 구체적인 장소/학교/대강당 등)
+3. rate: 강의 시간당 단가 (숫자만, 예: 100000)
+4. classes: 총 차시 또는 강의 시간 (숫자만, 예: 3)
+5. transportFee: 교통비 (숫자만, 없으면 0)
+6. date: 강의 날짜 (문자열, 예: "2026-02-17" 또는 "2026-03-05" 등 YYYY-MM-DD 포맷을 최대한 준수하고, 텍스트에 연도가 없으면 2026년으로 추정)
+7. month: 정산 기준 월 (문자열, 예: "2월", "3월" 등)
+8. taxRate: 세율 (일반적인 복지관/사회복지협의회/공공기관은 8.8% 기본 설정, 사기업은 3.3% 설정)
 9. taxBase: 과세 기준 ("LectureOnly" 또는 "Total". 기본값 "LectureOnly")
 10. isPaid: 정산 완료 여부 (기본 false)
 
@@ -1093,18 +1092,19 @@ export default function App() {
 - 규칙 2: 정산 여부(입금 완료 등)가 명확하게 언급되지 않은 경우, 반드시 'isPaid': false (정산 대기) 상태로 등록한다.
 - 규칙 3: 실수령액은 항상 [강의료 + 교통비 - 공제금액] 기준으로 계산한다.
 - 규칙 4: 정산 대기는 "미정산"의 의미이지 "실수령 0원"의 의미가 아니므로, 모든 금액 계산식은 동일하게 정상 적용되어야 한다.
+- 규칙 5: 주최기관(institution)과 교육장명(venue)은 반드시 분리하여 추출한다. 예시: '주최: 디지털새싹 아카데미 / 교육 장소: 목포중앙고등학교' 일 때, institution은 '디지털새싹 아카데미', venue는 '목포중앙고등학교'가 되어야 한다. 이 둘을 절대 합쳐서 적지 마라.
 
 반환할 포맷:
 [
   {
-    "institution": "사회복지협의회/목포경애원",
+    "institution": "디지털새싹 아카데미",
+    "venue": "목포중앙고등학교 (컴퓨터 2실)",
     "rate": 100000,
-    "classes": 3,
-    "transportFee": 0,
-    "date": "11월 19일",
-    "month": "11월",
-
-    "taxRate": "8.8%",
+    "classes": 4,
+    "transportFee": 30000,
+    "date": "2026-02-17",
+    "month": "2월",
+    "taxRate": "3.3%",
     "taxBase": "LectureOnly",
     "isPaid": false
   }
@@ -1140,6 +1140,7 @@ ${aiText}
           return {
             id: `ai-${Date.now()}-${idx}`,
             institution: item.institution || '알 수 없는 학교',
+            venue: item.venue || '',
             rate: item.rate || 100000,
             classes: item.classes || 2,
             transportFee: item.transportFee || 0,
