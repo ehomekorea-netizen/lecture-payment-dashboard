@@ -8,8 +8,8 @@ import AnimatedNumber from './components/AnimatedNumber';
 // Upstash Redis 설정 (방문자 수 집계용 - 2안 방식)
 // 필요에 따라 아래에 본인의 Upstash URL과 Token을 기입하시면 됩니다.
 // 만약 공란일 경우 방문자 통계 기능은 실행되지 않고 안전하게 우회됩니다.
-const UPSTASH_URL = import.meta.env.VITE_UPSTASH_REST_URL || "";
-const UPSTASH_TOKEN = import.meta.env.VITE_UPSTASH_REST_TOKEN || "";
+const UPSTASH_URL = import.meta.env.VITE_UPSTASH_REST_URL || "https://relevant-grubworm-99297.upstash.io";
+const UPSTASH_TOKEN = import.meta.env.VITE_UPSTASH_REST_TOKEN || "gQAAAAAAAYPhAAIgcDI4ZDNjMTkzZDMwZDQ0N2RkODhkYjk5MzRlMWE2ZjkzOQ";
 
 
 
