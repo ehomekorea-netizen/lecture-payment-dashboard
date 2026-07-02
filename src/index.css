@@ -580,6 +580,21 @@
   animation: requiredInputPulse 2.0s infinite ease-in-out;
 }
 
+/* 출강 날짜 피커 초록 펄스 애니메이션 */
+@keyframes dateInputPulse {
+  0%, 100% {
+    border-color: rgba(16, 185, 129, 0.20);
+    box-shadow: 0 0 0 0px rgba(16, 185, 129, 0);
+  }
+  50% {
+    border-color: rgba(16, 185, 129, 0.45);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.08);
+  }
+}
+.date-pulse {
+  animation: dateInputPulse 2.0s infinite ease-in-out;
+}
+
 
 
 

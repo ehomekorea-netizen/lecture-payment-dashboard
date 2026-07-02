@@ -799,6 +799,25 @@ export default function App() {
     return () => clearInterval(interval);
   }, [sheetUrl, isInitialPullCompleted]);
 
+  // 모바일/웹 스크롤 락 (모달 오픈 시 배경 스크롤 차단으로 프리징 현상 방지)
+  useEffect(() => {
+    const isAnyModalOpen = isAddModalOpen || isAiModalOpen || isScriptModalOpen;
+    if (isAnyModalOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'relative';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.documentElement.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [isAddModalOpen, isAiModalOpen, isScriptModalOpen]);
+
 
 
   // 자동 완성 추천 목록
@@ -2401,6 +2420,16 @@ ${aiText}
     }
     return items;
   }, [filteredLectures, deletedLecture, deletedLectureIndex]);
+
+  const rateOptions = useMemo(() => {
+    const base = Array.from({length: 15}, (_, i) => (i + 1) * 10000);
+    const currentRate = Number(formData.rate);
+    if (currentRate && !base.includes(currentRate)) {
+      base.push(currentRate);
+      base.sort((a, b) => a - b);
+    }
+    return base;
+  }, [formData.rate]);
 
   const gasTemplateCode = `function doGet(e) {
   if (e && e.parameter && e.parameter.open === "true") {
@@ -4299,21 +4328,25 @@ function doPost(e) {
                   {/* 강의 단가 */}
                   <div className="flex flex-col gap-1.5">
                     <label className="font-bold text-slate-600 text-[11.5px]">강의 단가 (시간당) <span className="text-red-500 font-extrabold">*</span></label>
-                    <input
-                      type="number"
+                    <select
                       name="rate"
-                      required
-                      max="150000"
                       value={formData.rate}
-                      onChange={handleInputChange}
-                      readOnly={!!formData._presetLocked}
-                      className={`px-4 py-2.5 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-bold transition-all ${formData._presetLocked ? '' : 'required-pulse'}`}
+                      onChange={(e) => setFormData(prev => ({ ...prev, rate: Number(e.target.value) }))}
+                      disabled={!!formData._presetLocked}
+                      className={`w-full px-3 py-2.5 bg-white border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-center font-black text-[12px] transition-all ${formData._presetLocked ? '' : 'required-pulse'}`}
                       style={{
                         background: formData._presetLocked ? '#F1F5F9' : 'white',
                         borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(30,58,138,0.15)',
-                        color: formData._presetLocked ? '#64748B' : '#0F172A'
+                        color: formData._presetLocked ? '#64748B' : '#0F172A',
+                        opacity: formData._presetLocked ? 0.6 : 1
                       }}
-                    />
+                    >
+                      {rateOptions.map(val => (
+                        <option key={val} value={val}>
+                          {val === 100000 ? '10만원 (기본값)' : val % 10000 === 0 ? `${val / 10000}만원` : `${val.toLocaleString()}원`}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* 총 차시 피커 */}
@@ -4323,7 +4356,7 @@ function doPost(e) {
                       name="classes"
                       value={formData.classes}
                       onChange={(e) => setFormData(prev => ({ ...prev, classes: Number(e.target.value) }))}
-                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-center font-black text-[12px] text-[#0F172A] focus:outline-none focus:border-[#1E3A8A]"
+                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-center font-black text-[12px] text-[#0F172A] focus:outline-none focus:border-[#1E3A8A] required-pulse"
                     >
                       {Array.from({length: 16}, (_, i) => i + 1).map(c => (
                         <option key={c} value={c}>{c}차시</option>
@@ -4356,7 +4389,7 @@ function doPost(e) {
                       onChange={handleInputChange}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
-                    <div className="px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-between text-[13px] font-black text-slate-800">
+                    <div className="px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-between text-[13px] font-black text-slate-800 date-pulse">
                       <span>{formatDateDisplayFull(formData.date)}</span>
                       <Calendar size={14} className="text-slate-400" />
                     </div>
