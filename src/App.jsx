@@ -1221,24 +1221,47 @@ ${aiText}
           syncToGoogleSheetSilent(lectures);
         } else {
           // 구글 시트에 데이터가 있거나 로컬도 비어있는 경우 -> 구글 시트 데이터로 로컬 덮어쓰기
-          const mapped = validList.map(row => ({
-            id: String(row.id || Date.now() + Math.random()),
-            institution: String(row.institution || '기타 기관'),
-            venue: String(row.venue || ''),
-            rate: Number(row.rate) || 0,
-            classes: Number(row.classes) || 0,
-            expectedAmount: Number(row.expectedAmount) || 0,
-            transportFee: Number(row.transportFee) || 0,
-            deduction: Number(row.deduction) || 0,
-            netAmount: Number(row.netAmount) || 0,
-            month: String(row.month || '6월'),
-            date: String(row.date || '6월 29일'),
+          const mapped = validList.map(row => {
+            const rate = Number(row.rate) || 0;
+            const classes = Number(row.classes) || 0;
+            const transportFee = Number(row.transportFee) || 0;
+            
+            let taxRate = String(row.taxRate || '8.8%');
+            if (taxRate !== 'None' && !taxRate.includes('%') && !isNaN(Number(taxRate))) {
+              taxRate = taxRate + '%';
+            }
 
-            isPaid: String(row.isPaid) === 'true' || row.isPaid === true,
-            taxRate: String(row.taxRate || '8.8%'),
-            taxBase: String(row.taxBase || 'LectureOnly'),
-            customTax: Number(row.customTax) || 0
-          }));
+            const customTax = Number(row.customTax) || 0;
+            const isPaid = String(row.isPaid) === 'true' || row.isPaid === true;
+
+            const { expectedAmount, deduction, netAmount } = calculateFees(
+              rate,
+              classes,
+              transportFee,
+              taxRate,
+              customTax,
+              isPaid
+            );
+
+            return {
+              id: String(row.id || Date.now() + Math.random()),
+              institution: String(row.institution || '기타 기관'),
+              venue: String(row.venue || ''),
+              role: (String(row.role || 'Main') === '보조강사' || String(row.role || 'Main') === 'Assistant') ? 'Assistant' : 'Main',
+              rate,
+              classes,
+              expectedAmount,
+              transportFee,
+              deduction,
+              netAmount,
+              month: String(row.month || '6월'),
+              date: String(row.date || '6월 29일'),
+              isPaid,
+              taxRate,
+              taxBase: String(row.taxBase || 'LectureOnly'),
+              customTax
+            };
+          });
           skipNextSyncRef.current = true;
           setLectures(mapped);
         }
@@ -1285,24 +1308,47 @@ ${aiText}
             syncToGoogleSheetSilent(lectures);
           } else {
             // 구글 시트에 데이터가 있거나 로컬도 비어있는 경우 -> 구글 시트 데이터로 로컬 덮어쓰기
-            const mapped = validList.map(row => ({
-              id: String(row.id),
-              institution: String(row.institution),
-              venue: String(row.venue || ''),
-              rate: Number(row.rate) || 0,
-              classes: Number(row.classes) || 0,
-              expectedAmount: Number(row.expectedAmount) || 0,
-              transportFee: Number(row.transportFee) || 0,
-              deduction: Number(row.deduction) || 0,
-              netAmount: Number(row.netAmount) || 0,
-              month: String(row.month),
-              date: String(row.date),
+            const mapped = validList.map(row => {
+              const rate = Number(row.rate) || 0;
+              const classes = Number(row.classes) || 0;
+              const transportFee = Number(row.transportFee) || 0;
+              
+              let taxRate = String(row.taxRate || '8.8%');
+              if (taxRate !== 'None' && !taxRate.includes('%') && !isNaN(Number(taxRate))) {
+                taxRate = taxRate + '%';
+              }
 
-              isPaid: String(row.isPaid) === 'true' || row.isPaid === true,
-              taxRate: String(row.taxRate),
-              taxBase: String(row.taxBase || 'LectureOnly'),
-              customTax: Number(row.customTax) || 0
-            }));
+              const customTax = Number(row.customTax) || 0;
+              const isPaid = String(row.isPaid) === 'true' || row.isPaid === true;
+
+              const { expectedAmount, deduction, netAmount } = calculateFees(
+                rate,
+                classes,
+                transportFee,
+                taxRate,
+                customTax,
+                isPaid
+              );
+
+              return {
+                id: String(row.id),
+                institution: String(row.institution),
+                venue: String(row.venue || ''),
+                role: (String(row.role || 'Main') === '보조강사' || String(row.role || 'Main') === 'Assistant') ? 'Assistant' : 'Main',
+                rate,
+                classes,
+                expectedAmount,
+                transportFee,
+                deduction,
+                netAmount,
+                month: String(row.month),
+                date: String(row.date),
+                isPaid,
+                taxRate,
+                taxBase: String(row.taxBase || 'LectureOnly'),
+                customTax
+              };
+            });
             skipNextSyncRef.current = true;
             setLectures(mapped);
           }
@@ -1534,31 +1580,27 @@ ${aiText}
     // 대기 상태로 되돌릴 때 확인 절차 추가
     if (!nextPaid) {
       const confirmed = window.confirm(
-        '이 강의를 "정산 대기" 상태로 되돌리시겠습니까?\n(실수령액과 공제금액이 다시 0원으로 변경됩니다.)'
+        '이 강의를 "정산 대기" 상태로 되돌리시겠습니까?'
       );
       if (!confirmed) return;
     }
 
-    let updatedFields = { isPaid: nextPaid };
+    // 대기/완료 여부와 상관없이 모든 실계산은 정밀하게 수행되어 예정/완료치로 노출됨
+    const { expectedAmount, deduction, netAmount } = calculateFees(
+      lecture.rate,
+      lecture.classes,
+      lecture.transportFee,
+      lecture.taxRate || '8.8%',
+      lecture.customTax || 0,
+      nextPaid
+    );
 
-    if (nextPaid) {
-      // 대기 → 완료: 실수령액 및 공제금액 새로 계산
-      const { expectedAmount, deduction, netAmount } = calculateFees(
-        lecture.rate,
-        lecture.classes,
-        lecture.transportFee,
-        lecture.taxRate || '3.3%',
-        lecture.customTax || 0,
-        true
-      );
-      updatedFields.deduction = deduction;
-      updatedFields.netAmount = netAmount;
-      updatedFields.expectedAmount = expectedAmount;
-    } else {
-      // 완료 → 대기: 실수령액 / 공제금액 0으로 초기화 (정산대기 = 아직 미지급)
-      updatedFields.netAmount = 0;
-      updatedFields.deduction = 0;
-    }
+    const updatedFields = {
+      isPaid: nextPaid,
+      deduction,
+      netAmount,
+      expectedAmount
+    };
 
     // 다음 변경은 실시간 전체 동기를 건너뛰고 단일 업데이트만 요청하도록 플래그 세팅
     skipNextSyncRef.current = true;
