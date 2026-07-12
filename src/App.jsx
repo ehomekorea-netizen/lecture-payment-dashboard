@@ -740,6 +740,10 @@ export default function App() {
   // 카드 토글 상태
   const [toggledCardIds, setToggledCardIds] = useState(new Set());
 
+  // 직접입력 모드 상태
+  const [customRateActive, setCustomRateActive] = useState(false);
+  const [customClassesActive, setCustomClassesActive] = useState(false);
+
   // 모달 폼 상태
   const [formData, setFormData] = useState({
     institution: '',
@@ -1638,6 +1642,8 @@ ${aiText}
     setLectures(updatedList);
     setIsAddModalOpen(false);
     setEditingLecture(null);
+    setCustomRateActive(false);
+    setCustomClassesActive(false);
 
     setFormData({
       institution: '',
@@ -1784,6 +1790,10 @@ ${aiText}
 
   const handleEditClick = (lecture) => {
     setEditingLecture(lecture);
+    const isCustomRate = lecture.rate < 10000 || lecture.rate > 150000 || lecture.rate % 10000 !== 0;
+    const isCustomClasses = lecture.classes < 1 || lecture.classes > 16 || !Number.isInteger(lecture.classes);
+    setCustomRateActive(isCustomRate);
+    setCustomClassesActive(isCustomClasses);
     setFormData({
       institution: lecture.institution,
       venue: lecture.venue || '',
@@ -4266,6 +4276,8 @@ function doPost(e) {
                     key={t.id}
                     onClick={() => {
                       setEditingLecture(null);
+                      setCustomRateActive(false);
+                      setCustomClassesActive(false);
                       setFormData({
                         institution: '',
                         venue: '',
@@ -4536,40 +4548,105 @@ function doPost(e) {
                   {/* 강의 단가 */}
                   <div className="flex flex-col gap-1.5">
                     <label className="font-bold text-slate-600 text-[11.5px]">강의 단가 (시간당) <span className="text-red-500 font-extrabold">*</span></label>
-                    <select
-                      name="rate"
-                      value={formData.rate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, rate: Number(e.target.value) }))}
-                      disabled={!!formData._presetLocked}
-                      className={`w-full px-3 py-2.5 bg-white border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-center font-black text-[12px] transition-all ${formData._presetLocked ? '' : 'required-pulse'}`}
-                      style={{
-                        background: formData._presetLocked ? '#F1F5F9' : 'white',
-                        borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(30,58,138,0.15)',
-                        color: formData._presetLocked ? '#64748B' : '#0F172A',
-                        opacity: formData._presetLocked ? 0.6 : 1
-                      }}
-                    >
-                      {rateOptions.map(val => (
-                        <option key={val} value={val}>
-                          {val === 100000 ? '10만원 (기본값)' : val % 10000 === 0 ? `${val / 10000}만원` : `${val.toLocaleString()}원`}
-                        </option>
-                      ))}
-                    </select>
+                    {customRateActive ? (
+                      <div className="flex gap-1.5 items-center">
+                        <input
+                          type="number"
+                          value={formData.rate || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, rate: Number(e.target.value) }))}
+                          disabled={!!formData._presetLocked}
+                          placeholder="단가 직접 입력"
+                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E3A8A] text-center font-black text-[12px]"
+                        />
+                        <button
+                          type="button"
+                          disabled={!!formData._presetLocked}
+                          onClick={() => {
+                            setCustomRateActive(false);
+                            if (!rateOptions.includes(formData.rate)) {
+                              setFormData(prev => ({ ...prev, rate: 100000 }));
+                            }
+                          }}
+                          className="px-2.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl text-[10px] font-bold whitespace-nowrap cursor-pointer transition active:scale-95 disabled:opacity-50"
+                        >
+                          목록
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        name="rate"
+                        value={formData.rate}
+                        onChange={(e) => {
+                          if (e.target.value === 'custom') {
+                            setCustomRateActive(true);
+                          } else {
+                            setFormData(prev => ({ ...prev, rate: Number(e.target.value) }));
+                          }
+                        }}
+                        disabled={!!formData._presetLocked}
+                        className={`w-full px-3 py-2.5 bg-white border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-center font-black text-[12px] transition-all ${formData._presetLocked ? '' : 'required-pulse'}`}
+                        style={{
+                          background: formData._presetLocked ? '#F1F5F9' : 'white',
+                          borderColor: formData._presetLocked ? '#E2E8F0' : 'rgba(30,58,138,0.15)',
+                          color: formData._presetLocked ? '#64748B' : '#0F172A',
+                          opacity: formData._presetLocked ? 0.6 : 1
+                        }}
+                      >
+                        {rateOptions.map(val => (
+                          <option key={val} value={val}>
+                            {val % 10000 === 0 ? `${val / 10000}만원` : `${val.toLocaleString()}원`}
+                          </option>
+                        ))}
+                        <option value="custom">직접 입력...</option>
+                      </select>
+                    )}
                   </div>
 
                   {/* 총 차시 피커 */}
                   <div className="flex flex-col gap-1.5">
                     <label className="font-bold text-slate-600 text-[11.5px]">총 강의 시간 (차시) <span className="text-red-500 font-extrabold">*</span></label>
-                    <select
-                      name="classes"
-                      value={formData.classes}
-                      onChange={(e) => setFormData(prev => ({ ...prev, classes: Number(e.target.value) }))}
-                      className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-center font-black text-[12px] text-[#0F172A] focus:outline-none focus:border-[#1E3A8A] required-pulse"
-                    >
-                      {Array.from({length: 16}, (_, i) => i + 1).map(c => (
-                        <option key={c} value={c}>{c}차시</option>
-                      ))}
-                    </select>
+                    {customClassesActive ? (
+                      <div className="flex gap-1.5 items-center">
+                        <input
+                          type="number"
+                          step="0.5"
+                          value={formData.classes || ''}
+                          onChange={(e) => setFormData(prev => ({ ...prev, classes: Number(e.target.value) }))}
+                          placeholder="차시 직접 입력"
+                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-[#1E3A8A] text-center font-black text-[12px]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCustomClassesActive(false);
+                            if (formData.classes < 1 || formData.classes > 16 || !Number.isInteger(formData.classes)) {
+                              setFormData(prev => ({ ...prev, classes: 4 }));
+                            }
+                          }}
+                          className="px-2.5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-500 rounded-xl text-[10px] font-bold whitespace-nowrap cursor-pointer transition active:scale-95"
+                        >
+                          목록
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        name="classes"
+                        value={formData.classes}
+                        onChange={(e) => {
+                          if (e.target.value === 'custom') {
+                            setCustomClassesActive(true);
+                          } else {
+                            setFormData(prev => ({ ...prev, classes: Number(e.target.value) }));
+                          }
+                        }}
+                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-center font-black text-[12px] text-[#0F172A] focus:outline-none focus:border-[#1E3A8A] required-pulse"
+                      >
+                        {Array.from({length: 16}, (_, i) => i + 1).map(c => (
+                          <option key={c} value={c}>{c}차시</option>
+                        ))}
+                        <option value="custom">직접 입력...</option>
+                      </select>
+                    )}
                   </div>
                 </div>
 
@@ -4846,6 +4923,8 @@ function doPost(e) {
                     onClick={() => {
                       setIsAiModalOpen(false);
                       setEditingLecture(null);
+                      setCustomRateActive(false);
+                      setCustomClassesActive(false);
                       setFormData({
                         institution: '',
                         venue: '',
