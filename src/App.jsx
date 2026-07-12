@@ -1588,13 +1588,6 @@ ${aiText}
       return;
     }
 
-    if (Number(formData.rate) > 150000) {
-      alert('시간당 강의 단가는 최대 15만원까지만 설정할 수 있습니다.');
-      const el = document.querySelector('input[name="rate"]') || document.querySelector('select[name="rate"]');
-      if (el) el.focus();
-      return;
-    }
-
     if (!formData.classes || Number(formData.classes) <= 0) {
       alert('총 강의 시간(차시)을 올바르게 입력해 주세요.');
       const el = document.querySelector('input[name="classes"]') || document.querySelector('select[name="classes"]');
