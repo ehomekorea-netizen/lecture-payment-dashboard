@@ -1583,21 +1583,28 @@ ${aiText}
     
     if (!formData.rate || Number(formData.rate) <= 0) {
       alert('시간당 강의 단가를 올바르게 입력해 주세요.');
-      const el = document.querySelector('input[name="rate"]');
+      const el = document.querySelector('input[name="rate"]') || document.querySelector('select[name="rate"]');
       if (el) el.focus();
       return;
     }
 
     if (Number(formData.rate) > 150000) {
       alert('시간당 강의 단가는 최대 15만원까지만 설정할 수 있습니다.');
-      const el = document.querySelector('input[name="rate"]');
+      const el = document.querySelector('input[name="rate"]') || document.querySelector('select[name="rate"]');
+      if (el) el.focus();
+      return;
+    }
+
+    if (!formData.classes || Number(formData.classes) <= 0) {
+      alert('총 강의 시간(차시)을 올바르게 입력해 주세요.');
+      const el = document.querySelector('input[name="classes"]') || document.querySelector('select[name="classes"]');
       if (el) el.focus();
       return;
     }
 
     if (Number(formData.classes) > 16) {
       alert('총 강의 시간(차시)은 최대 16차시까지만 선택할 수 있습니다.');
-      const el = document.querySelector('select[name="classes"]');
+      const el = document.querySelector('input[name="classes"]') || document.querySelector('select[name="classes"]');
       if (el) el.focus();
       return;
     }
@@ -4552,6 +4559,7 @@ function doPost(e) {
                       <div className="flex gap-1.5 items-center">
                         <input
                           type="number"
+                          name="rate"
                           value={formData.rate || ''}
                           onChange={(e) => setFormData(prev => ({ ...prev, rate: Number(e.target.value) }))}
                           disabled={!!formData._presetLocked}
@@ -4609,6 +4617,7 @@ function doPost(e) {
                       <div className="flex gap-1.5 items-center">
                         <input
                           type="number"
+                          name="classes"
                           step="0.5"
                           value={formData.classes || ''}
                           onChange={(e) => setFormData(prev => ({ ...prev, classes: Number(e.target.value) }))}
