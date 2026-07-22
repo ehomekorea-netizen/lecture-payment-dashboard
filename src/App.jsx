@@ -4536,7 +4536,7 @@ function doPost(e) {
                     required
                     value={formData.venue || ''}
                     onChange={handleInputChange}
-                    placeholder="예: 목포경애원, 남중 1학년 2반"
+                    placeholder="예: 2층 컴퓨터실, 사회복지사"
                     className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-semibold transition-all required-pulse"
                     style={{
                       borderColor: 'rgba(30,58,138,0.15)',
@@ -4732,10 +4732,11 @@ function doPost(e) {
                         type="date"
                         name="date"
                         value={formData.date}
+                        onClick={(e) => { try { e.target.showPicker && e.target.showPicker(); } catch(err){} }}
                         onChange={handleInputChange}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                       />
-                      <div className="px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white flex items-center justify-between text-[12.5px] font-black text-slate-800 date-pulse">
+                      <div className="px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white flex items-center justify-between text-[12.5px] font-black text-slate-800 date-pulse cursor-pointer">
                         <span>{formatDateDisplayFull(formData.date)}</span>
                         <Calendar size={14} className="text-slate-400" />
                       </div>
@@ -4750,14 +4751,16 @@ function doPost(e) {
                               type="date"
                               name="date"
                               value={formData.date}
+                              onClick={(e) => { try { e.target.showPicker && e.target.showPicker(); } catch(err){} }}
                               onChange={(e) => {
                                 handleInputChange(e);
                                 if (endDate && endDate < e.target.value) setEndDate(e.target.value);
                               }}
                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             />
-                            <div className="px-3 py-2 border border-slate-200 rounded-xl bg-white flex items-center justify-between text-[11.5px] font-black text-slate-800">
-                              <span>{formatDateDisplayFull(formData.date)}</span>
+                            <div className="px-3 py-2 border border-slate-200 rounded-xl bg-white flex items-center justify-between text-[11.5px] font-black text-slate-800 date-pulse cursor-pointer">
+                              <span className="truncate">{formatDateDisplayFull(formData.date)}</span>
+                              <Calendar size={13} className="text-[#1E3A8A] flex-shrink-0 ml-1" />
                             </div>
                           </div>
                         </div>
@@ -4768,37 +4771,20 @@ function doPost(e) {
                               type="date"
                               value={endDate}
                               min={formData.date}
+                              onClick={(e) => { try { e.target.showPicker && e.target.showPicker(); } catch(err){} }}
                               onChange={(e) => setEndDate(e.target.value)}
                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                             />
-                            <div className="px-3 py-2 border border-slate-200 rounded-xl bg-white flex items-center justify-between text-[11.5px] font-black text-slate-800">
-                              <span>{formatDateDisplayFull(endDate)}</span>
+                            <div className="px-3 py-2 border border-slate-200 rounded-xl bg-white flex items-center justify-between text-[11.5px] font-black text-slate-800 date-pulse cursor-pointer">
+                              <span className="truncate">{formatDateDisplayFull(endDate)}</span>
+                              <Calendar size={13} className="text-[#1E3A8A] flex-shrink-0 ml-1" />
                             </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* 단축 일수 선택 버튼 및 일괄 생성 요약 뱃지 */}
-                      <div className="flex items-center justify-between gap-1.5 pt-1">
-                        <div className="flex gap-1 text-[10px] font-bold">
-                          {[2, 3, 4, 5].map(days => (
-                            <button
-                              key={days}
-                              type="button"
-                              onClick={() => {
-                                const start = new Date(formData.date + 'T00:00:00');
-                                start.setDate(start.getDate() + (days - 1));
-                                const yyyy = start.getFullYear();
-                                const mm = String(start.getMonth() + 1).padStart(2, '0');
-                                const dd = String(start.getDate()).padStart(2, '0');
-                                setEndDate(`${yyyy}-${mm}-${dd}`);
-                              }}
-                              className="px-2 py-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors cursor-pointer"
-                            >
-                              +{days}일
-                            </button>
-                          ))}
-                        </div>
+                      {/* 일괄 생성 요약 뱃지 */}
+                      <div className="flex items-center justify-end pt-1">
                         <span className="text-[10.5px] font-black text-[#1E3A8A] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100/60">
                           총 {getDatesInRange(formData.date, endDate).length}일간 출강 ({getDatesInRange(formData.date, endDate).length}개 일정 생성)
                         </span>
