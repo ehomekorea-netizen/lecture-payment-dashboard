@@ -740,9 +740,30 @@ export default function App() {
   // 카드 토글 상태
   const [toggledCardIds, setToggledCardIds] = useState(new Set());
 
-  // 직접입력 모드 상태
+  // 직접입력 모드 및 출강 날짜 모드 상태
   const [customRateActive, setCustomRateActive] = useState(false);
   const [customClassesActive, setCustomClassesActive] = useState(false);
+  const [dateMode, setDateMode] = useState('single'); // 'single' | 'range'
+  const [endDate, setEndDate] = useState(getKstToday());
+
+  // 기간 범위 내 날짜 배열 구하기 (최대 31일 제한)
+  const getDatesInRange = (startStr, endStr) => {
+    if (!startStr) return [getKstToday()];
+    if (!endStr || endStr < startStr) return [startStr];
+    const dates = [];
+    let curr = new Date(startStr + 'T00:00:00');
+    const end = new Date(endStr + 'T00:00:00');
+    let count = 0;
+    while (curr <= end && count < 31) {
+      const yyyy = curr.getFullYear();
+      const mm = String(curr.getMonth() + 1).padStart(2, '0');
+      const dd = String(curr.getDate()).padStart(2, '0');
+      dates.push(`${yyyy}-${mm}-${dd}`);
+      curr.setDate(curr.getDate() + 1);
+      count++;
+    }
+    return dates.length > 0 ? dates : [startStr];
+  };
 
   // 모달 폼 상태
   const [formData, setFormData] = useState({
@@ -1612,10 +1633,15 @@ ${aiText}
     );
 
     const now = new Date();
-    const dateVal = formData.date || `${now.getMonth() + 1}월 ${now.getDate()}일`;
+    const startDateVal = formData.date || `${now.getMonth() + 1}월 ${now.getDate()}일`;
 
-    const newLecture = {
-      id: editingLecture ? editingLecture.id : String(Date.now()),
+    // 연속 출강 모드(range)일 경우 범위 내 모든 날짜 추출, 단일 모드 혹은 수정 모드일 경우 1일
+    const targetDates = (!editingLecture && dateMode === 'range') 
+      ? getDatesInRange(startDateVal, endDate) 
+      : [startDateVal];
+
+    const generatedLectures = targetDates.map((dVal, idx) => ({
+      id: editingLecture ? editingLecture.id : `lect-${Date.now()}-${idx}-${Math.random().toString(36).substr(2, 4)}`,
       institution: formData.institution,
       venue: formData.venue || '',
       role: formData.role || 'Main',
@@ -1625,18 +1651,18 @@ ${aiText}
       transportFee: Number(formData.transportFee),
       deduction,
       netAmount,
-      date: dateVal,
-      month: extractMonth(dateVal),
+      date: dVal,
+      month: extractMonth(dVal),
       isPaid: formData.isPaid,
       taxRate: formData.taxRate,
       customTax: Number(formData.customTax)
-    };
+    }));
 
     let updatedList;
     if (editingLecture) {
-      updatedList = lectures.map(l => l.id === editingLecture.id ? newLecture : l);
+      updatedList = lectures.map(l => l.id === editingLecture.id ? generatedLectures[0] : l);
     } else {
-      updatedList = [newLecture, ...lectures];
+      updatedList = [...generatedLectures, ...lectures];
     }
 
     setLectures(updatedList);
@@ -1644,6 +1670,8 @@ ${aiText}
     setEditingLecture(null);
     setCustomRateActive(false);
     setCustomClassesActive(false);
+    setDateMode('single');
+    setEndDate(new Date().toISOString().slice(0, 10));
 
     setFormData({
       institution: '',
@@ -1794,6 +1822,7 @@ ${aiText}
     const isCustomClasses = lecture.classes < 1 || lecture.classes > 16 || !Number.isInteger(lecture.classes);
     setCustomRateActive(isCustomRate);
     setCustomClassesActive(isCustomClasses);
+    setDateMode('single');
     setFormData({
       institution: lecture.institution,
       venue: lecture.venue || '',
@@ -4278,6 +4307,8 @@ function doPost(e) {
                       setEditingLecture(null);
                       setCustomRateActive(false);
                       setCustomClassesActive(false);
+                      setDateMode('single');
+                      setEndDate(new Date().toISOString().slice(0, 10));
                       setFormData({
                         institution: '',
                         venue: '',
@@ -4496,16 +4527,16 @@ function doPost(e) {
                   )}
                 </div>
 
-                {/* 교육장명 */}
+                {/* 교육장명 / 교육대상 */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="font-bold text-slate-600 text-[11.5px]">교육장명 <span className="text-red-500 font-extrabold">*</span></label>
+                  <label className="font-bold text-slate-600 text-[11.5px]">교육장명 / 교육대상 <span className="text-red-500 font-extrabold">*</span></label>
                   <input
                     type="text"
                     name="venue"
                     required
                     value={formData.venue || ''}
                     onChange={handleInputChange}
-                    placeholder="예: 목포경애원, 남중"
+                    placeholder="예: 목포경애원, 남중 1학년 2반"
                     className="px-4 py-3 border rounded-xl focus:outline-none focus:border-[#1E3A8A] text-[12px] font-semibold transition-all required-pulse"
                     style={{
                       borderColor: 'rgba(30,58,138,0.15)',
@@ -4665,22 +4696,115 @@ function doPost(e) {
                   />
                 </div>
 
-                {/* 구체적 날짜 */}
-                <div className="relative flex flex-col gap-1.5">
-                  <label className="font-bold text-slate-500 text-[11px]">출강 날짜</label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      name="date"
-                      value={formData.date}
-                      onChange={handleInputChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                    />
-                    <div className="px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-between text-[13px] font-black text-slate-800 date-pulse">
-                      <span>{formatDateDisplayFull(formData.date)}</span>
-                      <Calendar size={14} className="text-slate-400" />
-                    </div>
+                {/* 출강 날짜 (단일 vs 연속 출강 기간 선택) */}
+                <div className="flex flex-col gap-2 p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+                  <div className="flex items-center justify-between">
+                    <label className="font-extrabold text-slate-700 text-[11.5px] flex items-center gap-1">
+                      <Calendar size={13} className="text-[#1E3A8A]" />
+                      <span>출강 날짜</span>
+                    </label>
+                    {!editingLecture && (
+                      <div className="flex bg-slate-200/70 p-0.5 rounded-lg text-[10.5px] font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setDateMode('single')}
+                          className={`px-2.5 py-1 rounded-md transition-all ${dateMode === 'single' ? 'bg-white text-[#1E3A8A] font-black shadow-sm' : 'text-slate-500'}`}
+                        >
+                          1일 (단일)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDateMode('range');
+                            if (!endDate || endDate < formData.date) setEndDate(formData.date);
+                          }}
+                          className={`px-2.5 py-1 rounded-md transition-all ${dateMode === 'range' ? 'bg-[#1E3A8A] text-white font-black shadow-sm' : 'text-slate-500'}`}
+                        >
+                          연속 출강 (기간)
+                        </button>
+                      </div>
+                    )}
                   </div>
+
+                  {dateMode === 'single' || editingLecture ? (
+                    <div className="relative">
+                      <input
+                        type="date"
+                        name="date"
+                        value={formData.date}
+                        onChange={handleInputChange}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                      <div className="px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white flex items-center justify-between text-[12.5px] font-black text-slate-800 date-pulse">
+                        <span>{formatDateDisplayFull(formData.date)}</span>
+                        <Calendar size={14} className="text-slate-400" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 mt-0.5">
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-slate-400">시작일</span>
+                          <div className="relative">
+                            <input
+                              type="date"
+                              name="date"
+                              value={formData.date}
+                              onChange={(e) => {
+                                handleInputChange(e);
+                                if (endDate && endDate < e.target.value) setEndDate(e.target.value);
+                              }}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            />
+                            <div className="px-3 py-2 border border-slate-200 rounded-xl bg-white flex items-center justify-between text-[11.5px] font-black text-slate-800">
+                              <span>{formatDateDisplayFull(formData.date)}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-bold text-slate-400">종료일</span>
+                          <div className="relative">
+                            <input
+                              type="date"
+                              value={endDate}
+                              min={formData.date}
+                              onChange={(e) => setEndDate(e.target.value)}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            />
+                            <div className="px-3 py-2 border border-slate-200 rounded-xl bg-white flex items-center justify-between text-[11.5px] font-black text-slate-800">
+                              <span>{formatDateDisplayFull(endDate)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 단축 일수 선택 버튼 및 일괄 생성 요약 뱃지 */}
+                      <div className="flex items-center justify-between gap-1.5 pt-1">
+                        <div className="flex gap-1 text-[10px] font-bold">
+                          {[2, 3, 4, 5].map(days => (
+                            <button
+                              key={days}
+                              type="button"
+                              onClick={() => {
+                                const start = new Date(formData.date + 'T00:00:00');
+                                start.setDate(start.getDate() + (days - 1));
+                                const yyyy = start.getFullYear();
+                                const mm = String(start.getMonth() + 1).padStart(2, '0');
+                                const dd = String(start.getDate()).padStart(2, '0');
+                                setEndDate(`${yyyy}-${mm}-${dd}`);
+                              }}
+                              className="px-2 py-1 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 rounded-lg transition-colors cursor-pointer"
+                            >
+                              +{days}일
+                            </button>
+                          ))}
+                        </div>
+                        <span className="text-[10.5px] font-black text-[#1E3A8A] bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100/60">
+                          총 {getDatesInRange(formData.date, endDate).length}일간 출강 ({getDatesInRange(formData.date, endDate).length}개 일정 생성)
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* 공제 세율 설정 (선택) */}
